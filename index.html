@@ -1409,6 +1409,11 @@
       db.ref('announcement').once('value', (snap) => {
         if (!snap.exists() && !activeAnnouncement) db.ref('announcement').set("");
       });
+
+      // SEED TEMA DARI LOCALSTORAGE KE FIREBASE JIKA FIREBASE KOSONG
+      db.ref('theme_config').once('value', (snap) => {
+        if (!snap.exists()) db.ref('theme_config').set(themeConfig);
+      });
     };
 
     // ============================================================
@@ -2430,10 +2435,13 @@
     });
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
+    // ===== SIMPAN TEMA KE FIREBASE SAAT ADMIN MENGUBAHNYA =====
     $('theme-config-form').addEventListener('submit', e => {
       e.preventDefault();
       themeConfig = { bg: $('theme-bg-color').value, primary: $('theme-primary-color').value };
       localStorage.setItem('adidin_theme', JSON.stringify(themeConfig));
+      // Kirim ke Firebase agar semua perangkat ikut berubah
+      if (firebaseReady) db.ref('theme_config').set(themeConfig);
       applyTheme();
     });
 
@@ -2460,6 +2468,7 @@
         db.ref('history').set(historyList);
         db.ref('broadcast_history').set(broadcastHistory);
         db.ref('announcement').set(activeAnnouncement);
+        db.ref('theme_config').set(themeConfig); // Sinkronkan tema juga
       }
       const el = $('seed-status');
       el.classList.remove('hidden');
@@ -2597,6 +2606,19 @@
           activeAnnouncement = snap.val() || "";
           localStorage.setItem('adidin_announcement', activeAnnouncement);
           renderAnnouncement();
+        });
+
+        // ===== SINKRONISASI TEMA DARI FIREBASE (AGAR OTOMATIS MENGIKUTI ADMIN) =====
+        db.ref('theme_config').on('value', (snap) => {
+          const data = snap.val();
+          if (data) {
+            themeConfig = data;
+            localStorage.setItem('adidin_theme', JSON.stringify(themeConfig));
+            applyTheme();
+          } else {
+            // Jika belum ada, kirim tema default dari localStorage ke Firebase
+            db.ref('theme_config').set(themeConfig);
+          }
         });
 
         seedInitialData();
