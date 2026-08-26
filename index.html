@@ -889,28 +889,15 @@
 
     /* ===== RESPONSIF ===== */
     @media (max-width: 768px) {
-      .admin-grid {
-        grid-template-columns: 1fr;
-      }
-      .cart-container {
-        grid-template-columns: 1fr;
-      }
-      .product-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .admin-grid { grid-template-columns: 1fr; }
+      .cart-container { grid-template-columns: 1fr; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 480px) {
-      .product-grid {
-        grid-template-columns: 1fr;
-      }
-      .nav-link {
-        font-size: 10px;
-        padding: 6px 8px;
-      }
-      .logo h1 {
-        font-size: 16px;
-      }
+      .product-grid { grid-template-columns: 1fr; }
+      .nav-link { font-size: 10px; padding: 6px 8px; }
+      .logo h1 { font-size: 16px; }
     }
   </style>
 </head>
@@ -1346,10 +1333,26 @@
     // SIMPAN DATA (DENGAN FALLBACK FIREBASE)
     // ============================================================
     const saveProducts = () => {
-      localStorage.setItem('adidin_products', JSON.stringify(products));
-      if (firebaseReady) db.ref('products').set(products);
-      renderProducts();
-      if (currentUser) { renderAdminProducts(); renderPosProducts(); }
+      // Kirim ke Firebase dulu, baru simpan ke localStorage sebagai cache
+      if (firebaseReady) {
+        db.ref('products').set(products)
+          .then(() => {
+            localStorage.setItem('adidin_products', JSON.stringify(products));
+            renderProducts();
+            if (currentUser) { renderAdminProducts(); renderPosProducts(); }
+          })
+          .catch(err => {
+            console.error("Gagal sinkron ke Firebase:", err);
+            // Tetap simpan lokal sebagai fallback
+            localStorage.setItem('adidin_products', JSON.stringify(products));
+            renderProducts();
+            if (currentUser) { renderAdminProducts(); renderPosProducts(); }
+          });
+      } else {
+        localStorage.setItem('adidin_products', JSON.stringify(products));
+        renderProducts();
+        if (currentUser) { renderAdminProducts(); renderPosProducts(); }
+      }
     };
 
     const saveUsers = () => {
@@ -1381,38 +1384,45 @@
     };
 
     // ============================================================
-    // FIREBASE SEED AMAN (TIDAK MENGHAPUS DATA YANG SUDAH ADA)
+    // FIREBASE SEED AMAN (TIDAK MENIMPA DATA YANG SUDAH ADA)
     // ============================================================
     const seedInitialData = () => {
       if (!firebaseReady) return;
       
       db.ref('products').once('value', (snap) => {
-        if (!snap.exists()) db.ref('products').set(products);
+        // Hanya isi jika node "products" TIDAK ADA sama sekali
+        // dan pengguna belum pernah punya data lokal (first time)
+        if (snap.val() === null) {
+          const localData = localStorage.getItem('adidin_products');
+          if (localData === null) {
+            db.ref('products').set(products);
+          }
+          // Jika localStorage sudah ada (walaupun []), jangan isi ulang
+        }
       });
       
       db.ref('users').once('value', (snap) => {
-        if (!snap.exists()) db.ref('users').set(adminUsers);
+        if (snap.val() === null) db.ref('users').set(adminUsers);
       });
       
       db.ref('store_status').once('value', (snap) => {
-        if (!snap.exists()) db.ref('store_status').set(storeOpen);
+        if (snap.val() === null) db.ref('store_status').set(storeOpen);
       });
       
       db.ref('history').once('value', (snap) => {
-        if (!snap.exists() && historyList.length === 0) db.ref('history').set([]);
+        if (snap.val() === null && historyList.length === 0) db.ref('history').set([]);
       });
       
       db.ref('broadcast_history').once('value', (snap) => {
-        if (!snap.exists() && broadcastHistory.length === 0) db.ref('broadcast_history').set([]);
+        if (snap.val() === null && broadcastHistory.length === 0) db.ref('broadcast_history').set([]);
       });
       
       db.ref('announcement').once('value', (snap) => {
-        if (!snap.exists() && !activeAnnouncement) db.ref('announcement').set("");
+        if (snap.val() === null) db.ref('announcement').set("");
       });
 
-      // SEED TEMA DARI LOCALSTORAGE KE FIREBASE JIKA FIREBASE KOSONG
       db.ref('theme_config').once('value', (snap) => {
-        if (!snap.exists()) db.ref('theme_config').set(themeConfig);
+        if (snap.val() === null) db.ref('theme_config').set(themeConfig);
       });
     };
 
@@ -2568,7 +2578,9 @@
             products = Array.isArray(data) ? data : Object.values(data);
             localStorage.setItem('adidin_products', JSON.stringify(products));
           } else {
-            seedInitialData();
+            // Data tidak ada / habis dihapus => kosongkan
+            products = [];
+            localStorage.setItem('adidin_products', JSON.stringify(products));
           }
           renderProducts();
           if (currentUser) { renderAdminProducts(); renderPosProducts(); }
