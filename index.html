@@ -2336,6 +2336,16 @@
       if (!storeOpen) return alert("⛔ Toko sedang TUTUP!");
       if (cart.length === 0) return alert("Keranjang kosong!");
 
+      // ===== FITUR WAJIB LOKASI =====
+      // Jika ongkir aktif, user WAJIB memakai lokasi dulu
+      if (shippingConfig.enabled) {
+        if (!userLocation || !userLocation.lat || !userLocation.lng) {
+          alert("⚠️ Wajib gunakan lokasi terlebih dahulu agar ongkir otomatis terisi!\nKlik tombol 'Gunakan Lokasi Saya' di atas.");
+          return;
+        }
+      }
+      // ==============================
+
       const name = $('checkout-name').value;
       const phone = $('checkout-phone').value;
       const address = $('checkout-address').value;
