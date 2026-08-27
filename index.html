@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Toko Online & POS Kasir A'Didin</title>
 
-  <!-- PWA Manifest Inline -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Toko A%27Didin","short_name":"ADidin","start_url":".","display":"standalone","background_color":"%23f8fafc","theme_color":"%232563eb"}'>
 
   <meta name="theme-color" content="#2563eb">
@@ -15,12 +14,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 
-  <!-- FIREBASE COMPAT (stabil untuk file tunggal) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
-    /* ===== PENGATURAN DASAR ===== */
     * {
       margin: 0;
       padding: 0;
@@ -66,7 +66,6 @@
       text-align: center;
     }
 
-    /* ===== HEADER & NAVIGASI ===== */
     header {
       background: #fff;
       box-shadow: 0 1px 3px rgba(0,0,0,.08);
@@ -178,7 +177,6 @@
       background: #fee2e2;
     }
 
-    /* ===== RESPONSIF NAVBAR ===== */
     @media (max-width: 768px) {
       .navbar {
         flex-direction: column;
@@ -193,7 +191,6 @@
       }
     }
 
-    /* ===== TOMBOL & FORM ===== */
     button {
       cursor: pointer;
       border: none;
@@ -248,7 +245,6 @@
       margin-bottom: 3px;
     }
 
-    /* ===== BAGIAN HALAMAN ===== */
     .page-section {
       display: none;
       padding: 15px 0;
@@ -277,7 +273,6 @@
       border-radius: 2px;
     }
 
-    /* ===== STATUS TOKO ===== */
     .store-status-banner {
       display: flex;
       align-items: center;
@@ -309,7 +304,6 @@
       border: 2px solid #e2e8f0;
     }
 
-    /* ===== PENCARIAN & FILTER ===== */
     .search-filter-box {
       display: flex;
       flex-direction: column;
@@ -348,7 +342,6 @@
       font-size: 13px;
     }
 
-    /* ===== KARTU PRODUK ===== */
     .product-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
@@ -497,7 +490,6 @@
       padding: 0 10px 10px;
     }
 
-    /* ===== KERANJANG ===== */
     .cart-container {
       display: grid;
       grid-template-columns: 1fr;
@@ -584,7 +576,6 @@
       margin-bottom: 10px;
     }
 
-    /* ===== ADMIN ===== */
     .auth-box {
       max-width: 380px;
       margin: 25px auto;
@@ -649,7 +640,6 @@
       padding-bottom: 5px;
     }
 
-    /* ===== POS ===== */
     .pos-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -692,7 +682,6 @@
       border-radius: 4px;
     }
 
-    /* ===== TABEL ===== */
     .table-responsive {
       width: 100%;
       overflow-x: auto;
@@ -780,7 +769,6 @@
       white-space: normal;
     }
 
-    /* ===== STATISTIK ===== */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -802,7 +790,6 @@
       margin-top: 3px;
     }
 
-    /* ===== MODAL ===== */
     .scanner-modal,
     .topping-modal {
       position: fixed;
@@ -844,7 +831,6 @@
       cursor: pointer;
     }
 
-    /* ===== CETAK STRUK ===== */
     #printable-receipt {
       display: none;
     }
@@ -887,7 +873,6 @@
       margin-bottom: 8px;
     }
 
-    /* ===== RESPONSIF ===== */
     @media (max-width: 768px) {
       .admin-grid { grid-template-columns: 1fr; }
       .cart-container { grid-template-columns: 1fr; }
@@ -903,7 +888,6 @@
 </head>
 <body>
 
-  <!-- ================= HEADER ================= -->
   <header>
     <div class="navbar container">
       <div class="logo">
@@ -930,7 +914,6 @@
 
   <main class="container">
 
-    <!-- ================= HALAMAN TOKO ================= -->
     <section class="page-section active" id="buyer-dashboard">
       <div class="store-status-banner" id="store-status-banner">
         <i class="fas fa-store"></i>
@@ -959,7 +942,6 @@
       <div class="product-grid" id="product-list"></div>
     </section>
 
-    <!-- ================= HALAMAN KERANJANG ================= -->
     <section class="page-section" id="cart-dashboard">
       <h2 class="section-title">Keranjang Belanja Online</h2>
       <div class="cart-container">
@@ -973,10 +955,21 @@
           <div class="order-summary">
             <h3>Ringkasan Belanja</h3>
             <div class="summary-line"><span>Subtotal:</span> <span id="summary-subtotal">Rp 0</span></div>
-            <div class="summary-line"><span>Ongkos Kirim:</span> <span>Ditentukan Admin</span></div>
+            <div class="summary-line"><span>Ongkos Kirim:</span> <span id="summary-shipping">Belum dihitung</span></div>
             <hr style="border:none;border-top:1px solid var(--border);margin:5px 0;">
             <div class="summary-line total"><span>Total:</span> <span id="summary-total">Rp 0 (+Ongkir)</span></div>
           </div>
+
+          <div class="card" style="margin-bottom:12px;background:#f0f9ff;border-color:#bae6fd;">
+            <h3 style="border:none;padding-bottom:0;"><i class="fas fa-map-marker-alt"></i> Lokasi Pengiriman</h3>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Pilih lokasi untuk menghitung otomatis ongkos kirim.</p>
+            <button type="button" class="btn-secondary btn-block" id="btn-use-my-location">
+              <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya
+            </button>
+            <div id="map-picker" style="height:250px;border:1px solid var(--border);border-radius:6px;margin-top:8px;display:none;"></div>
+            <p id="map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p>
+          </div>
+
           <form class="form-style" id="checkout-form">
             <h3>Data Pengiriman</h3>
             <div class="form-group"><label>Nama Lengkap</label><input type="text" id="checkout-name" required placeholder="Nama Anda"></div>
@@ -1002,10 +995,8 @@
       </div>
     </section>
 
-    <!-- ================= HALAMAN ADMIN ================= -->
     <section class="page-section" id="admin-section">
 
-      <!-- Login -->
       <div class="auth-box" id="admin-login-box">
         <h2>Login Sistem Toko</h2>
         <form class="form-style" id="form-login">
@@ -1023,7 +1014,6 @@
         <p class="auth-switch">Belum punya akun? <span id="switch-to-register">Daftar</span></p>
       </div>
 
-      <!-- Register -->
       <div class="auth-box hidden" id="admin-register-box">
         <h2>Daftar Akun Pengelola</h2>
         <form class="form-style" id="form-register">
@@ -1043,7 +1033,6 @@
         <p class="auth-switch">Sudah punya akun? <span id="switch-to-login">Login</span></p>
       </div>
 
-      <!-- Dashboard Admin -->
       <div class="hidden" id="admin-dashboard">
         <div class="admin-header">
           <div>
@@ -1053,7 +1042,6 @@
           <button class="btn-danger" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
 
-        <!-- KARTU BUKA/TUTUP TOKO (MUNCUL UNTUK ADMIN & KASIR) -->
         <div class="card" id="store-status-card">
           <h3><i class="fas fa-store-alt"></i> Status Toko</h3>
           <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">
@@ -1064,7 +1052,6 @@
           </button>
         </div>
 
-        <!-- Sinkronisasi Firebase -->
         <div class="card">
           <h3><i class="fas fa-sync-alt"></i> Sinkronisasi Data Firebase</h3>
           <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">Jika data belum muncul, klik tombol ini.</p>
@@ -1074,7 +1061,6 @@
           <p class="hidden" id="seed-status" style="font-size:11px;color:var(--success);margin-top:8px;"></p>
         </div>
 
-        <!-- POS KASIR -->
         <div class="card" id="pos-module-card">
           <h3><i class="fas fa-cash-register"></i> Kasir POS</h3>
           <div class="pos-grid">
@@ -1109,7 +1095,6 @@
           </div>
         </div>
 
-        <!-- Laporan Keuangan -->
         <div class="card admin-only-feature">
           <h3><i class="fas fa-chart-line"></i> Laporan Keuangan / Laba Rugi</h3>
           <div class="stats-grid">
@@ -1120,7 +1105,6 @@
         </div>
 
         <div class="admin-grid">
-          <!-- Sidebar Admin -->
           <div>
             <div class="card admin-only-feature">
               <h3><i class="fas fa-users-cog"></i> Pengelolaan Akun</h3>
@@ -1181,7 +1165,6 @@
             </div>
           </div>
 
-          <!-- Main Admin -->
           <div>
             <div class="card">
               <h3><i class="fas fa-history"></i> Histori Pesanan</h3>
@@ -1208,6 +1191,37 @@
             </div>
 
             <div class="card admin-only-feature">
+              <h3><i class="fas fa-truck"></i> Pengaturan Ongkir & Lokasi Toko</h3>
+              <form class="form-style" id="shipping-config-form">
+                <div class="form-group"><label>Aktifkan Ongkir</label>
+                  <select id="ship-enabled">
+                    <option value="false">Nonaktif</option>
+                    <option value="true">Aktif</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Latitude Toko</label>
+                  <input type="number" step="any" id="ship-lat" placeholder="-6.200000">
+                </div>
+                <div class="form-group"><label>Longitude Toko</label>
+                  <input type="number" step="any" id="ship-lng" placeholder="106.816666">
+                </div>
+                <div class="form-group"><label>Alamat Toko</label>
+                  <input type="text" id="ship-address" placeholder="Jl. Toko A'Didin No.1">
+                </div>
+                <div class="form-group"><label>Ongkir per Km (Rp)</label>
+                  <input type="number" id="ship-per-km" value="2000">
+                </div>
+                <div class="form-group"><label>Ongkir Minimal (Rp)</label>
+                  <input type="number" id="ship-min-fee" value="5000">
+                </div>
+                <div class="form-group"><label>Gratis Ongkir jika Subtotal ≥ (Rp)</label>
+                  <input type="number" id="ship-free-min" value="100000">
+                </div>
+                <button class="btn-primary btn-block" type="submit">Simpan Pengaturan</button>
+              </form>
+            </div>
+
+            <div class="card admin-only-feature">
               <h3><i class="fas fa-bullhorn"></i> Broadcast Pengumuman</h3>
               <form class="form-style" id="wa-broadcast-form">
                 <div class="form-group"><label>Pesan Pengumuman</label><textarea id="broadcast-text" required></textarea></div>
@@ -1228,7 +1242,6 @@
     </section>
   </main>
 
-  <!-- Modal Scanner -->
   <div class="scanner-modal hidden" id="scanner-modal">
     <div class="scanner-box">
       <h4><i class="fas fa-barcode"></i> Pindai Barcode</h4>
@@ -1237,7 +1250,6 @@
     </div>
   </div>
 
-  <!-- Modal Topping -->
   <div class="topping-modal hidden" id="topping-modal">
     <div class="topping-box">
       <h4><i class="fas fa-ice-cream"></i> Pilih Topping: <span id="topping-product-name"></span></h4>
@@ -1258,9 +1270,6 @@
   </footer>
 
   <script>
-    // ============================================================
-    // FIREBASE COMPAT — KONFIGURASI BARU
-    // ============================================================
     const firebaseConfig = {
       apiKey: "AIzaSyB4Nqe2FKO2q12qhwVEWtvUrd-l8WgVEtU",
       authDomain: "pengembangumkmlokal.firebaseapp.com",
@@ -1275,9 +1284,6 @@
     let firebaseReady = false;
     let db = null;
 
-    // ============================================================
-    // STATE & UTIL
-    // ============================================================
     const DEFAULT_SECRET_REGISTRATION = "aliciapitalaurasalsabila";
     const MAIN_WA_NUMBER = "628991286742";
 
@@ -1329,11 +1335,139 @@
     let encodedImage = "";
     let pendingToppingCallback = null;
 
-    // ============================================================
-    // SIMPAN DATA (DENGAN FALLBACK FIREBASE)
-    // ============================================================
+    let shippingConfig = safeParse(localStorage.getItem('adidin_shipping_config'), {
+      enabled: false,
+      storeLat: -6.200000,
+      storeLng: 106.816666,
+      storeAddress: "Jl. Toko A'Didin No.1",
+      perKm: 2000,
+      minFee: 5000,
+      freeMin: 100000
+    });
+
+    let userLocation = null;
+    let mapPicker = null;
+    let mapMarker = null;
+
+    const saveShippingConfig = () => {
+      localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
+      if (firebaseReady) db.ref('shipping_config').set(shippingConfig);
+      applyShippingForm();
+      renderCart();
+    };
+
+    const applyShippingForm = () => {
+      $('ship-enabled').value = shippingConfig.enabled ? 'true' : 'false';
+      $('ship-lat').value = shippingConfig.storeLat;
+      $('ship-lng').value = shippingConfig.storeLng;
+      $('ship-address').value = shippingConfig.storeAddress || '';
+      $('ship-per-km').value = shippingConfig.perKm;
+      $('ship-min-fee').value = shippingConfig.minFee;
+      $('ship-free-min').value = shippingConfig.freeMin;
+    };
+
+    const haversineDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+
+    const calculateShippingFee = (subtotal) => {
+      if (!shippingConfig.enabled || !subtotal) return 0;
+      if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
+      if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
+      const distance = haversineDistance(
+        shippingConfig.storeLat,
+        shippingConfig.storeLng,
+        userLocation.lat,
+        userLocation.lng
+      );
+      const cost = Math.round(distance * (shippingConfig.perKm || 0));
+      return Math.max(cost, shippingConfig.minFee || 0);
+    };
+
+    const updateShippingDisplay = () => {
+      if (!$('summary-shipping')) return;
+      const subtotalEl = $('summary-subtotal');
+      const subtotal = parseInt(subtotalEl.innerText.replace(/\D/g,'')) || 0;
+
+      if (!shippingConfig.enabled) {
+        $('summary-shipping').innerText = "Gratis / Tidak ada";
+        $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+        return;
+      }
+
+      if (!userLocation || !userLocation.lat || !userLocation.lng) {
+        $('summary-shipping').innerText = "Pilih lokasi dulu";
+        $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+        return;
+      }
+
+      const shippingFee = calculateShippingFee(subtotal);
+      const total = subtotal + shippingFee;
+      $('summary-shipping').innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+      $('summary-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+    };
+
+    const reverseGeocode = async (lat, lng) => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        const address = data.display_name || `${lat}, ${lng}`;
+        $('checkout-address').value = address;
+        if (userLocation) userLocation.address = address;
+        $('map-status').innerText = `Lokasi: ${address}`;
+      } catch (e) {
+        $('map-status').innerText = `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        $('checkout-address').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+      updateShippingDisplay();
+    };
+
+    const initMapPicker = (lat, lng) => {
+      $('map-picker').style.display = 'block';
+      if (!mapPicker) {
+        mapPicker = L.map('map-picker').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(mapPicker);
+        mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
+        mapMarker.on('dragend', (e) => {
+          const pos = e.target.getLatLng();
+          userLocation = { lat: pos.lat, lng: pos.lng, address: '' };
+          reverseGeocode(pos.lat, pos.lng);
+        });
+      } else {
+        mapPicker.setView([lat, lng], 15);
+        mapMarker.setLatLng([lat, lng]);
+      }
+      setTimeout(() => mapPicker.invalidateSize(), 100);
+    };
+
+    const handleUseMyLocation = () => {
+      if (!navigator.geolocation) {
+        alert("Browser Anda tidak mendukung geolokasi.");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        userLocation = { lat, lng, address: '' };
+        initMapPicker(lat, lng);
+        reverseGeocode(lat, lng);
+        $('checkout-address').focus();
+      }, (err) => {
+        alert("Gagal mendapatkan lokasi. Coba lagi atau isi alamat manual.");
+        console.error(err);
+      }, { enableHighAccuracy: true });
+    };
+
     const saveProducts = () => {
-      // Kirim ke Firebase dulu, baru simpan ke localStorage sebagai cache
       if (firebaseReady) {
         db.ref('products').set(products)
           .then(() => {
@@ -1343,7 +1477,6 @@
           })
           .catch(err => {
             console.error("Gagal sinkron ke Firebase:", err);
-            // Tetap simpan lokal sebagai fallback
             localStorage.setItem('adidin_products', JSON.stringify(products));
             renderProducts();
             if (currentUser) { renderAdminProducts(); renderPosProducts(); }
@@ -1383,42 +1516,40 @@
       $('cart-count').innerText = cart.length;
     };
 
-    // ============================================================
-    // FIREBASE SEED AMAN (TIDAK MENIMPA DATA YANG SUDAH ADA)
-    // ============================================================
     const seedInitialData = () => {
       if (!firebaseReady) return;
-      
+
       db.ref('products').once('value', (snap) => {
-        // Hanya isi jika node "products" TIDAK ADA sama sekali
-        // dan pengguna belum pernah punya data lokal (first time)
         if (snap.val() === null) {
           const localData = localStorage.getItem('adidin_products');
           if (localData === null) {
             db.ref('products').set(products);
           }
-          // Jika localStorage sudah ada (walaupun []), jangan isi ulang
         }
       });
-      
+
       db.ref('users').once('value', (snap) => {
         if (snap.val() === null) db.ref('users').set(adminUsers);
       });
-      
+
       db.ref('store_status').once('value', (snap) => {
         if (snap.val() === null) db.ref('store_status').set(storeOpen);
       });
-      
+
       db.ref('history').once('value', (snap) => {
         if (snap.val() === null && historyList.length === 0) db.ref('history').set([]);
       });
-      
+
       db.ref('broadcast_history').once('value', (snap) => {
         if (snap.val() === null && broadcastHistory.length === 0) db.ref('broadcast_history').set([]);
       });
-      
+
       db.ref('announcement').once('value', (snap) => {
         if (snap.val() === null) db.ref('announcement').set("");
+      });
+
+      db.ref('shipping_config').once('value', (snap) => {
+        if (snap.val() === null) db.ref('shipping_config').set(shippingConfig);
       });
 
       db.ref('theme_config').once('value', (snap) => {
@@ -1426,9 +1557,6 @@
       });
     };
 
-    // ============================================================
-    // STATUS TOKO — MUNCUL UNTUK ADMIN & KASIR
-    // ============================================================
     const saveStoreStatus = () => {
       localStorage.setItem('adidin_store_open', storeOpen);
       if (firebaseReady) db.ref('store_status').set(storeOpen);
@@ -1468,9 +1596,6 @@
       }
     };
 
-    // ============================================================
-    // NAVIGASI
-    // ============================================================
     const switchPage = (name) => {
       ['buyer-dashboard', 'cart-dashboard', 'admin-section'].forEach(id => $(id).classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
@@ -1490,9 +1615,6 @@
       }
     };
 
-    // ============================================================
-    // NOTIFIKASI
-    // ============================================================
     const renderAnnouncement = () => {
       const banner = $('shop-upgrade-banner');
       const msg = $('shop-upgrade-message');
@@ -1515,9 +1637,6 @@
       }
     };
 
-    // ============================================================
-    // TOPPING MODAL
-    // ============================================================
     const openTopping = (product, cb) => {
       pendingToppingCallback = cb;
       $('topping-product-name').innerText = product.name;
@@ -1537,9 +1656,6 @@
       pendingToppingCallback = null;
     };
 
-    // ============================================================
-    // PRODUK PEMBELI
-    // ============================================================
     const renderProducts = () => {
       const container = $('product-list');
       if (!container) return;
@@ -1723,9 +1839,6 @@
       else finish([]);
     };
 
-    // ============================================================
-    // KERANJANG
-    // ============================================================
     const renderCart = () => {
       const list = $('cart-items-list');
       list.innerHTML = '';
@@ -1735,6 +1848,7 @@
         list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong.</p>';
         clearBtn.classList.add('hidden');
         $('summary-subtotal').innerText = "Rp 0";
+        $('summary-shipping').innerText = "Rp 0";
         $('summary-total').innerText = "Rp 0";
         return;
       }
@@ -1783,7 +1897,7 @@
       }));
 
       $('summary-subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-      $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')} (+ Ongkir)`;
+      updateShippingDisplay();
     };
 
     const changeQty = (idx, delta) => {
@@ -1793,9 +1907,6 @@
       saveCart(); renderCart();
     };
 
-    // ============================================================
-    // LOGIN / REGISTER
-    // ============================================================
     const checkSession = () => {
       if (currentUser) {
         $('admin-login-box').classList.add('hidden');
@@ -1807,6 +1918,7 @@
           el.classList.toggle('hidden', currentUser.role !== 'admin');
         });
 
+        applyShippingForm();
         renderStoreStatus();
         renderAdminUsers();
         renderAdminProducts();
@@ -1820,9 +1932,6 @@
       }
     };
 
-    // ============================================================
-    // POS KASIR
-    // ============================================================
     const renderPosProducts = () => {
       const container = $('pos-product-list');
       const search = $('pos-search').value.toLowerCase();
@@ -1923,9 +2032,6 @@
       $('pos-change-pay').innerText = `Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}`;
     };
 
-    // ============================================================
-    // SCANNER
-    // ============================================================
     const openScanner = (target) => {
       if (typeof Html5Qrcode === 'undefined') {
         alert("Library scanner belum dimuat. Periksa koneksi internet.");
@@ -1956,9 +2062,6 @@
       }
     };
 
-    // ============================================================
-    // LAPORAN KEUANGAN
-    // ============================================================
     const calcFinance = (list) => {
       let revenue = 0, cost = 0;
       list.forEach(o => {
@@ -1972,9 +2075,6 @@
       $('stat-profit').innerText = `Rp ${(revenue-cost).toLocaleString('id-ID')}`;
     };
 
-    // ============================================================
-    // MANAJEMEN AKUN
-    // ============================================================
     const renderAdminUsers = () => {
       const tbody = $('admin-users-table');
       tbody.innerHTML = '';
@@ -1989,9 +2089,6 @@
       }));
     };
 
-    // ============================================================
-    // TEMA
-    // ============================================================
     const applyTheme = () => {
       document.documentElement.style.setProperty('--bg', themeConfig.bg);
       document.documentElement.style.setProperty('--primary', themeConfig.primary);
@@ -1999,9 +2096,6 @@
       $('theme-primary-color').value = themeConfig.primary;
     };
 
-    // ============================================================
-    // BROADCAST
-    // ============================================================
     const renderBroadcastHistory = (list) => {
       const tbody = $('admin-broadcast-history-table');
       tbody.innerHTML = '';
@@ -2020,9 +2114,6 @@
       }));
     };
 
-    // ============================================================
-    // HISTORI & STATUS ORDER
-    // ============================================================
     const statusCfg = {
       'active':   { label: '● Pesanan Baru', cls: 'active' },
       'diterima': { label: '● Diterima', cls: 'diterima' },
@@ -2123,9 +2214,6 @@
       if (wa && wa !== '-') window.open(`https://api.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`, '_blank');
     };
 
-    // ============================================================
-    // FORM PRODUK
-    // ============================================================
     const addToppingRow = (name = '', price = '') => {
       const container = $('toppings-container');
       const row = document.createElement('div');
@@ -2160,9 +2248,6 @@
       handleUnitType();
     };
 
-    // ============================================================
-    // TABEL PRODUK ADMIN
-    // ============================================================
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table');
       const search = $('search-admin').value.toLowerCase();
@@ -2238,9 +2323,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // ============================================================
-    // EVENT BINDING
-    // ============================================================
     $('btn-home').addEventListener('click', () => switchPage('buyer'));
     $('btn-cart-view').addEventListener('click', () => switchPage('cart'));
     $('btn-admin-nav').addEventListener('click', () => switchPage('admin'));
@@ -2278,20 +2360,29 @@
         itemsArr.push({ productId: item.product.id, productName: item.product.name, price: item.product.price, costPrice: item.product.costPrice||0, qty: item.qty, unit: item.unitChosen, toppings });
       });
 
+      const shippingFee = calculateShippingFee(subtotal);
       const now = new Date();
       const order = {
         id: 'ord_' + Date.now(),
         timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`,
         buyerName: name, buyerPhone: phone, buyerAddress: address,
         timeOption: time, note, itemsSummary: itemsMsg, itemsList: itemsArr,
-        subtotal, totalHpp, netProfit: subtotal - totalHpp, shippingFee: 0,
+        subtotal, totalHpp, netProfit: subtotal - totalHpp, shippingFee: shippingFee,
+        distanceKm: userLocation ? haversineDistance(
+          shippingConfig.storeLat,
+          shippingConfig.storeLng,
+          userLocation.lat,
+          userLocation.lng
+        ).toFixed(2) : null,
+        userLat: userLocation ? userLocation.lat : null,
+        userLng: userLocation ? userLocation.lng : null,
         orderStatus: 'active', source: 'Online Shop'
       };
 
       historyList.unshift(order);
       saveHistory();
 
-      const msg = `*PESANAN BARU - TOKO A'DIDIN*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\n\n*Data:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
+      const msg = `*PESANAN BARU - TOKO A'DIDIN*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: Rp ${shippingFee.toLocaleString('id-ID')}\nTOTAL: Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}\n\n*Data:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
       window.open(`https://api.whatsapp.com/send?phone=${MAIN_WA_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
 
       cart = [];
@@ -2355,7 +2446,23 @@
     $('category-filter').addEventListener('change', renderProducts);
     $('search-admin').addEventListener('input', renderAdminProducts);
     $('pos-search').addEventListener('input', renderPosProducts);
-    $('pos-cash-input').addEventListener('input', calcPosChange);
+
+    $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
+
+    $('shipping-config-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      shippingConfig = {
+        enabled: $('ship-enabled').value === 'true',
+        storeLat: parseFloat($('ship-lat').value) || 0,
+        storeLng: parseFloat($('ship-lng').value) || 0,
+        storeAddress: $('ship-address').value.trim(),
+        perKm: parseFloat($('ship-per-km').value) || 0,
+        minFee: parseFloat($('ship-min-fee').value) || 0,
+        freeMin: parseFloat($('ship-free-min').value) || 0
+      };
+      saveShippingConfig();
+      alert("Pengaturan ongkir disimpan!");
+    });
 
     $('btn-process-pos').addEventListener('click', () => {
       if (posCart.length === 0) return alert("Pilih item dahulu!");
@@ -2394,7 +2501,8 @@
         timeOption: "Selesai di Tempat",
         note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash-total).toLocaleString('id-ID')}`,
         itemsSummary: summary, itemsList: items, subtotal: total, totalHpp,
-        netProfit: total - totalHpp, shippingFee: 0, orderStatus: 'selesai', source: 'POS Kasir'
+        netProfit: total - totalHpp, shippingFee: 0,
+        orderStatus: 'selesai', source: 'POS Kasir'
       };
 
       historyList.unshift(order);
@@ -2445,12 +2553,10 @@
     });
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
-    // ===== SIMPAN TEMA KE FIREBASE SAAT ADMIN MENGUBAHNYA =====
     $('theme-config-form').addEventListener('submit', e => {
       e.preventDefault();
       themeConfig = { bg: $('theme-bg-color').value, primary: $('theme-primary-color').value };
       localStorage.setItem('adidin_theme', JSON.stringify(themeConfig));
-      // Kirim ke Firebase agar semua perangkat ikut berubah
       if (firebaseReady) db.ref('theme_config').set(themeConfig);
       applyTheme();
     });
@@ -2478,7 +2584,8 @@
         db.ref('history').set(historyList);
         db.ref('broadcast_history').set(broadcastHistory);
         db.ref('announcement').set(activeAnnouncement);
-        db.ref('theme_config').set(themeConfig); // Sinkronkan tema juga
+        db.ref('theme_config').set(themeConfig);
+        db.ref('shipping_config').set(shippingConfig);
       }
       const el = $('seed-status');
       el.classList.remove('hidden');
@@ -2541,9 +2648,6 @@
       alert("Produk disimpan!");
     });
 
-    // ============================================================
-    // FIREBASE INITIALIZATION & REAL-TIME LISTENERS
-    // ============================================================
     function initFirebase() {
       try {
         firebase.initializeApp(firebaseConfig);
@@ -2562,7 +2666,6 @@
           }
         });
 
-        // Status toko realtime
         db.ref('store_status').on('value', (snap) => {
           if (snap.exists()) storeOpen = snap.val() === true;
           else { storeOpen = true; db.ref('store_status').set(true); }
@@ -2571,14 +2674,12 @@
           renderProducts();
         });
 
-        // Produk realtime
         db.ref('products').on('value', (snap) => {
           const data = snap.val();
           if (data) {
             products = Array.isArray(data) ? data : Object.values(data);
             localStorage.setItem('adidin_products', JSON.stringify(products));
           } else {
-            // Data tidak ada / habis dihapus => kosongkan
             products = [];
             localStorage.setItem('adidin_products', JSON.stringify(products));
           }
@@ -2586,7 +2687,6 @@
           if (currentUser) { renderAdminProducts(); renderPosProducts(); }
         });
 
-        // Users realtime
         db.ref('users').on('value', (snap) => {
           const data = snap.val();
           if (data) {
@@ -2596,7 +2696,6 @@
           if (currentUser) renderAdminUsers();
         });
 
-        // History realtime
         db.ref('history').on('value', (snap) => {
           const data = snap.val();
           const hasData = data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0);
@@ -2606,21 +2705,28 @@
           calcFinance(historyList);
         });
 
-        // Broadcast history realtime
         db.ref('broadcast_history').on('value', (snap) => {
           const data = snap.val();
           if (data) broadcastHistory = Array.isArray(data) ? data : Object.values(data);
           if (currentUser) renderBroadcastHistory(broadcastHistory);
         });
 
-        // Announcement realtime
         db.ref('announcement').on('value', (snap) => {
           activeAnnouncement = snap.val() || "";
           localStorage.setItem('adidin_announcement', activeAnnouncement);
           renderAnnouncement();
         });
 
-        // ===== SINKRONISASI TEMA DARI FIREBASE (AGAR OTOMATIS MENGIKUTI ADMIN) =====
+        db.ref('shipping_config').on('value', (snap) => {
+          const data = snap.val();
+          if (data) {
+            shippingConfig = data;
+            localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
+            applyShippingForm();
+            renderCart();
+          }
+        });
+
         db.ref('theme_config').on('value', (snap) => {
           const data = snap.val();
           if (data) {
@@ -2628,7 +2734,6 @@
             localStorage.setItem('adidin_theme', JSON.stringify(themeConfig));
             applyTheme();
           } else {
-            // Jika belum ada, kirim tema default dari localStorage ke Firebase
             db.ref('theme_config').set(themeConfig);
           }
         });
@@ -2652,9 +2757,6 @@
 
     initFirebase();
 
-    // ============================================================
-    // INIT APP
-    // ============================================================
     const updateClock = () => {
       const now = new Date();
       $('live-datetime').innerText = `${now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} ${now.toLocaleTimeString('id-ID')} WIB`;
