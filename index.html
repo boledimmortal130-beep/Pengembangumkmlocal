@@ -304,6 +304,19 @@
       border: 2px solid #e2e8f0;
     }
 
+    .delivery-promo {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #c2410c;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .search-filter-box {
       display: flex;
       flex-direction: column;
@@ -920,6 +933,12 @@
         <span id="store-status-text">Toko Sedang BUKA</span>
       </div>
 
+      <!-- 🛵 PROMO DELIVERY -->
+      <div class="delivery-promo">
+        <i class="fas fa-motorcycle" style="font-size:18px;color:#ea580c;"></i>
+        <span><strong>Pesan Antar 1 Km Cuma Rp5.000 – Rp8.000!</strong><br><small>Tarif dasar minimal sangat terjangkau. Klik "Gunakan Lokasi Saya" di keranjang.</small></span>
+      </div>
+
       <div class="card hidden" id="shop-upgrade-banner">
         <h4><i class="fas fa-bullhorn"></i> Pengumuman Toko</h4>
         <p id="shop-upgrade-message"></p>
@@ -987,6 +1006,9 @@
               <i class="fas fa-exclamation-triangle"></i>
               Pembayaran wajib lunas saat diproses. <strong>DILARANG HUTANG!</strong>
             </div>
+            <p style="font-size:11px;color:#16a34a;margin:5px 0 10px;">
+              <i class="fas fa-motorcycle"></i> Ongkir 1 km: Rp5.000 – Rp8.000. Tarif dasar minimal sangat terjangkau!
+            </p>
             <button class="btn-success btn-block" type="submit">
               <i class="fab fa-whatsapp"></i> Ajukan Pesanan via WhatsApp
             </button>
@@ -1208,11 +1230,13 @@
                 <div class="form-group"><label>Alamat Toko</label>
                   <input type="text" id="ship-address" placeholder="Jl. Toko A'Didin No.1">
                 </div>
-                <div class="form-group"><label>Ongkir per Km (Rp)</label>
-                  <input type="number" id="ship-per-km" value="2000">
-                </div>
-                <div class="form-group"><label>Ongkir Minimal (Rp)</label>
+                <div class="form-group"><label>Tarif Dasar 0–1 km (Rp)</label>
                   <input type="number" id="ship-min-fee" value="5000">
+                  <small style="font-size:10px;color:var(--muted);">Ongkir untuk jarak 1 km pertama</small>
+                </div>
+                <div class="form-group"><label>Tarif per km berikutnya (setelah 1 km) (Rp)</label>
+                  <input type="number" id="ship-per-km" value="3000">
+                  <small style="font-size:10px;color:var(--muted);">Contoh: 2 km = 5.000 + 3.000 = Rp8.000</small>
                 </div>
                 <div class="form-group"><label>Gratis Ongkir jika Subtotal ≥ (Rp)</label>
                   <input type="number" id="ship-free-min" value="100000">
@@ -1340,7 +1364,7 @@
       storeLat: -6.200000,
       storeLng: 106.816666,
       storeAddress: "Jl. Toko A'Didin No.1",
-      perKm: 2000,
+      perKm: 3000,
       minFee: 5000,
       freeMin: 100000
     });
@@ -1377,6 +1401,9 @@
       return R * c;
     };
 
+    // 🔥 LOGIKA ONGKIR BARU:
+    // 0-1 km -> minFee (tarif dasar)
+    // >1 km  -> minFee + (jarak - 1) * perKm
     const calculateShippingFee = (subtotal) => {
       if (!shippingConfig.enabled || !subtotal) return 0;
       if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
@@ -1387,8 +1414,13 @@
         userLocation.lat,
         userLocation.lng
       );
-      const cost = Math.round(distance * (shippingConfig.perKm || 0));
-      return Math.max(cost, shippingConfig.minFee || 0);
+      let cost;
+      if (distance <= 1) {
+        cost = shippingConfig.minFee || 0;
+      } else {
+        cost = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
+      }
+      return Math.round(cost);
     };
 
     const updateShippingDisplay = () => {
@@ -2456,7 +2488,6 @@
     $('search-admin').addEventListener('input', renderAdminProducts);
     $('pos-search').addEventListener('input', renderPosProducts);
 
-    // 🔥 PERBAIKAN UTAMA: Event listener uang tunai agar kembalian otomatis muncul saat diketik
     $('pos-cash-input').addEventListener('input', calcPosChange);
 
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
