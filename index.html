@@ -1399,8 +1399,9 @@
     let encodedImage = "";
     let pendingToppingCallback = null;
 
+    // 🔥 FIX: Default ongkir AKTIF supaya langsung muncul
     let shippingConfig = safeParse(localStorage.getItem('adidin_shipping_config'), {
-      enabled: false,
+      enabled: true,
       storeLat: -6.200000,
       storeLng: 106.816666,
       storeAddress: "Jl. Toko A'Didin No.1",
@@ -1634,19 +1635,28 @@
 
         mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
 
+        // 🔥 FIX: Update ongkir REAL-TIME saat pin digeser (tanpa nunggu alamat)
+        mapMarker.on('drag', function(e) {
+          const pos = e.target.getLatLng();
+          userLocation = { lat: pos.lat, lng: pos.lng, address: '' };
+          updateShippingDisplay();
+        });
+
         mapMarker.on('dragend', (e) => {
           const pos = e.target.getLatLng();
           userLocation = { lat: pos.lat, lng: pos.lng, address: '' };
-          reverseGeocode(pos.lat, pos.lng);
+          updateShippingDisplay();
           persistUserLocation();
+          reverseGeocode(pos.lat, pos.lng);
         });
 
         mapPicker.on('click', (e) => {
           const { lat: clickedLat, lng: clickedLng } = e.latlng;
           mapMarker.setLatLng([clickedLat, clickedLng]);
           userLocation = { lat: clickedLat, lng: clickedLng, address: '' };
-          reverseGeocode(clickedLat, clickedLng);
+          updateShippingDisplay();
           persistUserLocation();
+          reverseGeocode(clickedLat, clickedLng);
         });
 
       } else {
@@ -1667,6 +1677,7 @@
         const lng = pos.coords.longitude;
         userLocation = { lat, lng, address: '' };
         initMapPicker(lat, lng);
+        updateShippingDisplay(); // 🔥 langsung hitung ongkir
         reverseGeocode(lat, lng);
         persistUserLocation();
         $('checkout-address').focus();
@@ -2193,8 +2204,8 @@
       $('map-status').innerText = `📍 ${loc.label}: ${loc.address || 'Koordinat tersimpan'}`;
       $('saved-locations-list').value = "";
 
+      updateShippingDisplay(); // 🔥 langsung update ongkir saat load lokasi simpan
       persistUserLocation();
-      updateShippingDisplay();
     };
 
     const checkSession = () => {
