@@ -2337,7 +2337,6 @@
       if (cart.length === 0) return alert("Keranjang kosong!");
 
       // ===== FITUR WAJIB LOKASI =====
-      // Jika ongkir aktif, user WAJIB memakai lokasi dulu
       if (shippingConfig.enabled) {
         if (!userLocation || !userLocation.lat || !userLocation.lng) {
           alert("⚠️ Wajib gunakan lokasi terlebih dahulu agar ongkir otomatis terisi!\nKlik tombol 'Gunakan Lokasi Saya' di atas.");
@@ -2456,6 +2455,9 @@
     $('category-filter').addEventListener('change', renderProducts);
     $('search-admin').addEventListener('input', renderAdminProducts);
     $('pos-search').addEventListener('input', renderPosProducts);
+
+    // 🔥 PERBAIKAN UTAMA: Event listener uang tunai agar kembalian otomatis muncul saat diketik
+    $('pos-cash-input').addEventListener('input', calcPosChange);
 
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
 
