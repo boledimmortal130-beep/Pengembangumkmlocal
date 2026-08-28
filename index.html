@@ -997,11 +997,21 @@
           <div class="card" style="margin-bottom:12px;background:#f0f9ff;border-color:#bae6fd;">
             <h3 style="border:none;padding-bottom:0;"><i class="fas fa-map-marker-alt"></i> Lokasi Pengiriman</h3>
             <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Pilih lokasi untuk menghitung otomatis ongkos kirim.</p>
-            <button type="button" class="btn-secondary btn-block" id="btn-use-my-location">
-              <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya
-            </button>
+
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+              <button type="button" class="btn-secondary" id="btn-use-my-location" style="flex:1;">
+                <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya
+              </button>
+              <button type="button" class="btn-wa" id="btn-save-location" style="flex:1;" disabled>
+                <i class="fas fa-bookmark"></i> Simpan Lokasi
+              </button>
+            </div>
+
+            <select id="saved-locations-list" class="hidden" style="width:100%;padding:6px;margin-bottom:8px;border:1px solid var(--border);border-radius:6px;"></select>
+
             <div id="map-picker" style="height:250px;border:1px solid var(--border);border-radius:6px;margin-top:8px;display:none;"></div>
             <p id="map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p>
+            <p id="map-distance-info" style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px;min-height:16px;"></p>
           </div>
 
           <form class="form-style" id="checkout-form">
@@ -1408,6 +1418,10 @@
     let adminTileLayer = null;
     let adminFallbackAdded = false;
 
+    // ===== FITUR SIMPAN LOKASI =====
+    let savedLocations = safeParse(localStorage.getItem('adidin_saved_locations'), []);
+    let lastLocation = safeParse(localStorage.getItem('adidin_last_location'), null);
+
     const saveShippingConfig = () => {
       localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
       if (firebaseReady) db.ref('shipping_config').set(shippingConfig);
@@ -1424,7 +1438,6 @@
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
 
-      // Jangan langsung init map jika admin section belum aktif
       if (currentUser && $('admin-section').classList.contains('active') && $('admin-map')) {
         setTimeout(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng), 300);
       }
@@ -1441,7 +1454,6 @@
       return R * c;
     };
 
-    // 🔥 LOGIKA ONGKIR BARU
     const calculateShippingFee = (subtotal) => {
       if (!shippingConfig.enabled || !subtotal) return 0;
       if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
@@ -1465,26 +1477,39 @@
       if (!$('summary-shipping')) return;
       const subtotalEl = $('summary-subtotal');
       const subtotal = parseInt(subtotalEl.innerText.replace(/\D/g,'')) || 0;
+      let shippingFee = 0;
 
       if (!shippingConfig.enabled) {
         $('summary-shipping').innerText = "Gratis / Tidak ada";
         $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-        return;
-      }
-
-      if (!userLocation || !userLocation.lat || !userLocation.lng) {
+      } else if (!userLocation || !userLocation.lat || !userLocation.lng) {
         $('summary-shipping').innerText = "Pilih lokasi dulu";
         $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-        return;
+      } else {
+        shippingFee = calculateShippingFee(subtotal);
+        const total = subtotal + shippingFee;
+        $('summary-shipping').innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+        $('summary-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
       }
 
-      const shippingFee = calculateShippingFee(subtotal);
-      const total = subtotal + shippingFee;
-      $('summary-shipping').innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
-      $('summary-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+      const distInfo = $('map-distance-info');
+      if (distInfo) {
+        if (!shippingConfig.enabled) {
+          distInfo.innerText = "Ongkir nonaktif (gratis)";
+        } else if (!userLocation || !userLocation.lat || !userLocation.lng) {
+          distInfo.innerText = "Pilih lokasi untuk menghitung ongkir";
+        } else {
+          const dist = haversineDistance(
+            shippingConfig.storeLat,
+            shippingConfig.storeLng,
+            userLocation.lat,
+            userLocation.lng
+          );
+          distInfo.innerText = `Jarak dari toko: ${dist.toFixed(2)} km | Ongkir: Rp ${shippingFee.toLocaleString('id-ID')}`;
+        }
+      }
     };
 
-    // 🔍 Geocoding
     const geocodeAddress = async (address) => {
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
@@ -1500,7 +1525,6 @@
       }
     };
 
-    // Reverse geocoding untuk admin
     const reverseAdminGeocode = async (lat, lng) => {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
@@ -1516,12 +1540,10 @@
       }
     };
 
-    // 🗺️ Inisialisasi peta admin - SUPER AMAN + FALLBACK + RESIZE
     const initAdminMap = (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
       const mapEl = $('admin-map');
       if (!mapEl) return;
 
-      // Jika sudah ada, cukup update posisi & resize
       if (adminMap) {
         adminMap.setView([lat, lng], 16);
         if (adminMarker) adminMarker.setLatLng([lat, lng]);
@@ -1529,20 +1551,15 @@
         return;
       }
 
-      // Pastikan container terlihat dulu
       mapEl.style.display = 'block';
-
-      // Buat map baru
       adminMap = L.map('admin-map', { scrollWheelZoom: false, zoomControl: true });
       adminMap.setView([lat, lng], 16);
 
-      // Tile utama OSM
       adminTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
       }).addTo(adminMap);
 
-      // Fallback otomatis jika OSM gagal memuat tile
       adminFallbackAdded = false;
       adminMap.on('tileerror', () => {
         if (adminFallbackAdded || !adminMap) return;
@@ -1572,13 +1589,11 @@
         reverseAdminGeocode(pos.lat, pos.lng);
       });
 
-      // Paksa resize beberapa kali agar peta tidak biru
       [100, 300, 600, 1000, 1500].forEach(delay => setTimeout(() => {
         if (adminMap) adminMap.invalidateSize();
       }, delay));
     };
 
-    // 🔄 Panggil setiap admin page dibuka / login
     const ensureAdminMapVisible = () => {
       if (!currentUser || !$('admin-map')) return;
       setTimeout(() => {
@@ -1599,31 +1614,46 @@
         const address = data.display_name || `${lat}, ${lng}`;
         $('checkout-address').value = address;
         if (userLocation) userLocation.address = address;
-        $('map-status').innerText = `Lokasi: ${address}`;
+        $('map-status').innerText = `📍 Lokasi: ${address}`;
       } catch (e) {
-        $('map-status').innerText = `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        $('map-status').innerText = `📍 Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         $('checkout-address').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
       }
       updateShippingDisplay();
+      persistUserLocation();
     };
 
     const initMapPicker = (lat, lng) => {
       $('map-picker').style.display = 'block';
+
       if (!mapPicker) {
         mapPicker = L.map('map-picker').setView([lat, lng], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors'
         }).addTo(mapPicker);
+
         mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
+
         mapMarker.on('dragend', (e) => {
           const pos = e.target.getLatLng();
           userLocation = { lat: pos.lat, lng: pos.lng, address: '' };
           reverseGeocode(pos.lat, pos.lng);
+          persistUserLocation();
         });
+
+        mapPicker.on('click', (e) => {
+          const { lat: clickedLat, lng: clickedLng } = e.latlng;
+          mapMarker.setLatLng([clickedLat, clickedLng]);
+          userLocation = { lat: clickedLat, lng: clickedLng, address: '' };
+          reverseGeocode(clickedLat, clickedLng);
+          persistUserLocation();
+        });
+
       } else {
         mapPicker.setView([lat, lng], 15);
         mapMarker.setLatLng([lat, lng]);
       }
+
       setTimeout(() => mapPicker.invalidateSize(), 100);
     };
 
@@ -1638,6 +1668,7 @@
         userLocation = { lat, lng, address: '' };
         initMapPicker(lat, lng);
         reverseGeocode(lat, lng);
+        persistUserLocation();
         $('checkout-address').focus();
       }, (err) => {
         alert("Gagal mendapatkan lokasi. Coba lagi atau isi alamat manual.");
@@ -1790,7 +1821,6 @@
         $('admin-section').classList.add('active');
         $('btn-admin-nav').classList.add('active');
         checkSession();
-        // 🔄 Paksa peta admin tampil dengan benar
         ensureAdminMapVisible();
       }
     };
@@ -2030,6 +2060,7 @@
         $('summary-subtotal').innerText = "Rp 0";
         $('summary-shipping').innerText = "Rp 0";
         $('summary-total').innerText = "Rp 0";
+        renderSavedLocations();
         return;
       }
 
@@ -2078,6 +2109,7 @@
 
       $('summary-subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
       updateShippingDisplay();
+      renderSavedLocations();
     };
 
     const changeQty = (idx, delta) => {
@@ -2085,6 +2117,84 @@
       cart[idx].qty = parseFloat(((cart[idx].qty || 1) + delta).toFixed(2));
       if (cart[idx].qty <= 0) cart.splice(idx, 1);
       saveCart(); renderCart();
+    };
+
+    const persistUserLocation = () => {
+      if (userLocation && userLocation.lat) {
+        localStorage.setItem('adidin_last_location', JSON.stringify(userLocation));
+      }
+      renderSavedLocations();
+    };
+
+    const renderSavedLocations = () => {
+      const sel = $('saved-locations-list');
+      const btnSave = $('btn-save-location');
+      if (!sel) return;
+
+      sel.innerHTML = '<option value="">-- Lokasi Tersimpan --</option>';
+      (savedLocations || []).forEach((loc, i) => {
+        const opt = document.createElement('option');
+        opt.value = i;
+        const label = loc.label || 'Lokasi ' + (i + 1);
+        const shortAddr = loc.address && loc.address.split(',').slice(0, 2).join(',');
+        opt.innerText = label + (shortAddr ? ' — ' + shortAddr : '');
+        sel.appendChild(opt);
+      });
+
+      if (savedLocations.length > 0) {
+        sel.classList.remove('hidden');
+      } else {
+        sel.classList.add('hidden');
+      }
+
+      if (btnSave) btnSave.disabled = !userLocation || !userLocation.lat;
+    };
+
+    const handleSaveLocation = () => {
+      if (!userLocation || !userLocation.lat) {
+        alert("Pilih/Gunakan lokasi dulu sebelum menyimpan.");
+        return;
+      }
+
+      const label = prompt("Nama untuk lokasi ini (misal: Rumah, Kantor, Kos):", "Lokasi Saya");
+      if (!label || !label.trim()) return;
+
+      const newLoc = {
+        label: label.trim(),
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        address: userLocation.address || ""
+      };
+
+      const existIdx = savedLocations.findIndex(l => l.label && l.label.toLowerCase() === label.trim().toLowerCase());
+      if (existIdx !== -1) {
+        savedLocations[existIdx] = newLoc;
+      } else {
+        savedLocations.push(newLoc);
+      }
+
+      localStorage.setItem('adidin_saved_locations', JSON.stringify(savedLocations));
+      renderSavedLocations();
+      alert(`Lokasi "${label}" sudah disimpan ✅`);
+    };
+
+    const loadSavedLocation = (index) => {
+      const loc = savedLocations[parseInt(index)];
+      if (!loc) return;
+
+      userLocation = {
+        lat: loc.lat,
+        lng: loc.lng,
+        address: loc.address || ""
+      };
+
+      initMapPicker(loc.lat, loc.lng);
+      $('checkout-address').value = loc.address || `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
+      $('map-status').innerText = `📍 ${loc.label}: ${loc.address || 'Koordinat tersimpan'}`;
+      $('saved-locations-list').value = "";
+
+      persistUserLocation();
+      updateShippingDisplay();
     };
 
     const checkSession = () => {
@@ -2640,7 +2750,12 @@
 
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
 
-    // 🔥 TOMBOL "GUNAKAN LOKASI SAYA" UNTUK ALAMAT TOKO
+    // ===== EVENT LISTENER SIMPAN & MUAT LOKASI =====
+    $('btn-save-location').addEventListener('click', handleSaveLocation);
+    $('saved-locations-list').addEventListener('change', function() {
+      loadSavedLocation(this.value);
+    });
+
     $('btn-use-my-location-store').addEventListener('click', () => {
       if (!navigator.geolocation) {
         alert("Browser tidak mendukung geolokasi.");
@@ -3037,6 +3152,7 @@
     renderAnnouncement();
     saveCart();
     calcFinance(historyList);
+    renderSavedLocations();
     checkSession();
     switchPage('buyer');
 
