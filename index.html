@@ -933,7 +933,6 @@
         <span id="store-status-text">Toko Sedang BUKA</span>
       </div>
 
-      <!-- 🛵 PROMO DELIVERY -->
       <div class="delivery-promo">
         <i class="fas fa-motorcycle" style="font-size:18px;color:#ea580c;"></i>
         <span><strong>Pesan Antar 1 Km Cuma Rp5.000 – Rp8.000!</strong><br><small>Tarif dasar minimal sangat terjangkau. Klik "Gunakan Lokasi Saya" di keranjang.</small></span>
@@ -1237,7 +1236,6 @@
                   <p id="admin-map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p>
                 </div>
 
-                <!-- Lat/Lng otomatis tersimpan di sini, tidak perlu diisi manual -->
                 <input type="hidden" id="ship-lat" value="-6.200000">
                 <input type="hidden" id="ship-lng" value="106.816666">
 
@@ -1384,7 +1382,6 @@
     let mapPicker = null;
     let mapMarker = null;
 
-    // Variabel untuk peta lokasi toko di admin
     let adminMap = null;
     let adminMarker = null;
 
@@ -1404,9 +1401,9 @@
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
 
-      // Inisialisasi / perbarui peta admin saat form ditampilkan
-      if (currentUser && $('admin-map')) {
-        setTimeout(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng), 200);
+      // Jangan langsung init map jika admin section belum aktif
+      if (currentUser && $('admin-section').classList.contains('active') && $('admin-map')) {
+        setTimeout(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng), 300);
       }
     };
 
@@ -1421,9 +1418,7 @@
       return R * c;
     };
 
-    // 🔥 LOGIKA ONGKIR BARU:
-    // 0-1 km -> minFee (tarif dasar)
-    // >1 km  -> minFee + (jarak - 1) * perKm
+    // 🔥 LOGIKA ONGKIR BARU
     const calculateShippingFee = (subtotal) => {
       if (!shippingConfig.enabled || !subtotal) return 0;
       if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
@@ -1466,7 +1461,7 @@
       $('summary-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
     };
 
-    // 🔍 Fungsi geocoding alamat -> koordinat (gratis, via OpenStreetMap)
+    // 🔍 Geocoding
     const geocodeAddress = async (address) => {
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
@@ -1482,7 +1477,7 @@
       }
     };
 
-    // 🗺️ Ambil alamat dari koordinat (reverse geocoding) untuk peta admin
+    // Reverse geocoding untuk admin
     const reverseAdminGeocode = async (lat, lng) => {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
@@ -1498,41 +1493,59 @@
       }
     };
 
-    // 🗺️ Inisialisasi peta di halaman admin
+    // 🗺️ Inisialisasi peta admin (diperbaiki)
     const initAdminMap = (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
       const mapEl = $('admin-map');
       if (!mapEl) return;
 
-      if (!adminMap) {
-        adminMap = L.map('admin-map').setView([lat, lng], 16);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(adminMap);
-
-        adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
-
-        // Klik peta untuk pindah penanda
-        adminMap.on('click', (e) => {
-          const { lat: clickedLat, lng: clickedLng } = e.latlng;
-          adminMarker.setLatLng([clickedLat, clickedLng]);
-          $('ship-lat').value = clickedLat;
-          $('ship-lng').value = clickedLng;
-          reverseAdminGeocode(clickedLat, clickedLng);
-        });
-
-        // Geser penanda
-        adminMarker.on('dragend', (e) => {
-          const pos = e.target.getLatLng();
-          $('ship-lat').value = pos.lat;
-          $('ship-lng').value = pos.lng;
-          reverseAdminGeocode(pos.lat, pos.lng);
-        });
-      } else {
+      // Jika sudah ada, cukup update posisi & resize
+      if (adminMap) {
         adminMap.setView([lat, lng], 16);
         adminMarker.setLatLng([lat, lng]);
+        // Resize penting saat container berubah ukuran / ditampilkan
+        setTimeout(() => adminMap.invalidateSize(), 200);
+        return;
       }
 
-      setTimeout(() => adminMap.invalidateSize(), 200);
+      // Buat map baru
+      adminMap = L.map('admin-map', { scrollWheelZoom: false }).setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(adminMap);
+
+      adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
+
+      adminMap.on('click', (e) => {
+        const { lat: clickedLat, lng: clickedLng } = e.latlng;
+        adminMarker.setLatLng([clickedLat, clickedLng]);
+        $('ship-lat').value = clickedLat;
+        $('ship-lng').value = clickedLng;
+        reverseAdminGeocode(clickedLat, clickedLng);
+      });
+
+      adminMarker.on('dragend', (e) => {
+        const pos = e.target.getLatLng();
+        $('ship-lat').value = pos.lat;
+        $('ship-lng').value = pos.lng;
+        reverseAdminGeocode(pos.lat, pos.lng);
+      });
+
+      // Paksa resize setelah map dibuat agar tidak biru
+      setTimeout(() => adminMap.invalidateSize(), 300);
+    };
+
+    // 🔄 Panggil setiap admin page dibuka / login
+    const ensureAdminMapVisible = () => {
+      if (currentUser && $('admin-map')) {
+        setTimeout(() => {
+          if (!$('admin-section').classList.contains('active')) return;
+          if (!adminMap) {
+            initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
+          } else {
+            adminMap.invalidateSize();
+          }
+        }, 400);
+      }
     };
 
     const reverseGeocode = async (lat, lng) => {
@@ -1733,6 +1746,8 @@
         $('admin-section').classList.add('active');
         $('btn-admin-nav').classList.add('active');
         checkSession();
+        // 🔄 Paksa peta admin tampil dengan benar
+        ensureAdminMapVisible();
       }
     };
 
@@ -2040,7 +2055,7 @@
         });
 
         applyShippingForm();
-        setTimeout(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng), 300);
+        ensureAdminMapVisible();
         renderStoreStatus();
         renderAdminUsers();
         renderAdminProducts();
@@ -2458,14 +2473,12 @@
       if (!storeOpen) return alert("⛔ Toko sedang TUTUP!");
       if (cart.length === 0) return alert("Keranjang kosong!");
 
-      // ===== FITUR WAJIB LOKASI =====
       if (shippingConfig.enabled) {
         if (!userLocation || !userLocation.lat || !userLocation.lng) {
           alert("⚠️ Wajib gunakan lokasi terlebih dahulu agar ongkir otomatis terisi!\nKlik tombol 'Gunakan Lokasi Saya' di atas.");
           return;
         }
       }
-      // ==============================
 
       const name = $('checkout-name').value;
       const phone = $('checkout-phone').value;
@@ -2564,6 +2577,7 @@
       localStorage.setItem('adidin_admin_session', JSON.stringify(found));
       alert(`Selamat datang ${found.role.toUpperCase()} ${found.username}`);
       checkSession();
+      ensureAdminMapVisible();
     });
 
     $('btn-logout').addEventListener('click', () => {
@@ -2589,7 +2603,6 @@
       let storeLng = parseFloat($('ship-lng').value) || 0;
       const address = $('ship-address').value.trim();
 
-      // Jika koordinat belum terisi, coba cari otomatis dari alamat
       if ((!storeLat || !storeLng) && address) {
         const coords = await geocodeAddress(address);
         if (coords) {
@@ -2621,7 +2634,6 @@
       alert("Pengaturan ongkir disimpan!");
     });
 
-    // 🔍 Event listener tombol "Cari di Peta"
     $('btn-search-ship-address').addEventListener('click', async () => {
       const addr = $('ship-address').value.trim();
       if (!addr) return alert("Masukkan alamat toko terlebih dahulu!");
