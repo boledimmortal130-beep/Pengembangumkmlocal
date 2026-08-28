@@ -886,6 +886,22 @@
       margin-bottom: 8px;
     }
 
+    /* Peta admin responsif */
+    #admin-map {
+      width: 100%;
+      height: 260px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      z-index: 0;
+    }
+
+    @media (max-width: 480px) {
+      #admin-map {
+        height: 200px;
+      }
+    }
+
     @media (max-width: 768px) {
       .admin-grid { grid-template-columns: 1fr; }
       .cart-container { grid-template-columns: 1fr; }
@@ -1224,15 +1240,20 @@
                 <div class="form-group">
                   <label>Alamat Toko</label>
                   <input type="text" id="ship-address" placeholder="Ketik alamat toko, lalu klik Cari di Peta" required>
-                  <button type="button" class="btn-secondary btn-block" id="btn-search-ship-address" style="margin-top:5px;">
-                    <i class="fas fa-search-location"></i> Cari di Peta
-                  </button>
-                  <small style="font-size:10px;color:var(--muted);">Klik tombol Cari, lalu klik/geser penanda pada peta untuk posisi paling presisi.</small>
+                  <div style="display:flex;gap:6px;margin-top:5px;">
+                    <button type="button" class="btn-secondary" id="btn-search-ship-address" style="flex:1;">
+                      <i class="fas fa-search-location"></i> Cari di Peta
+                    </button>
+                    <button type="button" class="btn-wa" id="btn-use-my-location-store" style="flex:1;">
+                      <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya
+                    </button>
+                  </div>
+                  <small style="font-size:10px;color:var(--muted);">Klik Cari / Gunakan Lokasi Saya, lalu geser penanda pada peta untuk posisi paling presisi.</small>
                 </div>
 
                 <div class="form-group">
                   <label>Geser Penanda / Klik Peta untuk Menentukan Lokasi Toko</label>
-                  <div id="admin-map" style="height:260px;border:1px solid var(--border);border-radius:8px;background:#f1f5f9;"></div>
+                  <div id="admin-map"></div>
                   <p id="admin-map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p>
                 </div>
 
@@ -1384,6 +1405,8 @@
 
     let adminMap = null;
     let adminMarker = null;
+    let adminTileLayer = null;
+    let adminFallbackAdded = false;
 
     const saveShippingConfig = () => {
       localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
@@ -1493,7 +1516,7 @@
       }
     };
 
-    // 🗺️ Inisialisasi peta admin (diperbaiki)
+    // 🗺️ Inisialisasi peta admin - SUPER AMAN + FALLBACK + RESIZE
     const initAdminMap = (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
       const mapEl = $('admin-map');
       if (!mapEl) return;
@@ -1501,17 +1524,36 @@
       // Jika sudah ada, cukup update posisi & resize
       if (adminMap) {
         adminMap.setView([lat, lng], 16);
-        adminMarker.setLatLng([lat, lng]);
-        // Resize penting saat container berubah ukuran / ditampilkan
-        setTimeout(() => adminMap.invalidateSize(), 200);
+        if (adminMarker) adminMarker.setLatLng([lat, lng]);
+        [100, 400, 800].forEach(t => setTimeout(() => { if (adminMap) adminMap.invalidateSize(); }, t));
         return;
       }
 
+      // Pastikan container terlihat dulu
+      mapEl.style.display = 'block';
+
       // Buat map baru
-      adminMap = L.map('admin-map', { scrollWheelZoom: false }).setView([lat, lng], 16);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
+      adminMap = L.map('admin-map', { scrollWheelZoom: false, zoomControl: true });
+      adminMap.setView([lat, lng], 16);
+
+      // Tile utama OSM
+      adminTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
       }).addTo(adminMap);
+
+      // Fallback otomatis jika OSM gagal memuat tile
+      adminFallbackAdded = false;
+      adminMap.on('tileerror', () => {
+        if (adminFallbackAdded || !adminMap) return;
+        adminFallbackAdded = true;
+        if (adminTileLayer) adminMap.removeLayer(adminTileLayer);
+        adminTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+          maxZoom: 19
+        }).addTo(adminMap);
+        console.log('Fallback tile CARTO digunakan.');
+      });
 
       adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
 
@@ -1530,22 +1572,24 @@
         reverseAdminGeocode(pos.lat, pos.lng);
       });
 
-      // Paksa resize setelah map dibuat agar tidak biru
-      setTimeout(() => adminMap.invalidateSize(), 300);
+      // Paksa resize beberapa kali agar peta tidak biru
+      [100, 300, 600, 1000, 1500].forEach(delay => setTimeout(() => {
+        if (adminMap) adminMap.invalidateSize();
+      }, delay));
     };
 
     // 🔄 Panggil setiap admin page dibuka / login
     const ensureAdminMapVisible = () => {
-      if (currentUser && $('admin-map')) {
-        setTimeout(() => {
-          if (!$('admin-section').classList.contains('active')) return;
-          if (!adminMap) {
-            initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
-          } else {
-            adminMap.invalidateSize();
-          }
-        }, 400);
-      }
+      if (!currentUser || !$('admin-map')) return;
+      setTimeout(() => {
+        if (!$('admin-section').classList.contains('active')) return;
+        if (!adminMap) {
+          initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
+        } else {
+          adminMap.invalidateSize();
+          setTimeout(() => adminMap.invalidateSize(), 200);
+        }
+      }, 200);
     };
 
     const reverseGeocode = async (lat, lng) => {
@@ -2595,6 +2639,31 @@
     $('pos-cash-input').addEventListener('input', calcPosChange);
 
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
+
+    // 🔥 TOMBOL "GUNAKAN LOKASI SAYA" UNTUK ALAMAT TOKO
+    $('btn-use-my-location-store').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert("Browser tidak mendukung geolokasi.");
+        return;
+      }
+      const btn = $('btn-use-my-location-store');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendeteksi...';
+
+      navigator.geolocation.getCurrentPosition((pos) => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
+        const { latitude, longitude } = pos.coords;
+        $('ship-lat').value = latitude;
+        $('ship-lng').value = longitude;
+        initAdminMap(latitude, longitude);
+        reverseAdminGeocode(latitude, longitude);
+      }, (err) => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
+        alert("Gagal mendapatkan lokasi: " + err.message);
+      }, { enableHighAccuracy: true, timeout: 10000 });
+    });
 
     $('shipping-config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
