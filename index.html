@@ -13,6 +13,8 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <!-- Library untuk membuat QR code di struk -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -948,7 +950,7 @@
   <header>
     <div class="navbar container">
       <div class="logo">
-        <h1>pengembang UMKM lokal</h1>
+        <h1>A'Didin</h1>
         <p>Toko & Sistem POS Kasir UMKM</p>
         <div class="datetime-display" id="live-datetime">Memuat waktu...</div>
       </div>
@@ -979,7 +981,7 @@
 
       <div class="delivery-promo">
         <i class="fas fa-motorcycle" style="font-size:18px;color:#ea580c;"></i>
-        <span><strong>Pesan Antar 1 Km Cuma Rp4.000 – Rp8.000!</strong><br><small>Tarif dasar minimal sangat terjangkau. Klik "Gunakan Lokasi Saya" di keranjang.</small></span>
+        <span><strong>Pesan Antar 1 Km Cuma Rp5.000 – Rp8.000!</strong><br><small>Tarif dasar minimal sangat terjangkau. Klik "Gunakan Lokasi Saya" di keranjang.</small></span>
       </div>
 
       <div class="card hidden" id="shop-upgrade-banner">
@@ -1060,7 +1062,7 @@
               Pembayaran wajib lunas saat diproses. <strong>DILARANG HUTANG!</strong>
             </div>
             <p style="font-size:11px;color:#16a34a;margin:5px 0 10px;">
-              <i class="fas fa-motorcycle"></i> Ongkir 1 km: Rp4.000 – Rp8.000. Tarif dasar minimal sangat terjangkau!
+              <i class="fas fa-motorcycle"></i> Ongkir 1 km: Rp5.000 – Rp8.000. Tarif dasar minimal sangat terjangkau!
             </p>
             <button class="btn-success btn-block" type="submit">
               <i class="fab fa-whatsapp"></i> Ajukan Pesanan via WhatsApp
@@ -1378,6 +1380,9 @@
 
     const DEFAULT_SECRET_REGISTRATION = "aliciapitalaurasalsabila";
     const MAIN_WA_NUMBER = "628991286742";
+
+    // URL toko yang akan dimasukkan ke QR code struk
+    const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
 
     const safeParse = (json, fallback) => {
       try {
@@ -2967,7 +2972,32 @@
         <div style="display:flex;justify-content:space-between;font-size:11px;"><span>BAYAR:</span><span>Rp ${cash.toLocaleString('id-ID')}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px;"><span>KEMBALI:</span><span>Rp ${(cash-total).toLocaleString('id-ID')}</span></div>
         <div style="text-align:center;font-size:11px;">================================</div>
-        <div style="text-align:center;font-size:11px;margin-top:5px;">Terima Kasih!</div><br>`;
+        <div style="text-align:center;font-size:11px;margin-top:5px;">Terima Kasih!</div>
+        <!-- QR Code untuk mengunjungi toko -->
+        <div style="text-align:center;margin-top:8px;">
+          <div id="qr-receipt" style="display:inline-block;background:#fff;"></div>
+          <div style="font-size:10px;margin-top:3px;">Scan untuk kunjungi toko kami</div>
+        </div>`;
+
+    // Buat QR code di struk
+      const qrDiv = document.getElementById('qr-receipt');
+      qrDiv.innerHTML = '';
+      try {
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrDiv, {
+            text: STORE_URL,
+            width: 100,
+            height: 100,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } else {
+          qrDiv.innerHTML = '<p style="font-size:10px;color:#999;">QR tidak tersedia</p>';
+        }
+      } catch (err) {
+        console.error("Gagal membuat QR code:", err);
+        qrDiv.innerHTML = '<p style="font-size:10px;color:#999;">QR error</p>';
+      }
+
       receipt.style.display = 'block';
       setTimeout(() => {
         window.print();
@@ -2975,7 +3005,7 @@
         posCart = [];
         $('pos-cash-input').value = "";
         renderPosCart();
-      }, 300);
+      }, 350);
     });
 
     $('btn-scan-pos').addEventListener('click', () => openScanner('pos'));
