@@ -138,6 +138,22 @@
     }
     /* ===== AKHIR PERUBAHAN ===== */
 
+    /* ===== PERBAIKAN: AGAR MAPS TIDAK MENUTUPI ELEMEN LAIN ===== */
+    .leaflet-container {
+      z-index: 0;
+    }
+    .leaflet-pane {
+      z-index: 1 !important;
+    }
+    .leaflet-top,
+    .leaflet-bottom {
+      z-index: 2 !important;
+    }
+    .leaflet-control {
+      z-index: 2 !important;
+    }
+    /* ===== AKHIR PERBAIKAN MAPS ===== */
+
     .notification-bell {
       position: relative;
       cursor: pointer;
@@ -1439,9 +1455,7 @@
     let savedLocations = safeParse(localStorage.getItem('adidin_saved_locations'), []);
     let lastLocation = safeParse(localStorage.getItem('adidin_last_location'), null);
 
-    // ===== REVERSE GEOCODING LEBIH DETAIL (Nominatim → BigDataCloud) =====
     const reverseGeocodeWithFallback = async (lat, lng) => {
-      // Pilihan 1: Nominatim OpenStreetMap (paling detail & gratis)
       try {
         const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=id`;
         const ctrl = new AbortController();
@@ -1453,35 +1467,18 @@
         if (data && data.address) {
           const a = data.address;
           const parts = [];
-
-          // Nama jalan + nomor rumah
           const road = a.road || a.pedestrian || a.footway || a.path || a.street || '';
           const house = a.house_number || '';
           if (house && road) parts.push(`Jl. ${road} No. ${house}`);
           else if (road) parts.push(`Jl. ${road}`);
-
-          // RT/RW / lingkungan
           if (a.neighbourhood) parts.push(a.neighbourhood);
           if (a.suburb || a.city_district) parts.push(a.suburb || a.city_district);
-
-          // Desa / Kelurahan
           if (a.village || a.town || a.municipality) parts.push(a.village || a.town || a.municipality);
-
-          // Kecamatan
           if (a.city_district || a.county || a.district) parts.push(a.city_district || a.county || a.district);
-
-          // Kota / Kabupaten
           if (a.city || a.county || a.state_district) parts.push(a.city || a.county || a.state_district);
-
-          // Provinsi
           if (a.state) parts.push(a.state);
-
-          // Kode pos
           if (a.postcode) parts.push(a.postcode);
-
-          // Negara
           if (a.country) parts.push(a.country);
-
           const uniqueParts = [...new Set(parts.filter(Boolean))];
           if (uniqueParts.length) return uniqueParts.join(', ');
           if (data.display_name) return data.display_name;
@@ -1490,8 +1487,6 @@
       } catch (e) {
         console.warn('Nominatim gagal:', e.message);
       }
-
-      // Pilihan 2: BigDataCloud (gratis, detail, bahasa Indonesia)
       try {
         const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`;
         const ctrl = new AbortController();
@@ -1500,7 +1495,6 @@
         clearTimeout(timer);
         if (!res.ok) throw new Error('BigDataCloud HTTP ' + res.status);
         const data = await res.json();
-
         const parts = [];
         if (data.address && data.address.road) {
           const road = data.address.road;
@@ -1519,7 +1513,6 @@
       } catch (e) {
         console.warn('BigDataCloud gagal:', e.message);
       }
-
       return null;
     };
 
@@ -1538,7 +1531,6 @@
       $('ship-per-km').value = shippingConfig.perKm;
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
-
       if (currentUser && $('admin-section').classList.contains('active') && $('admin-map')) {
         setTimeout(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng), 300);
       }
@@ -1560,14 +1552,12 @@
       if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
       if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
       if (!shippingConfig.storeLat || !shippingConfig.storeLng) return 0;
-
       const distance = haversineDistance(
         shippingConfig.storeLat,
         shippingConfig.storeLng,
         userLocation.lat,
         userLocation.lng
       );
-
       let cost;
       if (distance <= 1) {
         cost = shippingConfig.minFee || 0;
@@ -1661,7 +1651,6 @@
     const reverseGeocode = async (lat, lng) => {
       const address = await reverseGeocodeWithFallback(lat, lng);
       const finalAddress = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-
       $('checkout-address').value = finalAddress;
       if (userLocation) userLocation.address = finalAddress;
       $('map-status').innerText = address
@@ -1684,23 +1673,19 @@
     const initAdminMap = (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
       const mapEl = $('admin-map');
       if (!mapEl) return;
-
       if (adminMap) {
         adminMap.setView([lat, lng], 16);
         if (adminMarker) adminMarker.setLatLng([lat, lng]);
         [100, 400, 800].forEach(t => setTimeout(() => { if (adminMap) adminMap.invalidateSize(); }, t));
         return;
       }
-
       mapEl.style.display = 'block';
       adminMap = L.map('admin-map', { scrollWheelZoom: false, zoomControl: true });
       adminMap.setView([lat, lng], 16);
-
       adminTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
       }).addTo(adminMap);
-
       adminFallbackAdded = false;
       adminMap.on('tileerror', () => {
         if (adminFallbackAdded || !adminMap) return;
@@ -1712,9 +1697,7 @@
         }).addTo(adminMap);
         console.log('Fallback tile CARTO digunakan.');
       });
-
       adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
-
       adminMap.on('click', (e) => {
         const { lat: clickedLat, lng: clickedLng } = e.latlng;
         adminMarker.setLatLng([clickedLat, clickedLng]);
@@ -1722,14 +1705,12 @@
         $('ship-lng').value = clickedLng;
         reverseAdminGeocode(clickedLat, clickedLng);
       });
-
       adminMarker.on('dragend', (e) => {
         const pos = e.target.getLatLng();
         $('ship-lat').value = pos.lat;
         $('ship-lng').value = pos.lng;
         reverseAdminGeocode(pos.lat, pos.lng);
       });
-
       [100, 300, 600, 1000, 1500].forEach(delay => setTimeout(() => {
         if (adminMap) adminMap.invalidateSize();
       }, delay));
@@ -1750,14 +1731,12 @@
 
     const initMapPicker = (lat, lng) => {
       $('map-picker').style.display = 'block';
-
       if (!mapPicker) {
         mapPicker = L.map('map-picker').setView([lat, lng], 15);
         pickerTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors',
           maxZoom: 19
         }).addTo(mapPicker);
-
         mapPickerFallbackAdded = false;
         mapPicker.on('tileerror', () => {
           if (mapPickerFallbackAdded) return;
@@ -1769,15 +1748,12 @@
           }).addTo(mapPicker);
           console.log('Fallback tile CARTO untuk peta pengguna.');
         });
-
         mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
-
         mapMarker.on('drag', function(e) {
           const pos = e.target.getLatLng();
           userLocation = { lat: pos.lat, lng: pos.lng, address: userLocation && userLocation.address ? userLocation.address : '' };
           updateShippingDisplay();
         });
-
         mapMarker.on('dragend', (e) => {
           const pos = e.target.getLatLng();
           userLocation = { lat: pos.lat, lng: pos.lng, address: '' };
@@ -1785,7 +1761,6 @@
           persistUserLocation();
           reverseGeocode(pos.lat, pos.lng);
         });
-
         mapPicker.on('click', (e) => {
           const { lat: clickedLat, lng: clickedLng } = e.latlng;
           mapMarker.setLatLng([clickedLat, clickedLng]);
@@ -1794,12 +1769,10 @@
           persistUserLocation();
           reverseGeocode(clickedLat, clickedLng);
         });
-
       } else {
         mapPicker.setView([lat, lng], 15);
         mapMarker.setLatLng([lat, lng]);
       }
-
       setTimeout(() => mapPicker.invalidateSize(), 100);
     };
 
@@ -1874,7 +1847,6 @@
 
     const seedInitialData = () => {
       if (!firebaseReady) return;
-
       db.ref('products').once('value', (snap) => {
         if (snap.val() === null) {
           const localData = localStorage.getItem('adidin_products');
@@ -1883,31 +1855,24 @@
           }
         }
       });
-
       db.ref('users').once('value', (snap) => {
         if (snap.val() === null) db.ref('users').set(adminUsers);
       });
-
       db.ref('store_status').once('value', (snap) => {
         if (snap.val() === null) db.ref('store_status').set(storeOpen);
       });
-
       db.ref('history').once('value', (snap) => {
         if (snap.val() === null && historyList.length === 0) db.ref('history').set([]);
       });
-
       db.ref('broadcast_history').once('value', (snap) => {
         if (snap.val() === null && broadcastHistory.length === 0) db.ref('broadcast_history').set([]);
       });
-
       db.ref('announcement').once('value', (snap) => {
         if (snap.val() === null) db.ref('announcement').set("");
       });
-
       db.ref('shipping_config').once('value', (snap) => {
         if (snap.val() === null) db.ref('shipping_config').set(shippingConfig);
       });
-
       db.ref('theme_config').once('value', (snap) => {
         if (snap.val() === null) db.ref('theme_config').set(themeConfig);
       });
@@ -1933,7 +1898,6 @@
       const banner = $('store-status-banner');
       const textEl = $('store-status-text');
       const adminBtn = $('btn-toggle-store-status');
-
       if (banner && textEl) {
         banner.classList.remove('closed');
         if (storeOpen) {
@@ -1943,7 +1907,6 @@
           textEl.innerText = "Toko Sedang TUTUP — Mohon maaf, kami tidak menerima pesanan.";
         }
       }
-
       if (adminBtn) {
         adminBtn.textContent = storeOpen
           ? "🔴 Toko Sedang BUKA — Klik untuk Tutup"
@@ -1955,7 +1918,6 @@
     const autoUseMyLocation = () => {
       if (userLocation && userLocation.lat && userLocation.lng) return;
       if (!navigator.geolocation) return;
-
       navigator.geolocation.getCurrentPosition((pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
@@ -1986,7 +1948,6 @@
     const switchPage = (name) => {
       ['buyer-dashboard', 'cart-dashboard', 'admin-section'].forEach(id => $(id).classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
-
       if (name === 'buyer') {
         $('buyer-dashboard').classList.add('active');
         $('btn-home').classList.add('active');
@@ -2010,7 +1971,6 @@
       const badge = $('bell-badge');
       const content = $('bell-content');
       const empty = $('bell-empty');
-
       if (activeAnnouncement && activeAnnouncement.trim()) {
         msg.innerText = activeAnnouncement;
         banner.classList.remove('hidden');
@@ -2048,14 +2008,11 @@
     const renderProducts = () => {
       const container = $('product-list');
       if (!container) return;
-
       const searchEl = $('search-buyer');
       const filterEl = $('category-filter');
       if (!searchEl || !filterEl) return;
-
       const search = (searchEl.value || '').toLowerCase();
       const filterCat = filterEl.value;
-
       const cats = ['all', ...new Set(products.map(p => p.category))];
       const prev = filterEl.value;
       filterEl.innerHTML = '';
@@ -2066,38 +2023,29 @@
         filterEl.appendChild(opt);
       });
       filterEl.value = cats.includes(prev) ? prev : 'all';
-
       const filtered = products.filter(p =>
         (p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.toLowerCase().includes(search))) &&
         (filterCat === 'all' || p.category === filterCat)
       );
-
       filtered.sort((a, b) => ((b.stock > 0 && b.available) ? 1 : 0) - ((a.stock > 0 && a.available) ? 1 : 0));
-
       container.innerHTML = '';
-
       if (filtered.length === 0) {
         container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px 0;">Barang tidak ditemukan.</p>';
         return;
       }
-
       const fragment = document.createDocumentFragment();
-
       filtered.forEach(p => {
         const isKg = p.unitType === 'kg';
         const isDigital = p.unitType === 'digital';
         const isAvailable = p.available && (p.stock > 0 || isDigital);
         const canOrder = isAvailable && storeOpen;
-
         let satuan = '/pcs';
         if (isKg) satuan = '/kg';
         else if (p.unitType === 'dus') satuan = '/dus';
         else if (p.unitType === 'renteng') satuan = '/renteng';
         else if (isDigital) satuan = ' (Nominal Bebas)';
-
         let extraControl = '';
         let priceHtml = `<span>Rp ${(p.price||0).toLocaleString('id-ID')}${satuan}</span>`;
-
         if (isKg && isAvailable) {
           extraControl = `
             <div class="weight-selector-box">
@@ -2121,10 +2069,8 @@
               </div>
             </div>`;
         }
-
         const toppingInfo = (p.toppings && p.toppings.length > 0) ?
           `<div class="badge-topping" style="display:inline-block;background:#fce7f3;color:#be185d;padding:2px 6px;border-radius:4px;font-size:9px;margin-top:3px;">Toping: ${p.toppings.map(t=>t.name).join(', ')}</div>` : '';
-
         const card = document.createElement('div');
         card.className = `product-card ${!isAvailable ? 'out-of-stock' : ''} ${!storeOpen ? 'store-closed' : ''}`;
         card.innerHTML = `
@@ -2149,9 +2095,7 @@
           </div>`;
         fragment.appendChild(card);
       });
-
       container.appendChild(fragment);
-
       container.querySelectorAll('.btn-buy').forEach(btn =>
         btn.addEventListener('click', e => buyProduct(e.target.closest('button').getAttribute('data-id')))
       );
@@ -2201,10 +2145,8 @@
       if (!prod || !prod.available || (prod.unitType !== 'digital' && prod.stock <= 0)) {
         alert("Stok habis!"); return;
       }
-
       let qty = 1;
       let customPrice = prod.price;
-
       if (prod.unitType === 'kg') {
         const inputKg = $('input-weight-' + id);
         qty = parseFloat(inputKg ? inputKg.value : 1) || 0;
@@ -2216,14 +2158,12 @@
         customPrice = nominal;
         qty = 1;
       }
-
       const finish = (toppings) => {
         cart.push({ uniqueKey: 'item_' + Date.now() + '_' + Math.random(), product: { ...prod, price: customPrice }, qty, unitChosen: prod.unitType, toppings: toppings || [] });
         saveCart();
         renderCart();
         alert("Produk masuk keranjang!");
       };
-
       if (prod.toppings && prod.toppings.length > 0) openTopping(prod, finish);
       else finish([]);
     };
@@ -2232,7 +2172,6 @@
       const list = $('cart-items-list');
       list.innerHTML = '';
       const clearBtn = $('btn-clear-cart');
-
       if (cart.length === 0) {
         list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong.</p>';
         clearBtn.classList.add('hidden');
@@ -2242,11 +2181,9 @@
         renderSavedLocations();
         return;
       }
-
       clearBtn.classList.remove('hidden');
       let subtotal = 0;
       const frag = document.createDocumentFragment();
-
       cart.forEach((item, idx) => {
         const isKg = item.unitChosen === 'kg';
         const isDigital = item.unitChosen === 'digital';
@@ -2254,10 +2191,8 @@
         const topingCost = toppings.reduce((s,t) => s + (t.price||0), 0) * (item.qty || 1);
         const total = Math.round((item.product.price || 0) * (item.qty || 1)) + Math.round(topingCost);
         subtotal += total;
-
         const qtyLabel = isKg ? `${item.qty} Kg` : isDigital ? "1 Transaksi" : `${item.qty} Pcs`;
         const topingText = toppings.length ? `<div style="font-size:10px;color:var(--primary);margin-bottom:2px;">Toping: ${toppings.map(t=>t.name).join(', ')}</div>` : '';
-
         const row = document.createElement('div');
         row.className = 'cart-item';
         row.innerHTML = `
@@ -2276,16 +2211,13 @@
           <div style="font-weight:700;color:var(--warning);font-size:13px;">Rp ${total.toLocaleString('id-ID')}</div>`;
         frag.appendChild(row);
       });
-
       list.appendChild(frag);
-
       list.querySelectorAll('.qty-minus').forEach(btn => btn.addEventListener('click', e => changeQty(parseInt(e.target.getAttribute('data-idx')), -parseFloat(e.target.getAttribute('data-step')))));
       list.querySelectorAll('.qty-plus').forEach(btn => btn.addEventListener('click', e => changeQty(parseInt(e.target.getAttribute('data-idx')), parseFloat(e.target.getAttribute('data-step')))));
       list.querySelectorAll('.btn-danger[data-idx]').forEach(btn => btn.addEventListener('click', e => {
         cart.splice(parseInt(e.target.closest('button').getAttribute('data-idx')), 1);
         saveCart(); renderCart();
       }));
-
       $('summary-subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
       updateShippingDisplay();
       renderSavedLocations();
@@ -2309,7 +2241,6 @@
       const sel = $('saved-locations-list');
       const btnSave = $('btn-save-location');
       if (!sel) return;
-
       sel.innerHTML = '<option value="">-- Lokasi Tersimpan --</option>';
       (savedLocations || []).forEach((loc, i) => {
         const opt = document.createElement('option');
@@ -2319,13 +2250,11 @@
         opt.innerText = label + (shortAddr ? ' — ' + shortAddr : '');
         sel.appendChild(opt);
       });
-
       if (savedLocations.length > 0) {
         sel.classList.remove('hidden');
       } else {
         sel.classList.add('hidden');
       }
-
       if (btnSave) btnSave.disabled = !userLocation || !userLocation.lat;
     };
 
@@ -2334,24 +2263,20 @@
         alert("Pilih/Gunakan lokasi dulu sebelum menyimpan.");
         return;
       }
-
       const label = prompt("Nama untuk lokasi ini (misal: Rumah, Kantor, Kos):", "Lokasi Saya");
       if (!label || !label.trim()) return;
-
       const newLoc = {
         label: label.trim(),
         lat: userLocation.lat,
         lng: userLocation.lng,
         address: userLocation.address || ""
       };
-
       const existIdx = savedLocations.findIndex(l => l.label && l.label.toLowerCase() === label.trim().toLowerCase());
       if (existIdx !== -1) {
         savedLocations[existIdx] = newLoc;
       } else {
         savedLocations.push(newLoc);
       }
-
       localStorage.setItem('adidin_saved_locations', JSON.stringify(savedLocations));
       renderSavedLocations();
       alert(`Lokasi "${label}" sudah disimpan ✅`);
@@ -2360,18 +2285,15 @@
     const loadSavedLocation = (index) => {
       const loc = savedLocations[parseInt(index)];
       if (!loc) return;
-
       userLocation = {
         lat: loc.lat,
         lng: loc.lng,
         address: loc.address || ""
       };
-
       initMapPicker(loc.lat, loc.lng);
       $('checkout-address').value = loc.address || `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
       $('map-status').innerText = `📍 ${loc.label}: ${loc.address || 'Koordinat tersimpan'}`;
       $('saved-locations-list').value = "";
-
       updateShippingDisplay();
       persistUserLocation();
     };
@@ -2382,11 +2304,9 @@
         $('admin-register-box').classList.add('hidden');
         $('admin-dashboard').classList.remove('hidden');
         $('session-role-badge').innerText = `ROLE: ${currentUser.role.toUpperCase()}`;
-
         document.querySelectorAll('.admin-only-feature').forEach(el => {
           el.classList.toggle('hidden', currentUser.role !== 'admin');
         });
-
         applyShippingForm();
         ensureAdminMapVisible();
         renderStoreStatus();
@@ -2406,17 +2326,14 @@
       const container = $('pos-product-list');
       const search = $('pos-search').value.toLowerCase();
       container.innerHTML = '';
-
       const items = products.filter(p =>
         p.available && (p.unitType === 'digital' || p.stock > 0) &&
         (p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.toLowerCase().includes(search)))
       );
-
       if (items.length === 0) {
         container.innerHTML = '<p style="grid-column:1/-1;text-align:center;font-size:11px;color:var(--muted);">Tidak ada barang.</p>';
         return;
       }
-
       const frag = document.createDocumentFragment();
       items.forEach(p => {
         const card = document.createElement('div');
@@ -2452,14 +2369,12 @@
       const container = $('pos-cart-items');
       container.innerHTML = '';
       let total = 0;
-
       if (posCart.length === 0) {
         container.innerHTML = '<p style="font-size:11px;text-align:center;color:var(--muted);">Belum ada barang</p>';
         $('pos-total-pay').innerText = "Rp 0";
         calcPosChange();
         return;
       }
-
       const frag = document.createDocumentFragment();
       posCart.forEach((item, idx) => {
         const topCost = (item.toppings||[]).reduce((s,t) => s+(t.price||0),0) * item.qty;
@@ -2474,10 +2389,8 @@
         frag.appendChild(row);
       });
       container.appendChild(frag);
-
       container.querySelectorAll('.pos-minus').forEach(btn => btn.addEventListener('click', e => changePosQty(parseInt(e.target.getAttribute('data-idx')), -1)));
       container.querySelectorAll('.pos-plus').forEach(btn => btn.addEventListener('click', e => changePosQty(parseInt(e.target.getAttribute('data-idx')), 1)));
-
       $('pos-total-pay').innerText = `Rp ${total.toLocaleString('id-ID')}`;
       calcPosChange();
     };
@@ -2601,13 +2514,11 @@
         return;
       }
       const isAdmin = currentUser && currentUser.role === 'admin';
-
       list.forEach(order => {
         const cfg = statusCfg[order.orderStatus] || statusCfg['active'];
         const total = order.subtotal + (parseInt(order.shippingFee) || 0);
         const profit = order.netProfit || (order.subtotal - (order.totalHpp || 0));
         const completed = order.orderStatus === 'selesai' || order.orderStatus === 'completed';
-
         const tr = document.createElement('tr');
         if (completed) tr.className = 'row-order-completed';
         tr.innerHTML = `
@@ -2628,12 +2539,10 @@
           </td>`;
         tbody.appendChild(tr);
       });
-
       tbody.querySelectorAll('.shipping-input').forEach(inp => inp.addEventListener('change', e => {
         const order = historyList.find(o => o.id === e.target.getAttribute('data-id'));
         if (order) { order.shippingFee = parseInt(e.target.value) || 0; saveHistory(); }
       }));
-
       tbody.querySelectorAll('.btn-actions-group button').forEach(btn => btn.addEventListener('click', e => {
         const b = e.target.closest('button');
         const id = b.getAttribute('data-id');
@@ -2657,7 +2566,6 @@
       const total = subtotal + ongkir;
       const phone = (order.buyerPhone || '-').toString();
       const wa = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
-
       if (status === 'received') {
         msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\nPesanan Anda telah *diterima* oleh sistem kami.`; newStatus = 'diterima';
       } else if (status === 'process') {
@@ -2666,7 +2574,6 @@
         msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\n*Pesanan Anda sedang diantar!* 🛵\n\n${order.itemsSummary}---------------------------\nTOTAL: Rp ${total.toLocaleString('id-ID')}\n\nSiapkan uang pas ya!`; newStatus = 'diantar';
       } else if (status === 'completed') {
         msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\n*Pesanan selesai*. Terima kasih sudah belanja!\n\nDILARANG HUTANG. Sampai jumpa!`; newStatus = 'selesai';
-
         if (order.orderStatus !== 'selesai' && order.itemsList) {
           order.itemsList.forEach(i => {
             const idx = products.findIndex(p => p.id === i.productId);
@@ -2678,7 +2585,6 @@
           saveProducts();
         }
       }
-
       order.orderStatus = newStatus;
       saveHistory();
       if (wa && wa !== '-') window.open(`https://api.whatsapp.com/send?phone=${wa}&text=${encodeURIComponent(msg)}`, '_blank');
@@ -2722,17 +2628,13 @@
       const tbody = $('admin-product-table');
       const search = $('search-admin').value.toLowerCase();
       tbody.innerHTML = '';
-
       const filtered = products.filter(p => p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.toLowerCase().includes(search)) || (p.rack && p.rack.toLowerCase().includes(search)));
-
       if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Tidak ditemukan.</td></tr>';
         return;
       }
-
       const isKasir = currentUser && currentUser.role === 'kasir';
       const frag = document.createDocumentFragment();
-
       filtered.forEach(p => {
         const unit = p.unitType === 'kg' ? 'Kg' : p.unitType === 'dus' ? 'Dus' : p.unitType === 'renteng' ? 'Renteng' : p.unitType === 'digital' ? 'Digital' : 'Pcs';
         const tr = document.createElement('tr');
@@ -2752,9 +2654,7 @@
           </td>`;
         frag.appendChild(tr);
       });
-
       tbody.appendChild(frag);
-
       tbody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', e => {
         const b = e.target.closest('button');
         const edit = b.getAttribute('data-edit');
@@ -2804,9 +2704,7 @@
     $('checkout-address').addEventListener('change', async function() {
       const value = this.value.trim();
       if (!value) return;
-
       if (userLocation && userLocation.lat) return;
-
       const result = await geocodeAddress(value);
       if (result) {
         userLocation = { lat: result.lat, lng: result.lng, address: result.displayName || value };
@@ -2824,25 +2722,21 @@
       e.preventDefault();
       if (!storeOpen) return alert("⛔ Toko sedang TUTUP!");
       if (cart.length === 0) return alert("Keranjang kosong!");
-
       if (shippingConfig.enabled) {
         if (!userLocation || !userLocation.lat || !userLocation.lng) {
           alert("⚠️ Wajib gunakan lokasi terlebih dahulu agar ongkir otomatis terisi!\nKlik tombol 'Gunakan Lokasi Saya' di atas.");
           return;
         }
       }
-
       const name = $('checkout-name').value;
       const phone = $('checkout-phone').value;
       const address = $('checkout-address').value;
       const time = $('checkout-time').value;
       const note = $('checkout-note').value || '-';
-
       let itemsMsg = "";
       let subtotal = 0;
       let totalHpp = 0;
       const itemsArr = [];
-
       cart.forEach((item, i) => {
         const toppings = item.toppings || [];
         const topingCost = toppings.reduce((s,t) => s + (t.price||0), 0) * (item.qty||1);
@@ -2855,7 +2749,6 @@
         itemsMsg += `${i+1}. ${item.product.name} [Rp ${item.product.price.toLocaleString('id-ID')} x ${item.qty} ${satuan}${topingStr}] -> Rp ${cost.toLocaleString('id-ID')}\n`;
         itemsArr.push({ productId: item.product.id, productName: item.product.name, price: item.product.price, costPrice: item.product.costPrice||0, qty: item.qty, unit: item.unitChosen, toppings });
       });
-
       const shippingFee = calculateShippingFee(subtotal);
       const now = new Date();
       const order = {
@@ -2874,17 +2767,13 @@
         userLng: userLocation ? userLocation.lng : null,
         orderStatus: 'active', source: 'Online Shop'
       };
-
       historyList.unshift(order);
       saveHistory();
-
       const ongkirText = shippingConfig.enabled && shippingFee === 0 && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin
         ? "GRATIS 🎉"
         : `Rp ${shippingFee.toLocaleString('id-ID')}`;
-
       const msg = `*PESANAN BARU - TOKO A'DIDIN*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirText}\nTOTAL: Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}\n\n*Data:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
       window.open(`https://api.whatsapp.com/send?phone=${MAIN_WA_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
-
       cart = [];
       saveCart();
       this.reset();
@@ -2908,10 +2797,8 @@
       const pass = $('reg-password').value;
       const wa = $('reg-whatsapp').value.trim();
       const secret = $('reg-secret').value;
-
       if (secret !== DEFAULT_SECRET_REGISTRATION) return alert("Sandi otorisasi salah!");
       if (adminUsers.some(u => u.username === user)) return alert("Username sudah dipakai!");
-
       adminUsers.push({ username: user, password: pass, whatsapp: wa, role });
       saveUsers();
       alert("Akun terdaftar. Silakan login!");
@@ -2924,11 +2811,9 @@
       const role = $('login-role').value;
       const user = $('login-username').value.trim();
       const pass = $('login-password').value;
-
       const found = adminUsers.find(a => a.username === user && a.password === pass);
       if (!found) return alert("Username/password salah!");
       if (found.role !== role) return alert(`Akun ini terdaftar sebagai ${found.role.toUpperCase()}.`);
-
       currentUser = found;
       localStorage.setItem('adidin_admin_session', JSON.stringify(found));
       alert(`Selamat datang ${found.role.toUpperCase()} ${found.username}`);
@@ -2947,11 +2832,8 @@
     $('category-filter').addEventListener('change', renderProducts);
     $('search-admin').addEventListener('input', renderAdminProducts);
     $('pos-search').addEventListener('input', renderPosProducts);
-
     $('pos-cash-input').addEventListener('input', calcPosChange);
-
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
-
     $('btn-save-location').addEventListener('click', handleSaveLocation);
     $('saved-locations-list').addEventListener('change', function() {
       loadSavedLocation(this.value);
@@ -2965,7 +2847,6 @@
       const btn = $('btn-use-my-location-store');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendeteksi...';
-
       navigator.geolocation.getCurrentPosition((pos) => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
@@ -2983,11 +2864,9 @@
 
     $('shipping-config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       let storeLat = parseFloat($('ship-lat').value) || 0;
       let storeLng = parseFloat($('ship-lng').value) || 0;
       const address = $('ship-address').value.trim();
-
       if ((!storeLat || !storeLng) && address) {
         const coords = await geocodeAddress(address);
         if (coords) {
@@ -2999,12 +2878,10 @@
           reverseAdminGeocode(storeLat, storeLng);
         }
       }
-
       if (!storeLat || !storeLng) {
         alert("Lokasi toko belum lengkap. Gunakan tombol 'Cari di Peta' atau klik pada peta.");
         return;
       }
-
       shippingConfig = {
         enabled: $('ship-enabled').value === 'true',
         storeLat: storeLat,
@@ -3014,7 +2891,6 @@
         minFee: parseFloat($('ship-min-fee').value) || 0,
         freeMin: parseFloat($('ship-free-min').value) || 0
       };
-
       saveShippingConfig();
       alert("Pengaturan ongkir disimpan!");
     });
@@ -3022,16 +2898,12 @@
     $('btn-search-ship-address').addEventListener('click', async () => {
       const addr = $('ship-address').value.trim();
       if (!addr) return alert("Masukkan alamat toko terlebih dahulu!");
-
       const btn = $('btn-search-ship-address');
       btn.disabled = true;
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari...';
-
       const coords = await geocodeAddress(addr);
-
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-search-location"></i> Cari di Peta';
-
       if (coords) {
         $('ship-lat').value = coords.lat;
         $('ship-lng').value = coords.lng;
@@ -3054,10 +2926,8 @@
         summary += `${idx+1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty}${topDesc}] = Rp ${sub.toLocaleString('id-ID')}\n`;
         items.push({ productId: i.product.id, productName: i.product.name, price: i.product.price, costPrice: i.product.costPrice||0, qty: i.qty, unit: i.product.unitType, toppings: i.toppings });
       });
-
       const cash = parseInt($('pos-cash-input').value) || 0;
       if (cash < total) return alert("Uang tunai kurang!");
-
       posCart.forEach(i => {
         if (i.product.unitType !== 'digital') {
           const idx = products.findIndex(p => p.id === i.product.id);
@@ -3068,7 +2938,6 @@
         }
       });
       saveProducts();
-
       const now = new Date();
       const order = {
         id: 'ord_' + Date.now(),
@@ -3082,10 +2951,8 @@
         netProfit: total - totalHpp, shippingFee: 0,
         orderStatus: 'selesai', source: 'POS Kasir'
       };
-
       historyList.unshift(order);
       saveHistory();
-
       const receipt = $('printable-receipt');
       receipt.innerHTML = `
         <div style="text-align:center;font-weight:bold;font-size:16px;">TOKO A'DIDIN</div>
@@ -3199,16 +3066,13 @@
       const rack = $('prod-rack').value.trim() || 'Rak Utama';
       const category = $('prod-category').value;
       const desc = $('prod-desc').value;
-
       const toppings = [];
       document.querySelectorAll('#toppings-container .topping-row').forEach(r => {
         const nameT = r.querySelector('input:first-child').value.trim();
         const priceT = parseInt(r.querySelector('input:nth-child(2)').value) || 0;
         if (nameT) toppings.push({ name: nameT, price: priceT });
       });
-
       const isAvailable = unitType === 'digital' || stock > 0;
-
       if (id) {
         const idx = products.findIndex(p => p.id == id);
         if (idx !== -1) {
@@ -3232,7 +3096,6 @@
         db = firebase.database();
         firebaseReady = true;
         console.log("✅ Firebase connected");
-
         db.ref('.info/connected').on('value', (snap) => {
           const el = $('realtime-status');
           if (snap.val()) {
@@ -3243,7 +3106,6 @@
             el.className = "realtime-status offline";
           }
         });
-
         db.ref('store_status').on('value', (snap) => {
           if (snap.exists()) storeOpen = snap.val() === true;
           else { storeOpen = true; db.ref('store_status').set(true); }
@@ -3251,7 +3113,6 @@
           renderStoreStatus();
           renderProducts();
         });
-
         db.ref('products').on('value', (snap) => {
           const data = snap.val();
           if (data) {
@@ -3264,7 +3125,6 @@
           renderProducts();
           if (currentUser) { renderAdminProducts(); renderPosProducts(); }
         });
-
         db.ref('users').on('value', (snap) => {
           const data = snap.val();
           if (data) {
@@ -3273,7 +3133,6 @@
           }
           if (currentUser) renderAdminUsers();
         });
-
         db.ref('history').on('value', (snap) => {
           const data = snap.val();
           const hasData = data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0);
@@ -3282,19 +3141,16 @@
           renderHistory(historyList);
           calcFinance(historyList);
         });
-
         db.ref('broadcast_history').on('value', (snap) => {
           const data = snap.val();
           if (data) broadcastHistory = Array.isArray(data) ? data : Object.values(data);
           if (currentUser) renderBroadcastHistory(broadcastHistory);
         });
-
         db.ref('announcement').on('value', (snap) => {
           activeAnnouncement = snap.val() || "";
           localStorage.setItem('adidin_announcement', activeAnnouncement);
           renderAnnouncement();
         });
-
         db.ref('shipping_config').on('value', (snap) => {
           const data = snap.val();
           if (data) {
@@ -3308,7 +3164,6 @@
             renderCart();
           }
         });
-
         db.ref('theme_config').on('value', (snap) => {
           const data = snap.val();
           if (data) {
@@ -3319,9 +3174,7 @@
             db.ref('theme_config').set(themeConfig);
           }
         });
-
         seedInitialData();
-
       } catch (e) {
         console.error("❌ Firebase gagal terhubung:", e);
         $('realtime-status').textContent = "● GAGAL TERHUBUNG";
