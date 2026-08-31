@@ -2960,8 +2960,8 @@
       saveHistory();
       const receipt = $('printable-receipt');
       receipt.innerHTML = `
-        <div style="text-align:center;font-weight:bold;font-size:16px;">TOKO A'DIDIN</div>
-        <div style="text-align:center;font-size:11px;">Jl. UMKM No.1</div>
+        <div style="text-align:center;font-weight:bold;font-size:16px;">PENGEMBANG UMKM LOCAL</div>
+        <div style="text-align:center;font-size:11px;"> jl syekh datul kahfi Ds.GAMEL</div>
         <div style="text-align:center;font-size:11px;">================================</div>
         <div style="font-size:11px;">${order.timestamp}</div>
         <div style="font-size:11px;">Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
@@ -2973,6 +2973,7 @@
         <div style="display:flex;justify-content:space-between;font-size:11px;"><span>KEMBALI:</span><span>Rp ${(cash-total).toLocaleString('id-ID')}</span></div>
         <div style="text-align:center;font-size:11px;">================================</div>
         <div style="text-align:center;font-size:11px;margin-top:5px;">Terima Kasih!</div>
+        <div style="text-align:center;font-size:11px;margin-top:5px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL</div>
         <!-- QR Code untuk mengunjungi toko -->
         <div style="text-align:center;margin-top:8px;">
           <div id="qr-receipt" style="display:inline-block;background:#fff;"></div>
