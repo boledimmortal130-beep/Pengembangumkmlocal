@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Toko Online & POS Kasir A'Didin</title>
+  <title>Pengembang UMKM Lokal — Toko Online & POS Kasir</title>
 
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Toko A%27Didin","short_name":"ADidin","start_url":".","display":"standalone","background_color":"%23f8fafc","theme_color":"%232563eb"}'>
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Pengembang UMKM Lokal","short_name":"UMKM","start_url":".","display":"standalone","background_color":"%23fff7ed","theme_color":"%23e11d48"}'>
 
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#e11d48">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -30,21 +30,27 @@
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
+    /* ====== WARNA ALA KARTU PROMOSI ====== */
     :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
+      --primary: #e11d48;             /* Merah crimson utama */
+      --primary-hover: #be123c;
       --success: #16a34a;
       --success-hover: #15803d;
       --danger: #dc2626;
       --danger-hover: #b91c1c;
-      --warning: #ea580c;
-      --bg: #f8fafc;
-      --border: #e2e8f0;
-      --text: #1e293b;
-      --muted: #64748b;
+      --warning: #f97316;             /* Oranye promosi */
+      --bg: #fff7ed;                  /* Krem hangat */
+      --border: #fed7aa;
+      --text: #431407;
+      --muted: #9a3412;
       --wa: #25d366;
+      --header-start: #e11d48;        /* Gradasi header start */
+      --header-end: #f97316;          /* Gradasi header end */
+      --header-text: #ffffff;
+      --btn-text: #ffffff;
+      --card-bg: #ffffff;
       --radius: 8px;
-      --shadow: 0 1px 3px rgba(0,0,0,.06);
+      --shadow: 0 4px 10px rgba(225, 29, 72, .12);
     }
 
     body {
@@ -69,9 +75,9 @@
     }
 
     header {
-      background: #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08);
-      padding: 10px 0;
+      background: linear-gradient(135deg, var(--header-start), var(--header-end));
+      box-shadow: 0 4px 18px rgba(225, 29, 72, .35);
+      padding: 12px 0;
       position: sticky;
       top: 0;
       z-index: 100;
@@ -86,20 +92,23 @@
     }
 
     .logo h1 {
-      color: var(--primary);
+      color: var(--header-text);
       font-size: 20px;
       line-height: 1.2;
+      text-shadow: 0 1px 3px rgba(0,0,0,.2);
     }
 
     .logo p {
       font-size: 11px;
-      color: var(--muted);
+      color: var(--header-text);
+      opacity: .9;
     }
 
     .datetime-display {
       font-size: 11px;
-      color: var(--warning);
-      font-weight: 600;
+      color: var(--header-text);
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0,0,0,.2);
     }
 
     nav {
@@ -110,63 +119,36 @@
     }
 
     .nav-link {
-      background: transparent;
-      border: none;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      border-radius: 6px;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      padding: 8px 12px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--header-text);
+      border-radius: 999px;
       cursor: pointer;
       transition: .2s;
+      backdrop-filter: blur(4px);
     }
 
     .nav-link:hover,
     .nav-link.active {
-      background: #eff6ff;
+      background: #ffffff;
       color: var(--primary);
+      border-color: #ffffff;
     }
-
-    /* ===== PERUBAHAN: TEKS NAVIGASI LEBIH BESAR & TEBAL ===== */
-    .nav-link {
-      font-size: 15px !important;
-      font-weight: 800 !important;
-    }
-
-    #btn-home, #btn-cart-view, #btn-admin-nav {
-      font-size: 15px;
-      font-weight: 800;
-      padding: 10px 12px;
-    }
-    /* ===== AKHIR PERUBAHAN ===== */
-
-    /* ===== PERBAIKAN: AGAR MAPS TIDAK MENUTUPI ELEMEN LAIN ===== */
-    .leaflet-container {
-      z-index: 0;
-    }
-    .leaflet-pane {
-      z-index: 1 !important;
-    }
-    .leaflet-top,
-    .leaflet-bottom {
-      z-index: 2 !important;
-    }
-    .leaflet-control {
-      z-index: 2 !important;
-    }
-    /* ===== AKHIR PERBAIKAN MAPS ===== */
 
     .notification-bell {
       position: relative;
       cursor: pointer;
       padding: 6px 8px;
-      color: var(--muted);
+      color: var(--header-text);
     }
 
     .bell-badge {
       position: absolute;
-      top: 2px;
-      right: 2px;
+      top: -2px;
+      right: -2px;
       background: var(--danger);
       color: #fff;
       font-size: 9px;
@@ -192,20 +174,23 @@
     .realtime-status {
       font-size: 10px;
       font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 12px;
-      background: #f1f5f9;
-      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.2);
+      color: var(--header-text);
+      border: 1px solid rgba(255,255,255,.25);
     }
 
     .realtime-status.online {
-      color: var(--success);
-      background: #dcfce7;
+      color: #052e16;
+      background: #bbf7d0;
+      border-color: #86efac;
     }
 
     .realtime-status.offline {
-      color: var(--danger);
+      color: #7f1d1d;
       background: #fee2e2;
+      border-color: #fecaca;
     }
 
     @media (max-width: 768px) {
@@ -225,11 +210,12 @@
     button {
       cursor: pointer;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 8px 14px;
-      font-weight: 600;
+      font-weight: 700;
       font-size: 12px;
       transition: opacity .2s, transform .1s;
+      color: var(--btn-text);
     }
 
     button:active {
@@ -241,10 +227,10 @@
       cursor: not-allowed;
     }
 
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-danger { background: var(--danger); color: #fff; }
-    .btn-secondary { background: var(--muted); color: #fff; }
+    .btn-primary { background: var(--primary); color: var(--btn-text); }
+    .btn-success { background: var(--success); color: var(--btn-text); }
+    .btn-danger { background: var(--danger); color: var(--btn-text); }
+    .btn-secondary { background: var(--warning); color: var(--btn-text); }
     .btn-wa { background: var(--wa); color: #fff; }
     .btn-block { width: 100%; display: block; }
 
@@ -257,7 +243,8 @@
       border-radius: 6px;
       font-size: 12px;
       outline: none;
-      background: #fff;
+      background: var(--card-bg);
+      color: var(--text);
     }
 
     .form-style textarea {
@@ -272,7 +259,7 @@
     .form-group label {
       display: block;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 3px;
     }
 
@@ -287,10 +274,11 @@
 
     .section-title {
       font-size: 18px;
-      font-weight: 700;
+      font-weight: 800;
       margin-bottom: 15px;
       position: relative;
       padding-bottom: 5px;
+      color: var(--primary);
     }
 
     .section-title::after {
@@ -298,22 +286,22 @@
       position: absolute;
       left: 0;
       bottom: 0;
-      width: 35px;
-      height: 3px;
-      background: var(--primary);
-      border-radius: 2px;
+      width: 45px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--header-start), var(--header-end));
+      border-radius: 4px;
     }
 
     .store-status-banner {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-weight: 700;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-weight: 800;
       font-size: 13px;
       margin-bottom: 15px;
-      border: 1px solid;
+      border: 2px solid;
       background: #dcfce7;
       border-color: #86efac;
       color: #15803d;
@@ -328,35 +316,37 @@
     .btn-status-toko {
       font-size: 14px;
       padding: 14px;
-      font-weight: 700;
+      font-weight: 800;
       display: block;
       width: 100%;
-      border-radius: 8px;
+      border-radius: 10px;
       border: 2px solid #e2e8f0;
     }
 
     .delivery-promo {
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
+      background: linear-gradient(135deg, #fff7ed, #ffedd5);
+      border: 2px solid #fdba74;
       color: #c2410c;
-      padding: 10px 12px;
-      border-radius: 8px;
+      padding: 12px;
+      border-radius: 10px;
       margin-bottom: 15px;
       font-size: 13px;
       display: flex;
       align-items: center;
       gap: 8px;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, .15);
     }
 
     .search-filter-box {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
       margin-bottom: 15px;
+      box-shadow: var(--shadow);
     }
 
     @media (min-width: 768px) {
@@ -370,10 +360,11 @@
     .filter-select {
       display: flex;
       align-items: center;
-      background: #f1f5f9;
+      background: #fff7ed;
       padding: 8px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       flex: 1;
+      border: 1px solid #fed7aa;
     }
 
     .search-input input,
@@ -384,6 +375,7 @@
       margin-left: 8px;
       outline: none;
       font-size: 13px;
+      color: var(--text);
     }
 
     .product-grid {
@@ -393,14 +385,19 @@
     }
 
     .product-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--card-bg);
+      border: 2px solid #fed7aa;
+      border-radius: 12px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow);
       transition: .2s;
+    }
+
+    .product-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--warning);
     }
 
     .product-card.store-closed,
@@ -410,7 +407,7 @@
 
     .product-img-box {
       height: 120px;
-      background: #f1f5f9;
+      background: #fff7ed;
       position: relative;
     }
 
@@ -424,11 +421,12 @@
       position: absolute;
       top: 6px;
       left: 6px;
-      background: rgba(30, 41, 59, .85);
+      background: rgba(225, 29, 72, .9);
       color: #fff;
       font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 700;
     }
 
     .badge-out {
@@ -438,8 +436,8 @@
       background: var(--danger);
       color: #fff;
       font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
       font-weight: 700;
     }
 
@@ -452,12 +450,13 @@
       font-size: 10px;
       color: var(--muted);
       text-transform: uppercase;
-      font-weight: 600;
+      font-weight: 800;
     }
 
     .product-title {
       font-size: 14px;
       margin: 3px 0;
+      color: var(--text);
     }
 
     .product-desc {
@@ -468,8 +467,8 @@
 
     .product-price {
       font-size: 15px;
-      color: var(--warning);
-      font-weight: 700;
+      color: var(--primary);
+      font-weight: 800;
     }
 
     .price-sub-calc {
@@ -481,10 +480,10 @@
 
     .weight-selector-box,
     .digital-selector-box {
-      background: #f8fafc;
-      border: 1px solid var(--border);
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
       padding: 6px;
-      border-radius: 6px;
+      border-radius: 8px;
       margin: 6px 0;
     }
 
@@ -493,6 +492,7 @@
       font-weight: 700;
       display: block;
       margin-bottom: 3px;
+      color: var(--warning);
     }
 
     .weight-presets {
@@ -502,11 +502,11 @@
     }
 
     .weight-presets button {
-      padding: 3px 6px;
+      padding: 3px 8px;
       font-size: 10px;
-      background: #e2e8f0;
+      background: #fed7aa;
       color: var(--text);
-      border-radius: 4px;
+      border-radius: 999px;
     }
 
     .weight-presets button.active {
@@ -526,7 +526,7 @@
       width: 100%;
       padding: 4px 6px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 11px;
     }
 
@@ -550,11 +550,12 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--card-bg);
+      border: 2px solid #fed7aa;
+      border-radius: 10px;
       padding: 10px;
       margin-bottom: 10px;
+      box-shadow: var(--shadow);
     }
 
     @media (min-width: 480px) {
@@ -568,7 +569,7 @@
       width: 55px;
       height: 55px;
       object-fit: cover;
-      border-radius: 6px;
+      border-radius: 8px;
     }
 
     .cart-item-details {
@@ -583,18 +584,20 @@
     }
 
     .checkout-wrapper {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
       padding: 14px;
+      box-shadow: var(--shadow);
     }
 
     .order-summary {
-      background: #f8fafc;
+      background: #fff7ed;
       padding: 10px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 12px;
       margin-bottom: 15px;
+      border: 1px solid #fed7aa;
     }
 
     .summary-line {
@@ -605,16 +608,16 @@
 
     .summary-line.total {
       font-size: 15px;
-      font-weight: 700;
-      color: var(--success);
+      font-weight: 800;
+      color: var(--primary);
       margin-top: 5px;
     }
 
     .note-payment-warning {
       background: #fff7ed;
-      border: 1px solid #ffedd5;
+      border: 2px solid #fdba74;
       padding: 8px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 11px;
       color: #c2410c;
       margin-bottom: 10px;
@@ -623,16 +626,17 @@
     .auth-box {
       max-width: 380px;
       margin: 25px auto;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,.05);
+      box-shadow: 0 8px 20px rgba(225, 29, 72, .15);
     }
 
     .auth-box h2 {
       text-align: center;
       margin-bottom: 12px;
+      color: var(--primary);
     }
 
     .auth-switch {
@@ -670,18 +674,20 @@
     }
 
     .card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
       padding: 12px;
       margin-bottom: 12px;
+      box-shadow: var(--shadow);
     }
 
     .card h3 {
       font-size: 15px;
       margin-bottom: 10px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 2px solid var(--border);
       padding-bottom: 5px;
+      color: var(--primary);
     }
 
     .pos-grid {
@@ -705,9 +711,9 @@
     }
 
     .pos-item-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      background: var(--card-bg);
+      border: 2px solid var(--border);
+      border-radius: 8px;
       padding: 8px;
       text-align: center;
       cursor: pointer;
@@ -716,21 +722,22 @@
 
     .pos-item-card:hover {
       border-color: var(--primary);
-      background: #eff6ff;
+      background: #fff7ed;
+      transform: translateY(-2px);
     }
 
     .pos-item-card img {
       width: 100%;
       height: 60px;
       object-fit: cover;
-      border-radius: 4px;
+      border-radius: 6px;
     }
 
     .table-responsive {
       width: 100%;
       overflow-x: auto;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
     }
 
     .admin-table {
@@ -748,8 +755,9 @@
     }
 
     .admin-table th {
-      background: #f1f5f9;
-      font-weight: 600;
+      background: linear-gradient(135deg, var(--header-start), var(--header-end));
+      color: var(--header-text);
+      font-weight: 700;
       white-space: nowrap;
     }
 
@@ -757,13 +765,13 @@
       width: 32px;
       height: 32px;
       object-fit: cover;
-      border-radius: 4px;
+      border-radius: 6px;
     }
 
     .badge-stock {
       padding: 2px 6px;
       font-size: 9px;
-      border-radius: 4px;
+      border-radius: 999px;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -783,7 +791,7 @@
       padding: 3px 8px;
       font-size: 10px;
       font-weight: 700;
-      border-radius: 4px;
+      border-radius: 999px;
       margin-bottom: 6px;
     }
 
@@ -821,17 +829,18 @@
     }
 
     .stat-card {
-      background: #f8fafc;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      background: #fff7ed;
+      border: 2px solid #fed7aa;
+      border-radius: 8px;
       padding: 10px;
       text-align: center;
     }
 
     .stat-card p {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 800;
       margin-top: 3px;
+      color: var(--primary);
     }
 
     .scanner-modal,
@@ -849,7 +858,7 @@
     .scanner-box,
     .topping-box {
       background: #fff;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 15px;
       width: 100%;
       max-width: 420px;
@@ -894,17 +903,19 @@
         color: #000;
         font-size: 12px;
         line-height: 1.2;
+        background: #fff;
       }
       @page { size: auto; margin: 0mm; }
     }
 
     footer {
-      background: #fff;
+      background: linear-gradient(135deg, var(--header-start), var(--header-end));
       margin-top: 15px;
-      padding: 12px 0;
-      border-top: 1px solid var(--border);
-      color: var(--muted);
+      padding: 14px 0;
+      border-top: 4px solid #fecaca;
+      color: var(--header-text);
       font-size: 12px;
+      text-align: center;
     }
 
     .login-warning {
@@ -917,13 +928,28 @@
       margin-bottom: 8px;
     }
 
+    /* ===== PERBAIKAN: AGAR MAPS TIDAK MENUTUPI ELEMEN LAIN ===== */
     #admin-map {
       width: 100%;
       height: 260px;
-      border: 1px solid var(--border);
+      border: 2px solid var(--border);
       border-radius: 8px;
       background: var(--bg);
       z-index: 0;
+    }
+
+    .leaflet-container {
+      z-index: 0;
+    }
+    .leaflet-pane {
+      z-index: 1 !important;
+    }
+    .leaflet-top,
+    .leaflet-bottom {
+      z-index: 2 !important;
+    }
+    .leaflet-control {
+      z-index: 2 !important;
     }
 
     @media (max-width: 480px) {
@@ -940,7 +966,7 @@
 
     @media (max-width: 480px) {
       .product-grid { grid-template-columns: 1fr; }
-      .nav-link { font-size: 10px; padding: 6px 8px; }
+      .nav-link { font-size: 12px; padding: 6px 8px; }
       .logo h1 { font-size: 16px; }
     }
   </style>
@@ -950,9 +976,9 @@
   <header>
     <div class="navbar container">
       <div class="logo">
-        <h1>Pengembang UMKM lokal</h1>
-        <h1>go jag ga jig jaya</h1>
-        <p>Toko & Sistem POS Kasir </p>
+        <h1>🏪 Pengembang UMKM lokal</h1>
+        <h1 style="font-size:14px;color:#ffedd5;">✨ go jag ga jig jaya ✨</h1>
+        <p>Toko & Sistem POS Kasir</p>
         <div class="datetime-display" id="live-datetime">Memuat waktu...</div>
       </div>
       <nav>
@@ -1021,11 +1047,11 @@
             <h3>Ringkasan Belanja</h3>
             <div class="summary-line"><span>Subtotal:</span> <span id="summary-subtotal">Rp 0</span></div>
             <div class="summary-line"><span>Ongkos Kirim:</span> <span id="summary-shipping">Belum dihitung</span></div>
-            <hr style="border:none;border-top:1px solid var(--border);margin:5px 0;">
+            <hr style="border:none;border-top:2px dashed #fdba74;margin:5px 0;">
             <div class="summary-line total"><span>Total:</span> <span id="summary-total">Rp 0 (+Ongkir)</span></div>
           </div>
 
-          <div class="card" style="margin-bottom:12px;background:#f0f9ff;border-color:#bae6fd;">
+          <div class="card" style="margin-bottom:12px;background:#fff7ed;border-color:#fdba74;">
             <h3 style="border:none;padding-bottom:0;"><i class="fas fa-map-marker-alt"></i> Lokasi Pengiriman</h3>
             <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Pilih lokasi untuk menghitung otomatis ongkos kirim.</p>
 
@@ -1038,9 +1064,9 @@
               </button>
             </div>
 
-            <select id="saved-locations-list" class="hidden" style="width:100%;padding:6px;margin-bottom:8px;border:1px solid var(--border);border-radius:6px;"></select>
+            <select id="saved-locations-list" class="hidden" style="width:100%;padding:6px;margin-bottom:8px;border:1px solid #fed7aa;border-radius:6px;"></select>
 
-            <div id="map-picker" style="height:250px;border:1px solid var(--border);border-radius:6px;margin-top:8px;display:none;"></div>
+            <div id="map-picker" style="height:250px;border:2px solid #fed7aa;border-radius:8px;margin-top:8px;display:none;"></div>
             <p id="map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p>
             <p id="map-distance-info" style="font-size:12px;color:var(--primary);font-weight:700;margin-top:4px;min-height:16px;"></p>
           </div>
@@ -1114,7 +1140,7 @@
       <div class="hidden" id="admin-dashboard">
         <div class="admin-header">
           <div>
-            <h2>Portal Pengelola A'Didin</h2>
+            <h2>Portal Pengelola UMKM</h2>
             <span class="realtime-status online" id="session-role-badge">ROLE: KASIR</span>
           </div>
           <button class="btn-danger" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
@@ -1139,6 +1165,51 @@
           <p class="hidden" id="seed-status" style="font-size:11px;color:var(--success);margin-top:8px;"></p>
         </div>
 
+        <!-- ====== PENGATURAN WARNA / TEMA ALA KARTU PROMOSI ====== -->
+        <div class="card admin-only-feature">
+          <h3><i class="fas fa-palette"></i> Pengaturan Warna Kartu Promosi</h3>
+          <form class="form-style" id="theme-config-form">
+            <div class="form-group">
+              <label>Warna Awal Gradasi Header (Atas)</label>
+              <input type="color" id="theme-header-start" value="#e11d48">
+            </div>
+            <div class="form-group">
+              <label>Warna Akhir Gradasi Header (Bawah)</label>
+              <input type="color" id="theme-header-end" value="#f97316">
+            </div>
+            <div class="form-group">
+              <label>Warna Teks Header</label>
+              <input type="color" id="theme-header-text" value="#ffffff">
+            </div>
+            <div class="form-group">
+              <label>Warna Tombol Utama</label>
+              <input type="color" id="theme-primary" value="#e11d48">
+            </div>
+            <div class="form-group">
+              <label>Warna Teks Tombol</label>
+              <input type="color" id="theme-btn-text" value="#ffffff">
+            </div>
+            <div class="form-group">
+              <label>Warna Latar Halaman</label>
+              <input type="color" id="theme-bg-color" value="#fff7ed">
+            </div>
+            <div class="form-group">
+              <label>Warna Aksen / Border Kartu</label>
+              <input type="color" id="theme-border" value="#fed7aa">
+            </div>
+            <div class="form-group">
+              <label>Warna Teks Utama</label>
+              <input type="color" id="theme-text" value="#431407">
+            </div>
+            <button class="btn-primary btn-block" type="submit">
+              <i class="fas fa-check-circle"></i> Terapkan Warna
+            </button>
+            <button type="button" class="btn-secondary btn-block" id="btn-reset-theme" style="margin-top:5px;">
+              <i class="fas fa-undo"></i> Reset ke Warna Promosi
+            </button>
+          </form>
+        </div>
+
         <div class="card" id="pos-module-card">
           <h3><i class="fas fa-cash-register"></i> Kasir POS</h3>
           <div class="pos-grid">
@@ -1152,13 +1223,13 @@
               </div>
               <div class="pos-products" id="pos-product-list"></div>
             </div>
-            <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px;">
+            <div style="background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;padding:10px;">
               <h4>Struk Belanja</h4>
-              <div id="pos-cart-items" style="max-height:180px;overflow-y:auto;border-bottom:1px dashed #cbd5e1;padding-bottom:5px;margin:8px 0;">
+              <div id="pos-cart-items" style="max-height:180px;overflow-y:auto;border-bottom:2px dashed #fdba74;padding-bottom:5px;margin:8px 0;">
                 <p style="font-size:11px;text-align:center;color:var(--muted);">Belum ada barang</p>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:5px;">
-                <span>Total:</span><span id="pos-total-pay" style="color:var(--success);font-size:14px;">Rp 0</span>
+                <span>Total:</span><span id="pos-total-pay" style="color:var(--primary);font-size:14px;">Rp 0</span>
               </div>
               <div class="form-style">
                 <div class="form-group"><label>Uang Tunai (Rp)</label><input type="number" id="pos-cash-input" value="0"></div>
@@ -1192,15 +1263,6 @@
                   <tbody id="admin-users-table"></tbody>
                 </table>
               </div>
-            </div>
-
-            <div class="card admin-only-feature">
-              <h3><i class="fas fa-cogs"></i> Pengaturan Tema</h3>
-              <form class="form-style" id="theme-config-form">
-                <div class="form-group"><label>Warna Background</label><input type="color" id="theme-bg-color" value="#f8fafc"></div>
-                <div class="form-group"><label>Warna Primer</label><input type="color" id="theme-primary-color" value="#2563eb"></div>
-                <button class="btn-primary btn-block" type="submit">Terapkan</button>
-              </form>
             </div>
 
             <div class="card admin-only-feature">
@@ -1323,7 +1385,7 @@
                 <button class="btn-primary btn-block" type="submit">Siarkan</button>
                 <button type="button" class="btn-secondary btn-block" id="btn-clear-broadcast" style="margin-top:5px;">Hapus Pengumuman</button>
               </form>
-              <h4 style="margin-top:15px;border-top:1px dashed var(--border);padding-top:8px;font-size:13px;">Arsip Broadcast</h4>
+              <h4 style="margin-top:15px;border-top:2px dashed #fdba74;padding-top:8px;font-size:13px;">Arsip Broadcast</h4>
               <div class="table-responsive" style="margin-top:8px;">
                 <table class="admin-table">
                   <thead><tr><th>Waktu</th><th>Isi</th><th>Aksi</th></tr></thead>
@@ -1360,7 +1422,7 @@
 
   <footer>
     <div class="container text-center">
-      <p>&copy; 2026 Toko Online & POS Kasir A'Didin — UMKM Lokal</p>
+      <p>&copy; 2026 Pengembang UMKM Lokal — go jag ga jig jaya ✨</p>
     </div>
   </footer>
 
@@ -1396,6 +1458,76 @@
 
     const $ = (id) => document.getElementById(id);
 
+    /* ================== THEME PROMOSI ================== */
+    const DEFAULT_THEME = {
+      headerStart: '#e11d48',
+      headerEnd: '#f97316',
+      headerText: '#ffffff',
+      primary: '#e11d48',
+      btnText: '#ffffff',
+      bg: '#fff7ed',
+      border: '#fed7aa',
+      text: '#431407'
+    };
+
+    let themeConfig = safeParse(localStorage.getItem('adidin_theme_promo'), DEFAULT_THEME);
+
+    const applyTheme = () => {
+      const r = document.documentElement.style;
+      r.setProperty('--header-start', themeConfig.headerStart);
+      r.setProperty('--header-end', themeConfig.headerEnd);
+      r.setProperty('--header-text', themeConfig.headerText);
+      r.setProperty('--primary', themeConfig.primary);
+      r.setProperty('--btn-text', themeConfig.btnText);
+      r.setProperty('--bg', themeConfig.bg);
+      r.setProperty('--border', themeConfig.border);
+      r.setProperty('--text', themeConfig.text);
+      r.setProperty('--card-bg', '#ffffff');
+      // Update form fields
+      if ($('theme-header-start')) $('theme-header-start').value = themeConfig.headerStart;
+      if ($('theme-header-end')) $('theme-header-end').value = themeConfig.headerEnd;
+      if ($('theme-header-text')) $('theme-header-text').value = themeConfig.headerText;
+      if ($('theme-primary')) $('theme-primary').value = themeConfig.primary;
+      if ($('theme-btn-text')) $('theme-btn-text').value = themeConfig.btnText;
+      if ($('theme-bg-color')) $('theme-bg-color').value = themeConfig.bg;
+      if ($('theme-border')) $('theme-border').value = themeConfig.border;
+      if ($('theme-text')) $('theme-text').value = themeConfig.text;
+      // Also update meta theme-color
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', themeConfig.primary);
+    };
+
+    const saveTheme = () => {
+      localStorage.setItem('adidin_theme_promo', JSON.stringify(themeConfig));
+      if (firebaseReady) db.ref('theme_promo').set(themeConfig);
+      applyTheme();
+    };
+
+    const resetTheme = () => {
+      themeConfig = { ...DEFAULT_THEME };
+      saveTheme();
+      alert("Warna berhasil direset ke gaya kartu promosi!");
+    };
+
+    $('theme-config-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      themeConfig = {
+        headerStart: $('theme-header-start').value,
+        headerEnd: $('theme-header-end').value,
+        headerText: $('theme-header-text').value,
+        primary: $('theme-primary').value,
+        btnText: $('theme-btn-text').value,
+        bg: $('theme-bg-color').value,
+        border: $('theme-border').value,
+        text: $('theme-text').value
+      };
+      saveTheme();
+      alert("Warna berhasil diterapkan! 🎨");
+    });
+
+    $('btn-reset-theme').addEventListener('click', resetTheme);
+
+    /* ================== /THEME PROMOSI ================== */
+
     let products = safeParse(localStorage.getItem('adidin_products'), [
       {
         id: "1",
@@ -1422,7 +1554,6 @@
     let historyList = safeParse(localStorage.getItem('adidin_history'), []);
     let broadcastHistory = safeParse(localStorage.getItem('adidin_broadcast_history'), []);
     let activeAnnouncement = localStorage.getItem('adidin_announcement') || "";
-    let themeConfig = safeParse(localStorage.getItem('adidin_theme'), { bg: "#f8fafc", primary: "#2563eb" });
     let storeOpen = localStorage.getItem('adidin_store_open') !== 'false';
     let cart = safeParse(localStorage.getItem('adidin_cart'), []);
     if (!Array.isArray(cart)) cart = [];
@@ -1437,7 +1568,7 @@
       enabled: true,
       storeLat: -6.693932,
       storeLng: 108.509458,
-      storeAddress: "Jl. Toko A'Didin No.1, Cirebon",
+      storeAddress: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon",
       perKm: 3000,
       minFee: 5000,
       freeMin: 100000
@@ -1879,8 +2010,8 @@
       db.ref('shipping_config').once('value', (snap) => {
         if (snap.val() === null) db.ref('shipping_config').set(shippingConfig);
       });
-      db.ref('theme_config').once('value', (snap) => {
-        if (snap.val() === null) db.ref('theme_config').set(themeConfig);
+      db.ref('theme_promo').once('value', (snap) => {
+        if (snap.val() === null) db.ref('theme_promo').set(themeConfig);
       });
     };
 
@@ -1907,7 +2038,7 @@
       if (banner && textEl) {
         banner.classList.remove('closed');
         if (storeOpen) {
-          textEl.innerText = "Toko Sedang BUKA — Selamat berbelanja!";
+          textEl.innerText = "Toko Sedang BUKA — Selamat berbelanja! 🛍️";
         } else {
           banner.classList.add('closed');
           textEl.innerText = "Toko Sedang TUTUP — Mohon maaf, kami tidak menerima pesanan.";
@@ -2168,7 +2299,7 @@
         cart.push({ uniqueKey: 'item_' + Date.now() + '_' + Math.random(), product: { ...prod, price: customPrice }, qty, unitChosen: prod.unitType, toppings: toppings || [] });
         saveCart();
         renderCart();
-        alert("Produk masuk keranjang!");
+        alert("Produk masuk keranjang! 🛒");
       };
       if (prod.toppings && prod.toppings.length > 0) openTopping(prod, finish);
       else finish([]);
@@ -2214,7 +2345,7 @@
               <button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-idx="${idx}"><i class="fas fa-trash"></i> Hapus</button>
             </div>
           </div>
-          <div style="font-weight:700;color:var(--warning);font-size:13px;">Rp ${total.toLocaleString('id-ID')}</div>`;
+          <div style="font-weight:700;color:var(--primary);font-size:13px;">Rp ${total.toLocaleString('id-ID')}</div>`;
         frag.appendChild(row);
       });
       list.appendChild(frag);
@@ -2321,6 +2452,7 @@
         renderPosProducts();
         renderHistory(historyList);
         renderBroadcastHistory(broadcastHistory);
+        applyTheme();
       } else {
         $('admin-dashboard').classList.add('hidden');
         $('admin-login-box').classList.remove('hidden');
@@ -2443,7 +2575,7 @@
       closeScanner();
       if (activeScanTarget === 'pos') {
         const product = products.find(p => p.barcode === text || p.id === text);
-        if (product) { addPos(product); alert(`${product.name} ditambahkan!`); }
+        if (product) { addPos(product); alert(`${product.name} ditambahkan! ✅`); }
         else { $('pos-search').value = text; renderPosProducts(); alert("Barang tidak ditemukan, tapi kode dimasukkan ke pencarian."); }
       } else if (activeScanTarget === 'admin-form') {
         $('prod-barcode').value = text;
@@ -2469,20 +2601,13 @@
       tbody.innerHTML = '';
       adminUsers.forEach(u => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td><strong>${u.username}</strong></td><td><span style="background:#e0f2fe;color:#0369a1;padding:2px 5px;border-radius:4px;font-weight:700;">${(u.role||'admin').toUpperCase()}</span></td><td><button class="btn-danger" style="padding:2px 6px;font-size:10px;" data-user="${u.username}">Hapus</button></td>`;
+        tr.innerHTML = `<td><strong>${u.username}</strong></td><td><span style="background:#e0f2fe;color:#0369a1;padding:2px 5px;border-radius:999px;font-weight:700;">${(u.role||'admin').toUpperCase()}</span></td><td><button class="btn-danger" style="padding:2px 6px;font-size:10px;" data-user="${u.username}">Hapus</button></td>`;
         tbody.appendChild(tr);
       });
       tbody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', e => {
         const name = e.target.getAttribute('data-user');
         if (confirm(`Hapus ${name}?`)) { adminUsers = adminUsers.filter(u => u.username !== name); saveUsers(); }
       }));
-    };
-
-    const applyTheme = () => {
-      document.documentElement.style.setProperty('--bg', themeConfig.bg);
-      document.documentElement.style.setProperty('--primary', themeConfig.primary);
-      $('theme-bg-color').value = themeConfig.bg;
-      $('theme-primary-color').value = themeConfig.primary;
     };
 
     const renderBroadcastHistory = (list) => {
@@ -2573,13 +2698,13 @@
       const phone = (order.buyerPhone || '-').toString();
       const wa = phone.startsWith('0') ? '62' + phone.slice(1) : phone;
       if (status === 'received') {
-        msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\nPesanan Anda telah *diterima* oleh sistem kami.`; newStatus = 'diterima';
+        msg = `*INFO TOKO UMKM LOKAL*\nHalo Kak *${order.buyerName}*,\nPesanan Anda telah *diterima* oleh sistem kami.`; newStatus = 'diterima';
       } else if (status === 'process') {
-        msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\nMohon tunggu, pesanan sedang *diproses*.`; newStatus = 'diproses';
+        msg = `*INFO TOKO UMKM LOKAL*\nHalo Kak *${order.buyerName}*,\nMohon tunggu, pesanan sedang *diproses*.`; newStatus = 'diproses';
       } else if (status === 'delivering') {
-        msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\n*Pesanan Anda sedang diantar!* 🛵\n\n${order.itemsSummary}---------------------------\nTOTAL: Rp ${total.toLocaleString('id-ID')}\n\nSiapkan uang pas ya!`; newStatus = 'diantar';
+        msg = `*INFO TOKO UMKM LOKAL*\nHalo Kak *${order.buyerName}*,\n*Pesanan Anda sedang diantar!* 🛵\n\n${order.itemsSummary}---------------------------\nTOTAL: Rp ${total.toLocaleString('id-ID')}\n\nSiapkan uang pas ya!`; newStatus = 'diantar';
       } else if (status === 'completed') {
-        msg = `*INFO TOKO A'DIDIN*\nHalo Kak *${order.buyerName}*,\n*Pesanan selesai*. Terima kasih sudah belanja!\n\nDILARANG HUTANG. Sampai jumpa!`; newStatus = 'selesai';
+        msg = `*INFO TOKO UMKM LOKAL*\nHalo Kak *${order.buyerName}*,\n*Pesanan selesai*. Terima kasih sudah belanja!\n\nDILARANG HUTANG. Sampai jumpa! ✨`; newStatus = 'selesai';
         if (order.orderStatus !== 'selesai' && order.itemsList) {
           order.itemsList.forEach(i => {
             const idx = products.findIndex(p => p.id === i.productId);
@@ -2647,7 +2772,7 @@
         tr.innerHTML = `
           <td><img src="${p.img}" alt=""></td>
           <td><strong>${p.name}</strong><br><small style="color:var(--muted);">${p.barcode ? 'BC: ' + p.barcode : 'Tanpa BC'}</small></td>
-          <td><span style="background:#f1f5f9;padding:2px 6px;border-radius:4px;">${p.rack||'Rak Utama'}</span></td>
+          <td><span style="background:#fff7ed;padding:2px 6px;border-radius:999px;">${p.rack||'Rak Utama'}</span></td>
           <td><strong>${p.unitType === 'digital' ? '∞' : p.stock}</strong> ${unit}</td>
           <td>Jual: Rp ${(p.price||0).toLocaleString('id-ID')}<br><small style="color:var(--muted);">HPP: Rp ${(p.costPrice||0).toLocaleString('id-ID')}</small></td>
           <td><span class="badge-stock ${(p.available && (p.stock > 0 || p.unitType === 'digital')) ? 'in' : 'out'}">${(p.available && (p.stock > 0 || p.unitType === 'digital')) ? 'Tersedia' : 'Kosong'}</span></td>
@@ -2778,13 +2903,13 @@
       const ongkirText = shippingConfig.enabled && shippingFee === 0 && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin
         ? "GRATIS 🎉"
         : `Rp ${shippingFee.toLocaleString('id-ID')}`;
-      const msg = `*PESANAN BARU - TOKO A'DIDIN*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirText}\nTOTAL: Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}\n\n*Data:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
+      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirText}\nTOTAL: Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}\n\n*Data:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
       window.open(`https://api.whatsapp.com/send?phone=${MAIN_WA_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
       cart = [];
       saveCart();
       this.reset();
       switchPage('buyer');
-      alert("Pesanan terkirim!");
+      alert("Pesanan terkirim! ✅");
     });
 
     $('switch-to-register').addEventListener('click', () => {
@@ -2807,7 +2932,7 @@
       if (adminUsers.some(u => u.username === user)) return alert("Username sudah dipakai!");
       adminUsers.push({ username: user, password: pass, whatsapp: wa, role });
       saveUsers();
-      alert("Akun terdaftar. Silakan login!");
+      alert("Akun terdaftar. Silakan login! ✅");
       this.reset();
       $('switch-to-login').click();
     });
@@ -2822,7 +2947,7 @@
       if (found.role !== role) return alert(`Akun ini terdaftar sebagai ${found.role.toUpperCase()}.`);
       currentUser = found;
       localStorage.setItem('adidin_admin_session', JSON.stringify(found));
-      alert(`Selamat datang ${found.role.toUpperCase()} ${found.username}`);
+      alert(`Selamat datang ${found.role.toUpperCase()} ${found.username} 🎉`);
       checkSession();
       ensureAdminMapVisible();
     });
@@ -2898,7 +3023,7 @@
         freeMin: parseFloat($('ship-free-min').value) || 0
       };
       saveShippingConfig();
-      alert("Pengaturan ongkir disimpan!");
+      alert("Pengaturan ongkir disimpan! ✅");
     });
 
     $('btn-search-ship-address').addEventListener('click', async () => {
@@ -2962,7 +3087,7 @@
       const receipt = $('printable-receipt');
       receipt.innerHTML = `
         <div style="text-align:center;font-weight:bold;font-size:16px;">PENGEMBANG UMKM LOCAL</div>
-        <div style="text-align:center;font-size:11px;"> jl syekh datul kahfi Ds.GAMEL</div>
+        <div style="text-align:center;font-size:11px;">Jl. Syekh Datul Kahfi DS. GAMEL</div>
         <div style="text-align:center;font-size:11px;">================================</div>
         <div style="font-size:11px;">${order.timestamp}</div>
         <div style="font-size:11px;">Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
@@ -2974,7 +3099,7 @@
         <div style="display:flex;justify-content:space-between;font-size:11px;"><span>KEMBALI:</span><span>Rp ${(cash-total).toLocaleString('id-ID')}</span></div>
         <div style="text-align:center;font-size:11px;">================================</div>
         <div style="text-align:center;font-size:11px;margin-top:5px;">Terima Kasih!</div>
-        <div style="text-align:center;font-size:11px;margin-top:5px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL</div>
+        <div style="text-align:center;font-size:11px;margin-top:5px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
         <!-- QR Code untuk mengunjungi toko -->
         <div style="text-align:center;margin-top:8px;">
           <div id="qr-receipt" style="display:inline-block;background:#fff;"></div>
@@ -3030,14 +3155,6 @@
     });
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
-    $('theme-config-form').addEventListener('submit', e => {
-      e.preventDefault();
-      themeConfig = { bg: $('theme-bg-color').value, primary: $('theme-primary-color').value };
-      localStorage.setItem('adidin_theme', JSON.stringify(themeConfig));
-      if (firebaseReady) db.ref('theme_config').set(themeConfig);
-      applyTheme();
-    });
-
     $('wa-broadcast-form').addEventListener('submit', e => {
       e.preventDefault();
       activeAnnouncement = $('broadcast-text').value;
@@ -3061,7 +3178,7 @@
         db.ref('history').set(historyList);
         db.ref('broadcast_history').set(broadcastHistory);
         db.ref('announcement').set(activeAnnouncement);
-        db.ref('theme_config').set(themeConfig);
+        db.ref('theme_promo').set(themeConfig);
         db.ref('shipping_config').set(shippingConfig);
       }
       const el = $('seed-status');
@@ -3119,7 +3236,7 @@
       }
       saveProducts();
       resetProductForm();
-      alert("Produk disimpan!");
+      alert("Produk disimpan! ✅");
     });
 
     function initFirebase() {
@@ -3196,14 +3313,14 @@
             renderCart();
           }
         });
-        db.ref('theme_config').on('value', (snap) => {
+        db.ref('theme_promo').on('value', (snap) => {
           const data = snap.val();
           if (data) {
-            themeConfig = data;
-            localStorage.setItem('adidin_theme', JSON.stringify(themeConfig));
+            themeConfig = { ...DEFAULT_THEME, ...data };
+            localStorage.setItem('adidin_theme_promo', JSON.stringify(themeConfig));
             applyTheme();
           } else {
-            db.ref('theme_config').set(themeConfig);
+            db.ref('theme_promo').set(themeConfig);
           }
         });
         seedInitialData();
