@@ -13,7 +13,6 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-  <!-- Library untuk membuat QR code di struk -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -30,22 +29,21 @@
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     }
 
-    /* ====== WARNA ALA KARTU PROMOSI ====== */
     :root {
-      --primary: #e11d48;             /* Merah crimson utama */
+      --primary: #e11d48;
       --primary-hover: #be123c;
       --success: #16a34a;
       --success-hover: #15803d;
       --danger: #dc2626;
       --danger-hover: #b91c1c;
-      --warning: #f97316;             /* Oranye promosi */
-      --bg: #fff7ed;                  /* Krem hangat */
+      --warning: #f97316;
+      --bg: #fff7ed;
       --border: #fed7aa;
       --text: #431407;
       --muted: #9a3412;
       --wa: #25d366;
-      --header-start: #e11d48;        /* Gradasi header start */
-      --header-end: #f97316;          /* Gradasi header end */
+      --header-start: #e11d48;
+      --header-end: #f97316;
       --header-text: #ffffff;
       --btn-text: #ffffff;
       --card-bg: #ffffff;
@@ -139,7 +137,7 @@
     }
 
     .notification-bell {
-      position: relative;
+      position: relative; /* PERBAIKAN: agar dropdown menempel di bawah lonceng */
       cursor: pointer;
       padding: 6px 8px;
       color: var(--header-text);
@@ -161,14 +159,27 @@
       position: absolute;
       top: 38px;
       right: 0;
-      width: 260px;
+      width: 320px;
+      min-width: 280px;
+      max-height: 400px;
+      overflow-y: auto;
       background: #fff;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px;
       font-size: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,.12);
-      z-index: 200;
+      z-index: 9999; /* PERBAIKAN: agar selalu di atas elemen lain */
+    }
+
+    .bell-item {
+      display: block;
+      border-bottom: 1px dashed var(--border);
+      padding: 8px 0;
+    }
+
+    .bell-item:last-child {
+      border-bottom: none;
     }
 
     .realtime-status {
@@ -928,7 +939,6 @@
       margin-bottom: 8px;
     }
 
-    /* ===== PERBAIKAN: AGAR MAPS TIDAK MENUTUPI ELEMEN LAIN ===== */
     #admin-map {
       width: 100%;
       height: 260px;
@@ -1011,11 +1021,6 @@
         <span><strong>Pesan Antar 1 Km Cuma Rp4.000 – Rp8.000!</strong><br><small>Tarif dasar minimal sangat terjangkau. Klik "Gunakan Lokasi Saya" di keranjang.</small></span>
       </div>
 
-      <div class="card hidden" id="shop-upgrade-banner">
-        <h4><i class="fas fa-bullhorn"></i> Pengumuman Toko</h4>
-        <p id="shop-upgrade-message"></p>
-      </div>
-
       <div class="search-filter-box">
         <div class="search-input">
           <i class="fas fa-search"></i>
@@ -1035,6 +1040,12 @@
 
     <section class="page-section" id="cart-dashboard">
       <h2 class="section-title">Keranjang Belanja Online</h2>
+
+      <div id="closed-store-notice" class="store-status-banner closed hidden">
+        <i class="fas fa-store-slash"></i>
+        <span>Toko sedang <strong>TUTUP</strong>. Anda tetap dapat memesan — wajib menentukan tanggal & jam pengiriman/pengambilan.</span>
+      </div>
+
       <div class="cart-container">
         <div>
           <div id="cart-items-list"></div>
@@ -1077,12 +1088,16 @@
             <div class="form-group"><label>No HP / WhatsApp</label><input type="tel" id="checkout-phone" required placeholder="0812xxxx"></div>
             <div class="form-group"><label>Alamat Lengkap / No. Tujuan Digital</label><textarea id="checkout-address" required placeholder="Alamat kirim / ID listrik / No. HP tujuan top up"></textarea></div>
             <div class="form-group">
-              <label>Waktu Pengiriman</label>
-              <select id="checkout-time">
-                <option value="Kirim Sekarang">Kirim Sekarang</option>
-                <option value="Atur Waktu (Lainnya)">Atur Waktu</option>
-              </select>
+              <label>Tanggal Pengiriman (Tanggal / Bulan / Tahun)</label>
+              <input type="date" id="checkout-date" placeholder="Pilih tanggal">
             </div>
+            <div class="form-group">
+              <label>Jam Pengiriman (Jam : Menit)</label>
+              <input type="time" id="checkout-time" placeholder="Pilih jam">
+            </div>
+            <p style="font-size:10px;color:var(--muted);margin-top:-5px;margin-bottom:8px;">
+              <i class="fas fa-clock"></i> Jika toko sedang BUKA, kosongkan jika ingin dikirim segera. Jika toko TUTUP, wajib diisi.
+            </p>
             <div class="form-group"><label>Catatan</label><textarea id="checkout-note" placeholder="Catatan tambahan"></textarea></div>
             <div class="note-payment-warning">
               <i class="fas fa-exclamation-triangle"></i>
@@ -1165,7 +1180,6 @@
           <p class="hidden" id="seed-status" style="font-size:11px;color:var(--success);margin-top:8px;"></p>
         </div>
 
-        <!-- ====== PENGATURAN WARNA / TEMA ALA KARTU PROMOSI ====== -->
         <div class="card admin-only-feature">
           <h3><i class="fas fa-palette"></i> Pengaturan Warna Kartu Promosi</h3>
           <form class="form-style" id="theme-config-form">
@@ -1383,7 +1397,7 @@
               <form class="form-style" id="wa-broadcast-form">
                 <div class="form-group"><label>Pesan Pengumuman</label><textarea id="broadcast-text" required></textarea></div>
                 <button class="btn-primary btn-block" type="submit">Siarkan</button>
-                <button type="button" class="btn-secondary btn-block" id="btn-clear-broadcast" style="margin-top:5px;">Hapus Pengumuman</button>
+                <button type="button" class="btn-secondary btn-block" id="btn-clear-broadcast" style="margin-top:5px;">Hapus Pengumuman Tampil</button>
               </form>
               <h4 style="margin-top:15px;border-top:2px dashed #fdba74;padding-top:8px;font-size:13px;">Arsip Broadcast</h4>
               <div class="table-responsive" style="margin-top:8px;">
@@ -1444,7 +1458,6 @@
     const DEFAULT_SECRET_REGISTRATION = "aliciapitalaurasalsabila";
     const MAIN_WA_NUMBER = "628991286742";
 
-    // URL toko yang akan dimasukkan ke QR code struk
     const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
 
     const safeParse = (json, fallback) => {
@@ -1458,7 +1471,6 @@
 
     const $ = (id) => document.getElementById(id);
 
-    /* ================== THEME PROMOSI ================== */
     const DEFAULT_THEME = {
       headerStart: '#e11d48',
       headerEnd: '#f97316',
@@ -1483,7 +1495,6 @@
       r.setProperty('--border', themeConfig.border);
       r.setProperty('--text', themeConfig.text);
       r.setProperty('--card-bg', '#ffffff');
-      // Update form fields
       if ($('theme-header-start')) $('theme-header-start').value = themeConfig.headerStart;
       if ($('theme-header-end')) $('theme-header-end').value = themeConfig.headerEnd;
       if ($('theme-header-text')) $('theme-header-text').value = themeConfig.headerText;
@@ -1492,7 +1503,6 @@
       if ($('theme-bg-color')) $('theme-bg-color').value = themeConfig.bg;
       if ($('theme-border')) $('theme-border').value = themeConfig.border;
       if ($('theme-text')) $('theme-text').value = themeConfig.text;
-      // Also update meta theme-color
       document.querySelector('meta[name="theme-color"]').setAttribute('content', themeConfig.primary);
     };
 
@@ -1526,8 +1536,6 @@
 
     $('btn-reset-theme').addEventListener('click', resetTheme);
 
-    /* ================== /THEME PROMOSI ================== */
-
     let products = safeParse(localStorage.getItem('adidin_products'), [
       {
         id: "1",
@@ -1553,7 +1561,6 @@
 
     let historyList = safeParse(localStorage.getItem('adidin_history'), []);
     let broadcastHistory = safeParse(localStorage.getItem('adidin_broadcast_history'), []);
-    let activeAnnouncement = localStorage.getItem('adidin_announcement') || "";
     let storeOpen = localStorage.getItem('adidin_store_open') !== 'false';
     let cart = safeParse(localStorage.getItem('adidin_cart'), []);
     if (!Array.isArray(cart)) cart = [];
@@ -1591,6 +1598,10 @@
 
     let savedLocations = safeParse(localStorage.getItem('adidin_saved_locations'), []);
     let lastLocation = safeParse(localStorage.getItem('adidin_last_location'), null);
+
+    const getActiveAnnouncements = () => {
+      return broadcastHistory.filter(b => b.enabled !== false);
+    };
 
     const reverseGeocodeWithFallback = async (lat, lng) => {
       try {
@@ -1969,11 +1980,10 @@
 
     const saveBroadcast = () => {
       localStorage.setItem('adidin_broadcast_history', JSON.stringify(broadcastHistory));
-      localStorage.setItem('adidin_announcement', activeAnnouncement);
       if (firebaseReady) {
         db.ref('broadcast_history').set(broadcastHistory);
-        db.ref('announcement').set(activeAnnouncement);
       }
+      renderAnnouncement();
       if (currentUser) renderBroadcastHistory(broadcastHistory);
     };
 
@@ -2003,9 +2013,6 @@
       });
       db.ref('broadcast_history').once('value', (snap) => {
         if (snap.val() === null && broadcastHistory.length === 0) db.ref('broadcast_history').set([]);
-      });
-      db.ref('announcement').once('value', (snap) => {
-        if (snap.val() === null) db.ref('announcement').set("");
       });
       db.ref('shipping_config').once('value', (snap) => {
         if (snap.val() === null) db.ref('shipping_config').set(shippingConfig);
@@ -2103,20 +2110,18 @@
     };
 
     const renderAnnouncement = () => {
-      const banner = $('shop-upgrade-banner');
-      const msg = $('shop-upgrade-message');
+      const activeList = getActiveAnnouncements();
       const badge = $('bell-badge');
       const content = $('bell-content');
       const empty = $('bell-empty');
-      if (activeAnnouncement && activeAnnouncement.trim()) {
-        msg.innerText = activeAnnouncement;
-        banner.classList.remove('hidden');
-        badge.innerText = "1";
+      if (activeList.length > 0) {
+        badge.innerText = activeList.length;
         badge.classList.remove('hidden');
         empty.classList.add('hidden');
-        content.innerHTML = `<div class="bell-item"><strong>Pengumuman:</strong><br>${activeAnnouncement}</div>`;
+        content.innerHTML = activeList.map(b =>
+          `<div class="bell-item"><strong>${b.time}</strong><br>${b.text}</div>`
+        ).join('');
       } else {
-        banner.classList.add('hidden');
         badge.classList.add('hidden');
         empty.classList.remove('hidden');
         content.innerHTML = '';
@@ -2175,7 +2180,7 @@
         const isKg = p.unitType === 'kg';
         const isDigital = p.unitType === 'digital';
         const isAvailable = p.available && (p.stock > 0 || isDigital);
-        const canOrder = isAvailable && storeOpen;
+        const canOrder = isAvailable;
         let satuan = '/pcs';
         if (isKg) satuan = '/kg';
         else if (p.unitType === 'dus') satuan = '/dus';
@@ -2227,7 +2232,7 @@
           </div>
           <div class="product-action">
             <button class="btn-block btn-primary btn-buy" data-id="${p.id}" ${!canOrder ? 'disabled' : ''}>
-              ${!storeOpen ? '<i class="fas fa-store-slash"></i> Toko Tutup' : (isAvailable ? '<i class="fas fa-shopping-cart"></i> Beli' : '<i class="fas fa-ban"></i> Stok Habis')}
+              ${!storeOpen ? (isAvailable ? '<i class="fas fa-calendar-check"></i> Pesan (Pre-Order)' : '<i class="fas fa-ban"></i> Stok Habis') : (isAvailable ? '<i class="fas fa-shopping-cart"></i> Beli' : '<i class="fas fa-ban"></i> Stok Habis')}
             </button>
           </div>`;
         fragment.appendChild(card);
@@ -2277,10 +2282,10 @@
     };
 
     const buyProduct = (id) => {
-      if (!storeOpen) { alert("⛔ Toko sedang TUTUP. Silakan kembali saat buka."); return; }
       const prod = products.find(p => p.id == id);
       if (!prod || !prod.available || (prod.unitType !== 'digital' && prod.stock <= 0)) {
-        alert("Stok habis!"); return;
+        alert("Stok habis!");
+        return;
       }
       let qty = 1;
       let customPrice = prod.price;
@@ -2309,6 +2314,8 @@
       const list = $('cart-items-list');
       list.innerHTML = '';
       const clearBtn = $('btn-clear-cart');
+      const closedNotice = $('closed-store-notice');
+      if (closedNotice) closedNotice.classList.toggle('hidden', storeOpen);
       if (cart.length === 0) {
         list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong.</p>';
         clearBtn.classList.add('hidden');
@@ -2619,12 +2626,30 @@
       }
       list.forEach(b => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${b.time}</td><td>${b.text}</td><td><button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-bc="${b.id}"><i class="fas fa-trash"></i></button></td>`;
+        const isEnabled = b.enabled !== false;
+        tr.innerHTML = `<td>${b.time}</td><td style="word-break:break-word;">${b.text} <span style="display:block;font-size:9px;color:${isEnabled ? 'var(--success)' : 'var(--danger)'};">[${isEnabled ? 'TAMPIL' : 'NONAKTIF'}]</span></td>
+          <td>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <button class="${isEnabled ? 'btn-danger' : 'btn-success'}" style="padding:3px 8px;font-size:10px;" data-toggle-bc="${b.id}">${isEnabled ? 'Nonaktifkan' : 'Aktifkan'}</button>
+              <button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-bc="${b.id}"><i class="fas fa-trash"></i> Hapus</button>
+            </div>
+          </td>`;
         tbody.appendChild(tr);
       });
-      tbody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', e => {
-        broadcastHistory = broadcastHistory.filter(b => b.id !== e.target.closest('button').getAttribute('data-bc'));
-        saveBroadcast();
+      tbody.querySelectorAll('button[data-toggle-bc]').forEach(btn => btn.addEventListener('click', e => {
+        const id = e.target.closest('button').getAttribute('data-toggle-bc');
+        const item = broadcastHistory.find(b => b.id === id);
+        if (item) {
+          item.enabled = (item.enabled === false) ? true : false;
+          saveBroadcast();
+        }
+      }));
+      tbody.querySelectorAll('button[data-bc]').forEach(btn => btn.addEventListener('click', e => {
+        const id = e.target.closest('button').getAttribute('data-bc');
+        if (confirm("Hapus pengumuman ini?")) {
+          broadcastHistory = broadcastHistory.filter(b => b.id !== id);
+          saveBroadcast();
+        }
       }));
     };
 
@@ -2851,7 +2876,6 @@
 
     $('checkout-form').addEventListener('submit', function(e) {
       e.preventDefault();
-      if (!storeOpen) return alert("⛔ Toko sedang TUTUP!");
       if (cart.length === 0) return alert("Keranjang kosong!");
       if (shippingConfig.enabled) {
         if (!userLocation || !userLocation.lat || !userLocation.lng) {
@@ -2862,7 +2886,23 @@
       const name = $('checkout-name').value;
       const phone = $('checkout-phone').value;
       const address = $('checkout-address').value;
-      const time = $('checkout-time').value;
+      const dateVal = $('checkout-date').value;
+      const timeVal = $('checkout-time').value;
+      let time;
+      if (!storeOpen) {
+        if (!dateVal || !timeVal) {
+          alert("⚠️ Toko sedang TUTUP. Wajib menentukan tanggal & jam pengiriman terlebih dahulu!");
+          return;
+        }
+        const selected = new Date(dateVal + 'T' + timeVal);
+        if (isNaN(selected.getTime()) || selected <= new Date()) {
+          alert("⚠️ Waktu pengiriman harus di masa mendatang (tanggal & jam yang valid)!");
+          return;
+        }
+        time = dateVal + ' ' + timeVal;
+      } else {
+        time = (dateVal && timeVal) ? dateVal + ' ' + timeVal : "Kirim Sekarang";
+      }
       const note = $('checkout-note').value || '-';
       let itemsMsg = "";
       let subtotal = 0;
@@ -3100,13 +3140,11 @@
         <div style="text-align:center;font-size:11px;">================================</div>
         <div style="text-align:center;font-size:11px;margin-top:5px;">Terima Kasih!</div>
         <div style="text-align:center;font-size:11px;margin-top:5px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
-        <!-- QR Code untuk mengunjungi toko -->
         <div style="text-align:center;margin-top:8px;">
           <div id="qr-receipt" style="display:inline-block;background:#fff;"></div>
           <div style="font-size:10px;margin-top:3px;">Scan untuk kunjungi toko kami</div>
         </div>`;
 
-    // Buat QR code di struk
       const qrDiv = document.getElementById('qr-receipt');
       qrDiv.innerHTML = '';
       try {
@@ -3149,27 +3187,30 @@
     });
     $('btn-topping-cancel').addEventListener('click', closeTopping);
 
+    // PERBAIKAN: renderAnnouncement dipanggil setiap kali lonceng diklik
     $('bell-container').addEventListener('click', (e) => {
       e.stopPropagation();
+      renderAnnouncement();
       $('bell-dropdown').classList.toggle('hidden');
     });
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
     $('wa-broadcast-form').addEventListener('submit', e => {
       e.preventDefault();
-      activeAnnouncement = $('broadcast-text').value;
+      const text = $('broadcast-text').value;
       const now = new Date();
-      broadcastHistory.unshift({ id: 'bc_' + Date.now(), time: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, text: activeAnnouncement });
+      broadcastHistory.unshift({ id: 'bc_' + Date.now(), time: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, text: text, enabled: true });
       saveBroadcast();
       renderAnnouncement();
       e.target.reset();
     });
 
     $('btn-clear-broadcast').addEventListener('click', () => {
-      activeAnnouncement = "";
+      if (!confirm("Nonaktifkan semua pengumuman yang tampil? (Riwayat tetap tersimpan)")) return;
+      broadcastHistory.forEach(b => b.enabled = false);
       saveBroadcast();
       renderAnnouncement();
-      alert("Pengumuman dihapus.");
+      alert("Semua pengumuman dinonaktifkan.");
     });
 
     $('btn-force-seed').addEventListener('click', () => {
@@ -3177,7 +3218,6 @@
       if (firebaseReady) {
         db.ref('history').set(historyList);
         db.ref('broadcast_history').set(broadcastHistory);
-        db.ref('announcement').set(activeAnnouncement);
         db.ref('theme_promo').set(themeConfig);
         db.ref('shipping_config').set(shippingConfig);
       }
@@ -3292,13 +3332,12 @@
         });
         db.ref('broadcast_history').on('value', (snap) => {
           const data = snap.val();
-          if (data) broadcastHistory = Array.isArray(data) ? data : Object.values(data);
-          if (currentUser) renderBroadcastHistory(broadcastHistory);
-        });
-        db.ref('announcement').on('value', (snap) => {
-          activeAnnouncement = snap.val() || "";
-          localStorage.setItem('adidin_announcement', activeAnnouncement);
+          if (data) {
+            broadcastHistory = Object.values(data);
+            localStorage.setItem('adidin_broadcast_history', JSON.stringify(broadcastHistory));
+          }
           renderAnnouncement();
+          if (currentUser) renderBroadcastHistory(broadcastHistory);
         });
         db.ref('shipping_config').on('value', (snap) => {
           const data = snap.val();
