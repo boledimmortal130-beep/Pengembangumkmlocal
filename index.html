@@ -3294,20 +3294,130 @@
       }
     });
 
-    $('btn-process-pos').addEventListener('click', () => {
-      if (posCart.length === 0) return alert("Pilih item dahulu!");
-      let total = 0, totalHpp = 0, summary = "", items = [];
-      posCart.forEach((i, idx) => {
-        const topCost = (i.toppings||[]).reduce((s,t)=>s+(t.price||0),0);
-        const sub = Math.round((i.product.price * i.qty) + (topCost * i.qty));
-        const hpp = (i.product.costPrice||0) * i.qty;
-        total += sub; totalHpp += hpp;
-        const topDesc = i.toppings.length ? ` - Toping: ${i.toppings.map(t=>`${t.name} +${(t.price||0).toLocaleString('id-ID')}`).join(', ')}` : '';
-        summary += `${idx+1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty}${topDesc}] = Rp ${sub.toLocaleString('id-ID')}\n`;
-        items.push({ productId: i.product.id, productName: i.product.name, price: i.product.price, costPrice: i.product.costPrice||0, qty: i.qty, unit: i.product.unitType, toppings: i.toppings });
+    // ============================================
+    // FUNGSI CETAK STRUK PANJANG OTOMATIS (TIDAK TERPOTONG)
+    // ============================================
+    const printDynamicReceipt = (htmlBody) => {
+      return new Promise((resolve) => {
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:80mm;height:500px;border:0;";
+        document.body.appendChild(iframe);
+
+        const iframeDoc = iframe.contentWindow.document;
+
+        iframeDoc.open();
+        iframeDoc.write(`<!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="UTF-8">
+      <title>Struk Panjang Otomatis</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { width: 80mm; margin: 0; padding: 0; }
+        body {
+          width: 80mm;
+          margin: 0;
+          padding: 3mm 4mm;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 11px;
+          line-height: 1.4;
+          color: #000;
+          background: #fff;
+          overflow: visible;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 2px 0; vertical-align: top; }
+        .text-center { text-align: center; }
+        hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
+        .text-bold { font-weight: bold; }
+        pre { font-family: inherit; white-space: pre-wrap; }
+      </style>
+      </head>
+      <body>${htmlBody}</body>
+      </html>`);
+        iframeDoc.close();
+
+        let attempts = 0;
+
+        const tryPrint = () => {
+          attempts++;
+
+          // Tunggu semua gambar/QR selesai dimuat
+          const allImages = Array.from(iframeDoc.images || []);
+          const imagesLoaded = allImages.every(img => img.complete);
+          const docReady = iframeDoc.readyState === 'complete';
+
+          if ((!docReady || !imagesLoaded) && attempts < 30) {
+            setTimeout(tryPrint, 100);
+            return;
+          }
+
+          requestAnimationFrame(() => {
+            // ===== INI KUNCI UTAMA =====
+            // Ukur tinggi asli isi struk
+            const heightPx = iframeDoc.body.scrollHeight;
+            const heightMm = Math.max(30, Math.ceil((heightPx * 25.4) / 96) + 12);
+
+            // Atur kertas mengikuti tinggi struk
+            const stylePage = iframeDoc.createElement('style');
+            stylePage.innerHTML = `@page { size: 80mm ${heightMm}mm; margin: 0; }`;
+            iframeDoc.head.appendChild(stylePage);
+
+            console.log(`🖨️ Struk dicetak: ${heightMm}mm (~${heightPx}px), 1 halaman penuh`);
+
+            // Print!
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+
+            // Bersihkan jikarame setelah print
+            setTimeout(() => {
+              if (iframe.parentNode) {
+                iframe.parentNode.removeChild(iframe);
+              }
+              resolve();
+            }, 600);
+          });
+        };
+
+        setTimeout(tryPrint, 300);
       });
+    };
+
+    // Handler tombol Selesaikan & Cetak Struk
+    $('btn-process-pos').addEventListener('click', async () => {
+      if (posCart.length === 0) return alert("Pilih item dahulu!");
+
+      let total = 0;
+      let totalHpp = 0;
+      let summary = "";
+      let items = [];
+
+      posCart.forEach((i, idx) => {
+        const topCost = (i.toppings || []).reduce((s, t) => s + (t.price || 0), 0);
+        const sub = Math.round((i.product.price * i.qty) + (topCost * i.qty));
+        const hpp = (i.product.costPrice || 0) * i.qty;
+        total += sub;
+        totalHpp += hpp;
+        const topDesc = i.toppings && i.toppings.length > 0
+          ? ` - Toping: ${i.toppings.map(t => `${t.name} +${(t.price || 0).toLocaleString('id-ID')}`).join(', ')}`
+          : '';
+
+        summary += `${idx + 1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty}${topDesc}] = Rp ${sub.toLocaleString('id-ID')}\n`;
+
+        items.push({
+          productId: i.product.id,
+          productName: i.product.name,
+          price: i.product.price,
+          costPrice: i.product.costPrice || 0,
+          qty: i.qty,
+          unit: i.product.unitType,
+          toppings: i.toppings
+        });
+      });
+
       const cash = parseInt($('pos-cash-input').value) || 0;
       if (cash < total) return alert("Uang tunai kurang!");
+
       posCart.forEach(i => {
         if (i.product.unitType !== 'digital') {
           const idx = products.findIndex(p => p.id === i.product.id);
@@ -3318,7 +3428,10 @@
         }
       });
       saveProducts();
+
       const now = new Date();
+
+      // Simpan histori
       const order = {
         id: 'ord_' + Date.now(),
         timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`,
@@ -3326,61 +3439,60 @@
         buyerPhone: "-",
         buyerAddress: "Transaksi Langsung",
         timeOption: "Selesai di Tempat",
-        note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash-total).toLocaleString('id-ID')}`,
-        itemsSummary: summary, itemsList: items, subtotal: total, totalHpp,
-        netProfit: total - totalHpp, shippingFee: 0,
-        orderStatus: 'selesai', source: 'POS Kasir'
+        note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash - total).toLocaleString('id-ID')}`,
+        itemsSummary: summary,
+        itemsList: items,
+        subtotal: total,
+        totalHpp: totalHpp,
+        netProfit: total - totalHpp,
+        shippingFee: 0,
+        orderStatus: 'selesai',
+        source: 'POS Kasir'
       };
+
       historyList.unshift(order);
       saveHistory();
-      const receipt = $('printable-receipt');
-      receipt.innerHTML = `
-        <div style="text-align:center;font-weight:bold;font-size:16px;">PENGEMBANG UMKM LOCAL</div>
-        <div style="text-align:center;font-weight:bold;font-size:12px;">🚀go jag ga jig jaya</div>
-        <div style="text-align:center;font-size:11px;">Jl. Syekh Datul Kahfi DS. GAMEL</div>
-        <div style="text-align:center;font-size:11px;">================================</div>
+
+      // Siapkan HTML struk
+      const receiptHtml = `
+        <div class="text-center text-bold" style="font-size:15px;">PENGEMBANG UMKM LOCAL</div>
+        <div class="text-center text-bold" style="font-size:12px;">🚀 go jag ga jig jaya</div>
+        <div class="text-center" style="font-size:11px;">Jl. Syekh Datul Kahfi DS. GAMEL</div>
+        <hr>
         <div style="font-size:11px;">${order.timestamp}</div>
         <div style="font-size:11px;">Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
-        <div style="text-align:center;font-size:11px;">--------------------------------</div>
-        <div style="font-size:11px;white-space:pre-wrap;">${summary}</div>
-        <div style="text-align:center;font-size:11px;">--------------------------------</div>
-        <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:12px;"><span>TOTAL:</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;"><span>BAYAR:</span><span>Rp ${cash.toLocaleString('id-ID')}</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:11px;"><span>KEMBALI:</span><span>Rp ${(cash-total).toLocaleString('id-ID')}</span></div>
-        <div style="text-align:center;font-size:11px;">================================</div>
-        <div style="text-align:center;font-size:11px;margin-top:5px;">Terima Kasih!</div>
-        <div style="text-align:center;font-size:11px;margin-top:5px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
-        <div style="text-align:center;margin-top:8px;">
-          <div id="qr-receipt" style="display:inline-block;background:#fff;"></div>
+        <hr>
+        <pre style="font-family:inherit;">${summary}</pre>
+        <hr>
+        <table style="font-size:12px;">
+          <tr class="text-bold">
+            <td>TOTAL</td>
+            <td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td>
+          </tr>
+          <tr style="font-size:11px;">
+            <td>BAYAR</td>
+            <td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td>
+          </tr>
+          <tr style="font-size:11px;">
+            <td>KEMBALI</td>
+            <td style="text-align:right;">Rp ${(cash - total).toLocaleString('id-ID')}</td>
+          </tr>
+        </table>
+        <hr>
+        <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
+        <div class="text-center" style="font-size:11px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
+        <div class="text-center" style="margin-top:8px;">
           <div style="font-size:10px;margin-top:3px;">Scan untuk kunjungi toko kami</div>
-        </div>`;
+        </div>
+      `;
 
-      const qrDiv = document.getElementById('qr-receipt');
-      qrDiv.innerHTML = '';
-      try {
-        if (typeof QRCode !== 'undefined') {
-          new QRCode(qrDiv, {
-            text: STORE_URL,
-            width: 100,
-            height: 100,
-            correctLevel: QRCode.CorrectLevel.M
-          });
-        } else {
-          qrDiv.innerHTML = '<p style="font-size:10px;color:#999;">QR tidak tersedia</p>';
-        }
-      } catch (err) {
-        console.error("Gagal membuat QR code:", err);
-        qrDiv.innerHTML = '<p style="font-size:10px;color:#999;">QR error</p>';
-      }
+      // ===== CETAK STRUK PANJANG TIDAK TERPOTONG =====
+      await printDynamicReceipt(receiptHtml);
 
-      receipt.style.display = 'block';
-      setTimeout(() => {
-        window.print();
-        receipt.style.display = 'none';
-        posCart = [];
-        $('pos-cash-input').value = "";
-        renderPosCart();
-      }, 350);
+      // Bersihkan keranjang POS
+      posCart = [];
+      $('pos-cash-input').value = "";
+      renderPosCart();
     });
 
     $('btn-scan-pos').addEventListener('click', () => openScanner('pos'));
