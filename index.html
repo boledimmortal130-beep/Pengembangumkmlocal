@@ -3295,6 +3295,56 @@
     });
 
     // ============================================
+    // FUNGSI GENERATE QR CODE UNTUK STRUK
+    // ============================================
+    async function generateReceiptQR(text = STORE_URL, size = 200) {
+      return new Promise((resolve) => {
+        try {
+          if (typeof QRCode === 'undefined') {
+            return resolve('');
+          }
+
+          const tempDiv = document.createElement('div');
+          tempDiv.style.cssText =
+            "position:fixed;left:-9999px;top:0;width:" + size + "px;height:" + size + "px;";
+          document.body.appendChild(tempDiv);
+
+          try {
+            new QRCode(tempDiv, {
+              text: text,
+              width: size,
+              height: size,
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          } catch (err) {
+            console.error("QR gagal dibuat:", err);
+            if (tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
+            return resolve('');
+          }
+
+          setTimeout(() => {
+            let dataUrl = '';
+            const qrCanvas = tempDiv.querySelector('canvas');
+            const qrImg = tempDiv.querySelector('img');
+
+            if (qrCanvas) {
+              try { dataUrl = qrCanvas.toDataURL('image/png'); } catch (e) {}
+            }
+            if (!dataUrl && qrImg && qrImg.src && qrImg.src.startsWith('data:')) {
+              dataUrl = qrImg.src;
+            }
+
+            if (tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
+            resolve(dataUrl);
+          }, 150);
+        } catch (e) {
+          console.error("generateReceiptQR error:", e);
+          resolve('');
+        }
+      });
+    }
+
+    // ============================================
     // FUNGSI CETAK STRUK PANJANG OTOMATIS (TIDAK TERPOTONG)
     // ============================================
     const printDynamicReceipt = (htmlBody) => {
@@ -3331,6 +3381,7 @@
         hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
         .text-bold { font-weight: bold; }
         pre { font-family: inherit; white-space: pre-wrap; }
+        img { max-width: 100%; }
       </style>
       </head>
       <body>${htmlBody}</body>
@@ -3342,7 +3393,6 @@
         const tryPrint = () => {
           attempts++;
 
-          // Tunggu semua gambar/QR selesai dimuat
           const allImages = Array.from(iframeDoc.images || []);
           const imagesLoaded = allImages.every(img => img.complete);
           const docReady = iframeDoc.readyState === 'complete';
@@ -3353,23 +3403,16 @@
           }
 
           requestAnimationFrame(() => {
-            // ===== INI KUNCI UTAMA =====
-            // Ukur tinggi asli isi struk
             const heightPx = iframeDoc.body.scrollHeight;
             const heightMm = Math.max(30, Math.ceil((heightPx * 25.4) / 96) + 12);
 
-            // Atur kertas mengikuti tinggi struk
             const stylePage = iframeDoc.createElement('style');
             stylePage.innerHTML = `@page { size: 80mm ${heightMm}mm; margin: 0; }`;
             iframeDoc.head.appendChild(stylePage);
 
-            console.log(`🖨️ Struk dicetak: ${heightMm}mm (~${heightPx}px), 1 halaman penuh`);
-
-            // Print!
             iframe.contentWindow.focus();
             iframe.contentWindow.print();
 
-            // Bersihkan jikarame setelah print
             setTimeout(() => {
               if (iframe.parentNode) {
                 iframe.parentNode.removeChild(iframe);
@@ -3383,7 +3426,7 @@
       });
     };
 
-    // Handler tombol Selesaikan & Cetak Struk
+    // ===== HANDLER TOMBOL SELESAI & CETAK STRUK (DENGAN QR) =====
     $('btn-process-pos').addEventListener('click', async () => {
       if (posCart.length === 0) return alert("Pilih item dahulu!");
 
@@ -3431,7 +3474,6 @@
 
       const now = new Date();
 
-      // Simpan histori
       const order = {
         id: 'ord_' + Date.now(),
         timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`,
@@ -3453,7 +3495,10 @@
       historyList.unshift(order);
       saveHistory();
 
-      // Siapkan HTML struk
+      // ===== GENERATE QR CODE =====
+      const qrDataUrl = await generateReceiptQR();
+
+      // ===== SUSUN HTML STRUK =====
       const receiptHtml = `
         <div class="text-center text-bold" style="font-size:15px;">PENGEMBANG UMKM LOCAL</div>
         <div class="text-center text-bold" style="font-size:12px;">🚀 go jag ga jig jaya</div>
@@ -3481,15 +3526,22 @@
         <hr>
         <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
         <div class="text-center" style="font-size:11px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
-        <div class="text-center" style="margin-top:8px;">
-          <div style="font-size:10px;margin-top:3px;">Scan untuk kunjungi toko kami</div>
+
+        <!-- ===== QR CODE DI BAWAH STRUK ===== -->
+        <div class="text-center" style="margin-top:10px;padding-top:5px;border-top:1px dashed #000;">
+          <div style="font-size:10px;margin-bottom:4px;">Scan untuk kunjungi toko kami</div>
+          ${
+            qrDataUrl
+              ? `<img src="${qrDataUrl}" width="110" height="110" style="display:inline-block;margin:0 auto;">`
+              : `<div style="font-size:10px;color:#999;">QR tidak tersedia</div>`
+          }
+          <div style="font-size:9px;margin-top:4px;word-break:break-all;">${STORE_URL}</div>
         </div>
       `;
 
-      // ===== CETAK STRUK PANJANG TIDAK TERPOTONG =====
+      // ===== CETAK STRUK PANJANG (TIDAK TERPOTONG) =====
       await printDynamicReceipt(receiptHtml);
 
-      // Bersihkan keranjang POS
       posCart = [];
       $('pos-cash-input').value = "";
       renderPosCart();
