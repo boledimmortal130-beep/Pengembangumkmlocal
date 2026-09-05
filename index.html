@@ -1133,15 +1133,19 @@
             <div class="summary-line"><span>Ongkos Kirim:</span> <span id="summary-shipping">Belum dihitung</span></div>
             <hr style="border:none;border-top:2px dashed #fdba74;margin:5px 0;">
             <div class="summary-line total"><span>Total:</span> <span id="summary-total">Rp 0 (+Ongkir)</span></div>
+            <div class="summary-line" id="summary-ongkir-note" style="font-size:10px;color:var(--muted);font-style:italic;text-align:right;display:none;"></div>
           </div>
 
           <div class="card" style="margin-bottom:12px;background:#fff7ed;border-color:#fdba74;">
             <h3 style="border:none;padding-bottom:0;"><i class="fas fa-map-marker-alt"></i> Lokasi Pengiriman</h3>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Pilih lokasi untuk menghitung otomatis ongkos kirim.</p>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+              ⚠️ <strong>Alamat tujuan WAJIB diketik manual dan lengkap</strong> di kolom "Alamat Lengkap" bagian Data Pengiriman di bawah.<br>
+              🗺️ Peta di sini <strong>hanya untuk menghitung ongkir otomatis</strong>, bukan pengganti alamat.
+            </p>
 
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
               <button type="button" class="btn-secondary" id="btn-use-my-location" style="flex:1;">
-                <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya
+                <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya (Hitung Ongkir)
               </button>
               <button type="button" class="btn-wa" id="btn-save-location" style="flex:1;" disabled>
                 <i class="fas fa-bookmark"></i> Simpan Lokasi
@@ -1159,7 +1163,11 @@
             <h3>Data Pengiriman</h3>
             <div class="form-group"><label>Nama Lengkap</label><input type="text" id="checkout-name" required placeholder="Nama Anda"></div>
             <div class="form-group"><label>No HP / WhatsApp</label><input type="tel" id="checkout-phone" required placeholder="0812xxxx"></div>
-            <div class="form-group"><label>Alamat Lengkap / No. Tujuan Digital</label><textarea id="checkout-address" required placeholder="Alamat kirim / ID listrik / No. HP tujuan top up"></textarea></div>
+            <div class="form-group">
+              <label>Alamat Lengkap / No. Tujuan Digital <span style="color:var(--danger);">*</span></label>
+              <textarea id="checkout-address" required minlength="10" placeholder="Tulis alamat lengkap: nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, kode pos. Contoh: Jl. Melati No. 10, RT 02/RW 05, Kel. Sukamaju, Kec. Cirebon Utara, Kota Cirebon, 45111"></textarea>
+              <small style="font-size:10px;color:var(--muted);">Harus diketik manual. Peta tidak mengisi otomatis kolom ini.</small>
+            </div>
 
             <h3 style="margin:10px 0 8px;">Waktu Pengiriman</h3>
 
@@ -1806,51 +1814,72 @@
       return Math.max(0, Math.round(cost));
     };
 
+    // FUNGSI CEK STATUS ONGKIR: AUTO / GRATIS / MANUAL
+    const getOngkirStatusInfo = (subtotal) => {
+      const isEnabled = shippingConfig.enabled;
+      const isFree = isEnabled && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin;
+      const isAuto = isEnabled && !isFree &&
+        !!(userLocation && userLocation.lat && userLocation.lng) &&
+        !!(shippingConfig.storeLat && shippingConfig.storeLng);
+      return { isEnabled, isFree, isAuto };
+    };
+
+    // ===== UPDATE RINGKASAN ONGKIR DENGAN MODE MANUAL =====
     const updateShippingDisplay = () => {
       if (!$('summary-shipping')) return;
       const subtotalEl = $('summary-subtotal');
       const subtotal = parseInt(subtotalEl.innerText.replace(/\D/g,'')) || 0;
+      const shippingSpan = $('summary-shipping');
+      const totalSpan = $('summary-total');
+      const noteEl = $('summary-ongkir-note');
+      const distInfo = $('map-distance-info');
+
+      const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
+
       let shippingFee = 0;
+      if (isAuto) shippingFee = calculateShippingFee(subtotal);
 
-      if (!shippingConfig.enabled) {
-        $('summary-shipping').innerText = "Gratis / Tidak ada";
-        $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
-      } else if (!userLocation || !userLocation.lat || !userLocation.lng) {
-        $('summary-shipping').innerText = "Pilih lokasi dulu";
-        $('summary-total').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+      if (!isEnabled) {
+        shippingSpan.innerText = "Gratis / Tidak ada";
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+      } else if (isFree) {
+        shippingSpan.innerText = "GRATIS 🎉";
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+      } else if (!isAuto) {
+        shippingSpan.innerText = "Dikonfirmasi Admin";
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
       } else {
-        shippingFee = calculateShippingFee(subtotal);
-        const total = subtotal + shippingFee;
+        shippingSpan.innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+        totalSpan.innerText = `Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}`;
+      }
 
-        if (shippingFee === 0 && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) {
-          $('summary-shipping').innerText = "GRATIS 🎉";
-          $('summary-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+      // Catatan penjelas di bawah total
+      if (noteEl) {
+        if (isEnabled && !isFree && !isAuto && subtotal > 0) {
+          noteEl.style.display = 'block';
+          noteEl.innerText = "⚠️ Ongkir belum termasuk — admin akan menghitung ongkir setelah pesanan dikirim.";
         } else {
-          $('summary-shipping').innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
-          $('summary-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+          noteEl.style.display = 'none';
         }
       }
 
-      const distInfo = $('map-distance-info');
       if (distInfo) {
-        if (!shippingConfig.enabled) {
-          distInfo.innerText = "🚚 Ongkir nonaktif (gratis/tanpa ongkir)";
-        } else if (!userLocation || !userLocation.lat || !userLocation.lng) {
-          distInfo.innerText = "📍 Gunakan tombol 'Gunakan Lokasi Saya' agar alamat & ongkir terisi otomatis";
-        } else if (!shippingConfig.storeLat || !shippingConfig.storeLng) {
-          distInfo.innerText = "⚠️ Lokasi toko belum diatur oleh admin";
+        if (!isEnabled) {
+          distInfo.innerText = "🚚 Toko saat ini tidak membebankan ongkir.";
+        } else if (!subtotal) {
+          distInfo.innerText = "🛒 Tambahkan produk untuk menghitung ongkir.";
+        } else if (isFree) {
+          distInfo.innerText = `🎉 Selamat! Belanja mencapai Rp ${(shippingConfig.freeMin||0).toLocaleString('id-ID')}, ongkir GRATIS.`;
+        } else if (!isAuto) {
+          distInfo.innerText = "📍 Alamat tujuan sudah WAJIB diketik manual di bawah. Peta/lokasi hanya untuk hitung ongkir otomatis — klik 'Gunakan Lokasi Saya' jika ingin ongkir langsung terhitung.";
         } else {
-          const dist = haversineDistance(
+          const distance = haversineDistance(
             shippingConfig.storeLat,
             shippingConfig.storeLng,
             userLocation.lat,
             userLocation.lng
           );
-          if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) {
-            distInfo.innerText = `Jarak: ${dist.toFixed(2)} km | Ongkir: GRATIS (min. belanja Rp ${shippingConfig.freeMin.toLocaleString('id-ID')})`;
-          } else {
-            distInfo.innerText = `Jarak dari toko: ${dist.toFixed(2)} km | Ongkir: Rp ${shippingFee.toLocaleString('id-ID')} (1 km pertama Rp ${(shippingConfig.minFee||0).toLocaleString('id-ID')}, berikutnya Rp ${(shippingConfig.perKm||0).toLocaleString('id-ID')}/km)`;
-          }
+          distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Estimasi Ongkir: Rp ${shippingFee.toLocaleString('id-ID')} (1 km pertama Rp ${(shippingConfig.minFee||0).toLocaleString('id-ID')}, berikutnya Rp ${(shippingConfig.perKm||0).toLocaleString('id-ID')}/km)`;
         }
       }
     };
@@ -1887,26 +1916,19 @@
       }
     };
 
+    // Reverse geocode TIDAK menimpa alamat yang diketik manual di form!
     const reverseGeocode = async (lat, lng) => {
+      const mapStatusEl = $('map-status');
       const address = await reverseGeocodeWithFallback(lat, lng);
       const finalAddress = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      $('checkout-address').value = finalAddress;
       if (userLocation) userLocation.address = finalAddress;
-      $('map-status').innerText = address
-        ? `📍 Lokasi: ${finalAddress}`
-        : `📍 Lokasi (koordinat): ${finalAddress}`;
+      if (mapStatusEl) {
+        mapStatusEl.innerText = address
+          ? `📍 Lokasi untuk ONGKIR: ${finalAddress} — alamat tetap TULIS MANUAL di kolom Alamat.`
+          : `📍 Koordinat untuk ONGKIR: ${finalAddress}`;
+      }
       persistUserLocation();
       updateShippingDisplay();
-    };
-
-    const reverseAdminGeocode = async (lat, lng) => {
-      const address = await reverseGeocodeWithFallback(lat, lng);
-      if (address) {
-        $('ship-address').value = address;
-        $('admin-map-status').innerText = `Alamat terdeteksi: ${address}`;
-      } else {
-        $('admin-map-status').innerText = `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      }
     };
 
     const initAdminMap = (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
@@ -2173,8 +2195,8 @@
       if (saved && saved.lat && saved.lng) {
         userLocation = saved;
         initMapPicker(saved.lat, saved.lng);
-        $('checkout-address').value = saved.address || '';
-        $('map-status').innerText = saved.address ? `📍 ${saved.address}` : '📍 Lokasi tersimpan';
+        $('checkout-address').value = '';
+        $('map-status').innerText = "📍 Lokasi ongkir tersimpan. Silakan ketik alamat lengkap manual di bawah.";
         updateShippingDisplay();
       } else {
         autoUseMyLocation();
@@ -2417,8 +2439,7 @@
         list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong.</p>';
         clearBtn.classList.add('hidden');
         $('summary-subtotal').innerText = "Rp 0";
-        $('summary-shipping').innerText = "Rp 0";
-        $('summary-total').innerText = "Rp 0";
+        updateShippingDisplay();
         renderSavedLocations();
         return;
       }
@@ -2532,8 +2553,9 @@
         address: loc.address || ""
       };
       initMapPicker(loc.lat, loc.lng);
-      $('checkout-address').value = loc.address || `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
-      $('map-status').innerText = `📍 ${loc.label}: ${loc.address || 'Koordinat tersimpan'}`;
+      // Khusus untuk ongkir saja -> TIDAK mengisi alamat manual di form
+      $('checkout-address').value = '';
+      $('map-status').innerText = `📍 ${loc.label} dipakai untuk ONGKIR. Silakan tulis alamat lengkap manual di bawah.`;
       $('saved-locations-list').value = "";
       updateShippingDisplay();
       persistUserLocation();
@@ -3074,35 +3096,59 @@
       if (confirm("Kosongkan keranjang?")) { cart = []; saveCart(); renderCart(); }
     });
 
+    // ===== SAAT ALAMAT DIKETIK MANUAL =====
+    // Fungsi ini TIDAK lagi memblokir checkout tanpa lokasi.
     $('checkout-address').addEventListener('change', async function() {
       const value = this.value.trim();
-      if (!value) return;
+      if (!value || value.length < 10) return;
+      // Jika user sudah memakai "Gunakan Lokasi Saya", jangan timpa dengan geocode alamat baru.
       if (userLocation && userLocation.lat) return;
+
+      const mapStatusEl = $('map-status');
       const result = await geocodeAddress(value);
       if (result) {
-        userLocation = { lat: result.lat, lng: result.lng, address: result.displayName || value };
+        userLocation = {
+          lat: result.lat,
+          lng: result.lng,
+          address: value // tetap simpan alamat yang diketik user
+        };
         initMapPicker(result.lat, result.lng);
-        $('checkout-address').value = result.displayName || value;
+        if (mapStatusEl) {
+          mapStatusEl.innerText = `📍 Alamat dikenali untuk ONGKIR: ${result.displayName}`;
+        }
         updateShippingDisplay();
         persistUserLocation();
-        $('map-status').innerText = `📍 Alamat dikenali: ${result.displayName || value}`;
       } else {
-        $('map-status').innerText = "⚠️ Alamat tidak dapat dikenali. Klik 'Gunakan Lokasi Saya' agar ongkir terhitung otomatis.";
+        if (mapStatusEl) {
+          mapStatusEl.innerText = "⚠️ Alamat tidak dikenali untuk ongkir otomatis. Klik 'Gunakan Lokasi Saya' untuk deteksi, atau lanjutkan — ongkir akan dikonfirmasi admin.";
+        }
+        if (userLocation) {
+          userLocation = null;
+          persistUserLocation();
+        }
+        updateShippingDisplay();
       }
     });
 
     $('checkout-form').addEventListener('submit', function(e) {
       e.preventDefault();
       if (cart.length === 0) return alert("Keranjang kosong!");
-      if (shippingConfig.enabled) {
-        if (!userLocation || !userLocation.lat || !userLocation.lng) {
-          alert("⚠️ Wajib gunakan lokasi terlebih dahulu agar ongkir otomatis terisi!\nKlik tombol 'Gunakan Lokasi Saya' di atas.");
-          return;
-        }
+
+      // ===== VALIDASI ALAMAT MANUAL WAJIB LENGKAP =====
+      const address = $('checkout-address').value.trim();
+      if (!address) {
+        alert("⚠️ Alamat lengkap WAJIB diisi! Peta tidak mengisi alamat otomatis.");
+        $('checkout-address').focus();
+        return;
       }
+      if (address.length < 10) {
+        alert("⚠️ Alamat terlalu pendek. Tulis alamat lengkap minimal 10 karakter:\nContoh: Jl. Melati No. 10, RT 02/RW 05, Kel. Sukamaju, Kec. Cirebon Utara, Kota Cirebon 45111");
+        $('checkout-address').focus();
+        return;
+      }
+
       const name = $('checkout-name').value;
       const phone = $('checkout-phone').value;
-      const address = $('checkout-address').value;
       const scheduleRaw = $('checkout-schedule').value;
       const scheduleMode = !storeOpen || $('delivery-mode').value === 'schedule';
       let time;
@@ -3141,7 +3187,28 @@
         itemsMsg += `${i+1}. ${item.product.name} [Rp ${item.product.price.toLocaleString('id-ID')} x ${item.qty} ${satuan}${topingStr}] -> Rp ${cost.toLocaleString('id-ID')}\n`;
         itemsArr.push({ productId: item.product.id, productName: item.product.name, price: item.product.price, costPrice: item.product.costPrice||0, qty: item.qty, unit: item.unitChosen, toppings });
       });
-      const shippingFee = calculateShippingFee(subtotal);
+
+      // ===== HITUNG STATUS ONGKIR =====
+      const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
+      const shippingFee = isAuto ? calculateShippingFee(subtotal) : 0;
+
+      let ongkirLabel;
+      if (!isEnabled) {
+        ongkirLabel = "Tidak Ada";
+      } else if (isFree) {
+        ongkirLabel = "GRATIS 🎉";
+      } else if (!isAuto) {
+        ongkirLabel = "Dikonfirmasi Admin / Nego via WA";
+      } else {
+        ongkirLabel = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+      }
+
+      const totalTerhitung = (!isEnabled || isFree || isAuto);
+      const totalFinal = subtotal + shippingFee;
+      const totalLabel = totalTerhitung
+        ? `Rp ${totalFinal.toLocaleString('id-ID')}`
+        : `Rp ${subtotal.toLocaleString('id-ID')} (belum termasuk ongkir)`;
+
       const now = new Date();
       const order = {
         id: 'ord_' + Date.now(),
@@ -3149,7 +3216,8 @@
         buyerName: name, buyerPhone: phone, buyerAddress: address,
         timeOption: time, note, itemsSummary: itemsMsg, itemsList: itemsArr,
         subtotal, totalHpp, netProfit: subtotal - totalHpp, shippingFee: shippingFee,
-        distanceKm: userLocation ? haversineDistance(
+        ongkirLabel: ongkirLabel,
+        distanceKm: userLocation && shippingConfig.storeLat ? haversineDistance(
           shippingConfig.storeLat,
           shippingConfig.storeLng,
           userLocation.lat,
@@ -3161,10 +3229,8 @@
       };
       historyList.unshift(order);
       saveHistory();
-      const ongkirText = shippingConfig.enabled && shippingFee === 0 && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin
-        ? "GRATIS 🎉"
-        : `Rp ${shippingFee.toLocaleString('id-ID')}`;
-      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirText}\nTOTAL: Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}\n\n*Data:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
+
+      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirLabel}\nTOTAL: ${totalLabel}\n\n*Data Pengiriman:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
       window.open(`https://api.whatsapp.com/send?phone=${MAIN_WA_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
       cart = [];
       saveCart();
@@ -3305,6 +3371,16 @@
         alert("Alamat tidak ditemukan. Perbaiki alamat atau klik pada peta untuk menentukan lokasi.");
       }
     });
+
+    const reverseAdminGeocode = async (lat, lng) => {
+      const address = await reverseGeocodeWithFallback(lat, lng);
+      if (address) {
+        $('ship-address').value = address;
+        $('admin-map-status').innerText = `Alamat terdeteksi: ${address}`;
+      } else {
+        $('admin-map-status').innerText = `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+    };
 
     // ============================================
     // FUNGSI GENERATE QR CODE UNTUK STRUK
