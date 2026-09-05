@@ -18,9 +18,6 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <style>
     * {
       margin: 0;
@@ -1567,6 +1564,90 @@
 
     const $ = (id) => document.getElementById(id);
 
+    // ====== OPTIMASI MAPS: LAZY LOAD + CACHE + TILE CEPAT ======
+    let leafletReady = null;
+    const geocodeCache = new Map();
+    const reverseGeocodeCache = new Map();
+    let shippingUiReqId = false;
+
+    function requestShippingUpdate() {
+      if (shippingUiReqId) return;
+      shippingUiReqId = true;
+      requestAnimationFrame(() => {
+        shippingUiReqId = false;
+        updateShippingDisplay();
+      });
+    }
+
+    function loadLeaflet() {
+      if (window.L) return Promise.resolve(window.L);
+      if (leafletReady) return leafletReady;
+
+      leafletReady = new Promise((resolve, reject) => {
+        const existingCss = document.getElementById('leaflet-css');
+        const cssReady = existingCss
+          ? Promise.resolve()
+          : new Promise((resCss) => {
+              const css = document.createElement('link');
+              css.id = 'leaflet-css';
+              css.rel = 'stylesheet';
+              css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+              css.onload = () => resCss();
+              css.onerror = () => resCss();
+              document.head.appendChild(css);
+            });
+
+        cssReady.then(() => {
+          if (window.L) { resolve(window.L); return; }
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = () => resolve(window.L);
+          script.onerror = () => {
+            leafletReady = null;
+            reject(new Error('Gagal memuat peta. Cek koneksi internet.'));
+          };
+          document.head.appendChild(script);
+        });
+      });
+
+      return leafletReady;
+    }
+
+    function scheduleInvalidate(map) {
+      if (!map) return;
+      requestAnimationFrame(() => {
+        if (map && map._container && map._container.offsetParent !== null) {
+          map.invalidateSize();
+        }
+      });
+    }
+
+    function addFastTiles(map) {
+      const tiles = L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+        {
+          attribution: '&copy; OSM &copy; CARTO',
+          subdomains: 'abcd',
+          maxZoom: 19,
+          preferCanvas: true,
+          updateWhenIdle: true,
+          updateWhenZooming: false,
+          keepBuffer: 2
+        }
+      ).addTo(map);
+
+      tiles.once('tileerror', () => {
+        if (map.hasLayer(tiles)) map.removeLayer(tiles);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19,
+          preferCanvas: true
+        }).addTo(map);
+      });
+
+      return tiles;
+    }
+
     // ===== THEME =====
     const DEFAULT_THEME = {
       headerStart: '#e11d48',
@@ -1701,66 +1782,104 @@
       return broadcastHistory.filter(b => b.enabled !== false);
     };
 
-    // ===== GEOCODING & MAP =====
+    // ===== REVIEW GEODING: DENGAN CACHE =====
     const reverseGeocodeWithFallback = async (lat, lng) => {
+      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      if (reverseGeocodeCache.has(key)) return reverseGeocodeCache.get(key);
+
+      let result = null;
+
       try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=id`;
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`;
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 8000);
-        const res = await fetch(url, { signal: ctrl.signal, headers: { 'Accept': 'application/json' } });
+        const timer = setTimeout(() => ctrl.abort(), 5000);
+        const res = await fetch(url, { signal: ctrl.signal });
         clearTimeout(timer);
-        if (!res.ok) throw new Error('Nominatim HTTP ' + res.status);
+        if (!res.ok) throw new Error('nominatim error');
         const data = await res.json();
         if (data && data.address) {
           const a = data.address;
           const parts = [];
-          const road = a.road || a.pedestrian || a.footway || a.path || a.street || '';
-          const house = a.house_number || '';
-          if (house && road) parts.push(`Jl. ${road} No. ${house}`);
-          else if (road) parts.push(`Jl. ${road}`);
-          if (a.neighbourhood) parts.push(a.neighbourhood);
-          if (a.suburb || a.city_district) parts.push(a.suburb || a.city_district);
-          if (a.village || a.town || a.municipality) parts.push(a.village || a.town || a.municipality);
-          if (a.city_district || a.county || a.district) parts.push(a.city_district || a.county || a.district);
-          if (a.city || a.county || a.state_district) parts.push(a.city || a.county || a.state_district);
-          if (a.state) parts.push(a.state);
-          if (a.postcode) parts.push(a.postcode);
-          if (a.country) parts.push(a.country);
-          const uniqueParts = [...new Set(parts.filter(Boolean))];
-          if (uniqueParts.length) return uniqueParts.join(', ');
-          if (data.display_name) return data.display_name;
+          const road = a.road || a.pedestrian || a.footway || a.path || '';
+          if (a.house_number && road) parts.push(`${road} No. ${a.house_number}`);
+          else if (road) parts.push(road);
+
+          ['neighbourhood', 'suburb', 'city_district', 'village', 'town',
+            'municipality', 'county', 'district', 'city', 'state', 'postcode', 'country'
+          ].forEach(k => {
+            if (a[k] && !parts.includes(a[k])) parts.push(a[k]);
+          });
+
+          if (parts.length) result = parts.join(', ');
         }
-        throw new Error('Nominatim kosong');
-      } catch (e) {
-        console.warn('Nominatim gagal:', e.message);
+      } catch (e) {}
+
+      if (!result) {
+        try {
+          const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`;
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 5000);
+          const res = await fetch(url, { signal: ctrl.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const d = await res.json();
+            const p = [];
+            const addr = d.address || {};
+            if (addr.road) p.push(addr.houseNumber ? `${addr.road} No. ${addr.houseNumber}` : addr.road);
+            if (d.locality) p.push(d.locality);
+            if (d.city) p.push(d.city);
+            if (d.principalSubdivision) p.push(d.principalSubdivision);
+            if (d.postcode) p.push(d.postcode);
+            if (d.countryName) p.push(d.countryName);
+            if (p.length) result = p.join(', ');
+          }
+        } catch (e) {}
       }
+
+      reverseGeocodeCache.set(key, result);
+      return result;
+    };
+
+    const geocodeAddress = async (address) => {
+      const key = (address || '').trim().toLowerCase();
+      if (!key) return null;
+      if (geocodeCache.has(key)) return geocodeCache.get(key);
+
+      let result = null;
+
       try {
-        const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=id`;
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 8000);
-        const res = await fetch(url, { signal: ctrl.signal });
-        clearTimeout(timer);
-        if (!res.ok) throw new Error('BigDataCloud HTTP ' + res.status);
-        const data = await res.json();
-        const parts = [];
-        if (data.address && data.address.road) {
-          const road = data.address.road;
-          const house = data.address.houseNumber || '';
-          parts.push(house ? `Jl. ${road} No. ${house}` : `Jl. ${road}`);
-        } else {
-          if (data.locality) parts.push(data.locality);
-          if (data.city) parts.push(data.city);
-          if (data.principalSubdivision) parts.push(data.principalSubdivision);
-          if (data.countryName) parts.push(data.countryName);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const list = await res.json();
+          if (Array.isArray(list) && list.length) {
+            const item = list[0];
+            result = {
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon),
+              displayName: item.display_name || ''
+            };
+
+            const a = item.address || {};
+            if (a.road) {
+              const parts = [];
+              if (a.house_number && a.road) parts.push(`${a.road} No. ${a.house_number}`);
+              else parts.push(a.road);
+
+              ['neighbourhood', 'suburb', 'city_district', 'village', 'town',
+                'municipality', 'county', 'district', 'city', 'state', 'postcode', 'country'
+              ].forEach(k => {
+                if (a[k] && !parts.includes(a[k])) parts.push(a[k]);
+              });
+
+              if (parts.length) result.displayName = parts.join(', ');
+            }
+          }
         }
-        if (data.postcode) parts.push(data.postcode);
-        const uniqueParts = [...new Set(parts.filter(Boolean))];
-        if (uniqueParts.length) return uniqueParts.join(', ');
-        throw new Error('BigDataCloud kosong');
-      } catch (e) {
-        console.warn('BigDataCloud gagal:', e.message);
-      }
-      return null;
+      } catch (e) {}
+
+      geocodeCache.set(key, result);
+      return result;
     };
 
     const saveShippingConfig = () => {
@@ -1778,8 +1897,10 @@
       $('ship-per-km').value = shippingConfig.perKm;
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
-      if (currentUser && $('admin-section').classList.contains('active') && $('admin-map')) {
-        setTimeout(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng), 300);
+      if (currentUser && currentUser.role === 'admin' && $('admin-section').classList.contains('active') && $('admin-map')) {
+        requestAnimationFrame(() => {
+          initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
+        });
       }
     };
 
@@ -1814,7 +1935,6 @@
       return Math.max(0, Math.round(cost));
     };
 
-    // FUNGSI CEK STATUS ONGKIR: AUTO / GRATIS / MANUAL
     const getOngkirStatusInfo = (subtotal) => {
       const isEnabled = shippingConfig.enabled;
       const isFree = isEnabled && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin;
@@ -1824,7 +1944,6 @@
       return { isEnabled, isFree, isAuto };
     };
 
-    // ===== UPDATE RINGKASAN ONGKIR DENGAN MODE MANUAL =====
     const updateShippingDisplay = () => {
       if (!$('summary-shipping')) return;
       const subtotalEl = $('summary-subtotal');
@@ -1853,7 +1972,6 @@
         totalSpan.innerText = `Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}`;
       }
 
-      // Catatan penjelas di bawah total
       if (noteEl) {
         if (isEnabled && !isFree && !isAuto && subtotal > 0) {
           noteEl.style.display = 'block';
@@ -1884,39 +2002,6 @@
       }
     };
 
-    const geocodeAddress = async (address) => {
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1&accept-language=id`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const item = data[0];
-          let fullAddress = item.display_name;
-          if (item.address) {
-            const a = item.address;
-            const parts = [];
-            if (a.road) parts.push(a.house_number ? `Jl. ${a.road} No. ${a.house_number}` : `Jl. ${a.road}`);
-            if (a.neighbourhood) parts.push(a.neighbourhood);
-            if (a.suburb || a.city_district) parts.push(a.suburb || a.city_district);
-            if (a.village || a.town || a.municipality) parts.push(a.village || a.town || a.municipality);
-            if (a.city_district || a.county || a.district) parts.push(a.city_district || a.county || a.district);
-            if (a.city || a.county || a.state_district) parts.push(a.city || a.county || a.state_district);
-            if (a.state) parts.push(a.state);
-            if (a.postcode) parts.push(a.postcode);
-            if (a.country) parts.push(a.country);
-            const unique = [...new Set(parts.filter(Boolean))];
-            if (unique.length) fullAddress = unique.join(', ');
-          }
-          return { lat: parseFloat(item.lat), lng: parseFloat(item.lon), displayName: fullAddress };
-        }
-        return null;
-      } catch (e) {
-        console.error("Geocoding error:", e);
-        return null;
-      }
-    };
-
-    // Reverse geocode TIDAK menimpa alamat yang diketik manual di form!
     const reverseGeocode = async (lat, lng) => {
       const mapStatusEl = $('map-status');
       const address = await reverseGeocodeWithFallback(lat, lng);
@@ -1928,133 +2013,199 @@
           : `📍 Koordinat untuk ONGKIR: ${finalAddress}`;
       }
       persistUserLocation();
-      updateShippingDisplay();
+      requestShippingUpdate();
     };
 
-    const initAdminMap = (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
-      const mapEl = $('admin-map');
-      if (!mapEl) return;
-      if (adminMap) {
+    const initAdminMap = async (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
+      const el = $('admin-map');
+      if (!el) return;
+
+      try { await loadLeaflet(); }
+      catch (err) { $('admin-map-status').innerText = '⚠️ ' + err.message; return; }
+
+      if (!$('admin-section').classList.contains('active')) return;
+      if (!currentUser || currentUser.role !== 'admin') return;
+
+      const adminOnlyCard = el.closest('.card.admin-only-feature');
+      if (adminOnlyCard && adminOnlyCard.classList.contains('hidden')) return;
+
+      if (!adminMap) {
+        el.style.display = 'block';
+
+        adminMap = L.map('admin-map', {
+          scrollWheelZoom: false,
+          zoomControl: true,
+          preferCanvas: true
+        }).setView([lat, lng], 16);
+
+        adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
+        addFastTiles(adminMap);
+
+        adminMap.on('click', (e) => {
+          const { lat: la, lng: lo } = e.latlng;
+          adminMarker.setLatLng([la, lo]);
+          updateShopCoordinate(la, lo);
+        });
+
+        adminMarker.on('dragend', (e) => {
+          const p = e.target.getLatLng();
+          updateShopCoordinate(p.lat, p.lng);
+        });
+      } else {
+        el.style.display = 'block';
         adminMap.setView([lat, lng], 16);
-        if (adminMarker) adminMarker.setLatLng([lat, lng]);
-        [100, 400, 800].forEach(t => setTimeout(() => { if (adminMap) adminMap.invalidateSize(); }, t));
-        return;
+        adminMarker.setLatLng([lat, lng]);
       }
-      mapEl.style.display = 'block';
-      adminMap = L.map('admin-map', { scrollWheelZoom: false, zoomControl: true });
-      adminMap.setView([lat, lng], 16);
-      adminTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(adminMap);
-      adminFallbackAdded = false;
-      adminMap.on('tileerror', () => {
-        if (adminFallbackAdded || !adminMap) return;
-        adminFallbackAdded = true;
-        if (adminTileLayer) adminMap.removeLayer(adminTileLayer);
-        adminTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-          attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-          maxZoom: 19
-        }).addTo(adminMap);
-        console.log('Fallback tile CARTO digunakan.');
-      });
-      adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
-      adminMap.on('click', (e) => {
-        const { lat: clickedLat, lng: clickedLng } = e.latlng;
-        adminMarker.setLatLng([clickedLat, clickedLng]);
-        $('ship-lat').value = clickedLat;
-        $('ship-lng').value = clickedLng;
-        reverseAdminGeocode(clickedLat, clickedLng);
-      });
-      adminMarker.on('dragend', (e) => {
-        const pos = e.target.getLatLng();
-        $('ship-lat').value = pos.lat;
-        $('ship-lng').value = pos.lng;
-        reverseAdminGeocode(pos.lat, pos.lng);
-      });
-      [100, 300, 600, 1000, 1500].forEach(delay => setTimeout(() => {
-        if (adminMap) adminMap.invalidateSize();
-      }, delay));
+
+      scheduleInvalidate(adminMap);
     };
 
     const ensureAdminMapVisible = () => {
-      if (!currentUser || !$('admin-map')) return;
-      setTimeout(() => {
-        if (!$('admin-section').classList.contains('active')) return;
-        if (!adminMap) {
-          initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
+      if (!currentUser || currentUser.role !== 'admin') return;
+      if (!$('admin-section').classList.contains('active')) return;
+      if (!$('admin-map')) return;
+
+      requestAnimationFrame(() => {
+        if (adminMap) {
+          scheduleInvalidate(adminMap);
         } else {
-          adminMap.invalidateSize();
-          setTimeout(() => adminMap.invalidateSize(), 200);
+          initAdminMap(
+            parseFloat($('ship-lat').value) || shippingConfig.storeLat,
+            parseFloat($('ship-lng').value) || shippingConfig.storeLng
+          );
         }
-      }, 200);
+      });
     };
 
-    const initMapPicker = (lat, lng) => {
-      $('map-picker').style.display = 'block';
+    let adminCoordTid = null;
+
+    const updateShopCoordinate = (lat, lng) => {
+      $('ship-lat').value = lat;
+      $('ship-lng').value = lng;
+      $('admin-map-status').innerText = `Koordinat toko: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+      if (adminCoordTid) clearTimeout(adminCoordTid);
+      adminCoordTid = setTimeout(() => {
+        reverseAdminGeocode(lat, lng);
+      }, 350);
+    };
+
+    const initMapPicker = async (lat, lng) => {
+      try { await loadLeaflet(); }
+      catch (err) { $('map-status').innerText = '⚠️ ' + err.message; return; }
+
       if (!mapPicker) {
-        mapPicker = L.map('map-picker').setView([lat, lng], 15);
-        pickerTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 19
-        }).addTo(mapPicker);
-        mapPickerFallbackAdded = false;
-        mapPicker.on('tileerror', () => {
-          if (mapPickerFallbackAdded) return;
-          mapPickerFallbackAdded = true;
-          if (pickerTileLayer) mapPicker.removeLayer(pickerTileLayer);
-          pickerTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OSM & CARTO',
-            maxZoom: 19
-          }).addTo(mapPicker);
-          console.log('Fallback tile CARTO untuk peta pengguna.');
-        });
+        $('map-picker').style.display = 'block';
+
+        mapPicker = L.map('map-picker', {
+          zoomControl: true,
+          preferCanvas: true
+        }).setView([lat, lng], 15);
+
         mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
-        mapMarker.on('drag', function(e) {
-          const pos = e.target.getLatLng();
-          userLocation = { lat: pos.lat, lng: pos.lng, address: userLocation && userLocation.address ? userLocation.address : '' };
-          updateShippingDisplay();
+        addFastTiles(mapPicker);
+
+        mapMarker.on('drag', (e) => {
+          const p = e.target.getLatLng();
+          userLocation = {
+            lat: p.lat,
+            lng: p.lng,
+            address: userLocation && userLocation.address ? userLocation.address : ''
+          };
+          requestShippingUpdate();
         });
+
         mapMarker.on('dragend', (e) => {
-          const pos = e.target.getLatLng();
-          userLocation = { lat: pos.lat, lng: pos.lng, address: '' };
+          const p = e.target.getLatLng();
+          userLocation = { lat: p.lat, lng: p.lng, address: '' };
           updateShippingDisplay();
           persistUserLocation();
-          reverseGeocode(pos.lat, pos.lng);
+          reverseGeocode(p.lat, p.lng);
         });
+
         mapPicker.on('click', (e) => {
-          const { lat: clickedLat, lng: clickedLng } = e.latlng;
-          mapMarker.setLatLng([clickedLat, clickedLng]);
-          userLocation = { lat: clickedLat, lng: clickedLng, address: '' };
+          mapMarker.setLatLng(e.latlng);
+          userLocation = { lat: e.latlng.lat, lng: e.latlng.lng, address: '' };
           updateShippingDisplay();
           persistUserLocation();
-          reverseGeocode(clickedLat, clickedLng);
+          reverseGeocode(e.latlng.lat, e.latlng.lng);
         });
       } else {
+        $('map-picker').style.display = 'block';
         mapPicker.setView([lat, lng], 15);
         mapMarker.setLatLng([lat, lng]);
       }
-      setTimeout(() => mapPicker.invalidateSize(), 100);
+
+      scheduleInvalidate(mapPicker);
     };
 
+    let locatingNow = false;
+
     const handleUseMyLocation = () => {
+      const btn = $('btn-use-my-location');
+
       if (!navigator.geolocation) {
-        alert("Browser Anda tidak mendukung geolokasi.");
+        alert('Browser/HP tidak mendukung geolokasi.');
         return;
       }
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        userLocation = { lat, lng, address: '' };
-        initMapPicker(lat, lng);
+
+      if (locatingNow) return;
+
+      locatingNow = true;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendeteksi...';
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          userLocation = { lat, lng, address: '' };
+
+          await initMapPicker(lat, lng);
+          persistUserLocation();
+          reverseGeocode(lat, lng);
+          updateShippingDisplay();
+
+          $('map-status').innerText = '📍 Lokasi terdeteksi. Alamat tetap tulis manual di bawah.';
+          $('checkout-address').focus();
+
+          locatingNow = false;
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
+        },
+        (err) => {
+          locatingNow = false;
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
+          $('map-status').innerText = '⚠️ Gagal deteksi lokasi. Ketik alamat lengkap manual — ongkir dikonfirmasi admin.';
+          updateShippingDisplay();
+          console.warn('Geolocation error:', err);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    const autoUseMyLocation = () => {
+      // Sengaja NONAKTIF supaya tidak meminta izin lokasi diam-diam.
+    };
+
+    const restoreLocationOnCart = () => {
+      const saved = safeParse(localStorage.getItem('adidin_last_location'), null);
+
+      if (saved && saved.lat && saved.lng) {
+        userLocation = saved;
+        initMapPicker(saved.lat, saved.lng);
+        $('map-status').innerText = '📍 Lokasi ongkir tersimpan. Alamat lengkap tetap tulis manual di bawah.';
         updateShippingDisplay();
-        reverseGeocode(lat, lng);
-        persistUserLocation();
-        $('checkout-address').focus();
-      }, (err) => {
-        alert("Gagal mendapatkan lokasi. Coba lagi atau isi alamat manual.");
-        console.error(err);
-      }, { enableHighAccuracy: true });
+      } else {
+        userLocation = null;
+        $('map-picker').style.display = 'none';
+        $('map-status').innerText = '📍 Klik "Gunakan Lokasi Saya" untuk hitung ongkir otomatis. Tanpa peta, ongkir akan dikonfirmasi admin saat pesanan diproses.';
+        updateShippingDisplay();
+      }
+
+      renderSavedLocations();
     };
 
     const saveProducts = () => {
@@ -2171,36 +2322,6 @@
         adminBtn.className = "btn-status-toko " + (storeOpen ? "btn-danger" : "btn-success");
       }
       if (typeof updateScheduleUI === 'function') updateScheduleUI();
-    };
-
-    const autoUseMyLocation = () => {
-      if (userLocation && userLocation.lat && userLocation.lng) return;
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition((pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        userLocation = { lat, lng, address: '' };
-        initMapPicker(lat, lng);
-        updateShippingDisplay();
-        reverseGeocode(lat, lng);
-        persistUserLocation();
-      }, (err) => {
-        console.warn('Auto deteksi lokasi gagal:', err.message);
-        $('map-status').innerText = "⚠️ Lokasi tidak terdeteksi otomatis. Klik 'Gunakan Lokasi Saya' untuk mencoba lagi.";
-      }, { enableHighAccuracy: true, timeout: 10000 });
-    };
-
-    const restoreLocationOnCart = () => {
-      const saved = safeParse(localStorage.getItem('adidin_last_location'), null);
-      if (saved && saved.lat && saved.lng) {
-        userLocation = saved;
-        initMapPicker(saved.lat, saved.lng);
-        $('checkout-address').value = '';
-        $('map-status').innerText = "📍 Lokasi ongkir tersimpan. Silakan ketik alamat lengkap manual di bawah.";
-        updateShippingDisplay();
-      } else {
-        autoUseMyLocation();
-      }
     };
 
     const switchPage = (name) => {
@@ -2797,7 +2918,6 @@
         const tr = document.createElement('tr');
         if (completed) tr.className = 'row-order-completed';
 
-        // Tombol cetak struk untuk transaksi online
         const printBtn = order.source && order.source !== 'POS Kasir'
           ? `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`
           : '';
@@ -2980,7 +3100,6 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // ===== FITUR JADWAL PENGIRIMAN GABUNGAN =====
     function pad2(n) {
       return String(n).padStart(2, '0');
     }
@@ -3096,38 +3215,31 @@
       if (confirm("Kosongkan keranjang?")) { cart = []; saveCart(); renderCart(); }
     });
 
-    // ===== SAAT ALAMAT DIKETIK MANUAL =====
-    // Fungsi ini TIDAK lagi memblokir checkout tanpa lokasi.
-    $('checkout-address').addEventListener('change', async function() {
+    $('checkout-address').addEventListener('change', async function () {
       const value = this.value.trim();
-      if (!value || value.length < 10) return;
-      // Jika user sudah memakai "Gunakan Lokasi Saya", jangan timpa dengan geocode alamat baru.
-      if (userLocation && userLocation.lat) return;
+      if (value.length < 10) return;
 
       const mapStatusEl = $('map-status');
       const result = await geocodeAddress(value);
+
       if (result) {
-        userLocation = {
-          lat: result.lat,
-          lng: result.lng,
-          address: value // tetap simpan alamat yang diketik user
-        };
-        initMapPicker(result.lat, result.lng);
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lng);
+        userLocation = { lat, lng, address: value };
+        await initMapPicker(lat, lng);
         if (mapStatusEl) {
-          mapStatusEl.innerText = `📍 Alamat dikenali untuk ONGKIR: ${result.displayName}`;
+          mapStatusEl.innerText = '📍 Alamat dikenali untuk estimasi ongkir. Ongkir final tetap ditentukan admin.';
         }
-        updateShippingDisplay();
         persistUserLocation();
       } else {
         if (mapStatusEl) {
-          mapStatusEl.innerText = "⚠️ Alamat tidak dikenali untuk ongkir otomatis. Klik 'Gunakan Lokasi Saya' untuk deteksi, atau lanjutkan — ongkir akan dikonfirmasi admin.";
+          mapStatusEl.innerText = '⚠️ Alamat tidak dikenali untuk estimasi ongkir. Klik "Gunakan Lokasi Saya" atau biarkan admin menghitung ongkir.';
         }
-        if (userLocation) {
-          userLocation = null;
-          persistUserLocation();
-        }
-        updateShippingDisplay();
+        userLocation = null;
+        persistUserLocation();
       }
+
+      updateShippingDisplay();
     });
 
     $('checkout-form').addEventListener('submit', function(e) {
@@ -3656,10 +3768,8 @@
       historyList.unshift(order);
       saveHistory();
 
-      // ===== GENERATE QR CODE =====
       const qrDataUrl = await generateReceiptQR();
 
-      // ===== SUSUN HTML STRUK =====
       const receiptHtml = `
         <div class="text-center text-bold" style="font-size:15px;">PENGEMBANG UMKM LOCAL</div>
         <div class="text-center text-bold" style="font-size:12px;">🚀 go jag ga jig jaya</div>
@@ -3700,7 +3810,6 @@
         </div>
       `;
 
-      // ===== CETAK STRUK PANJANG (TIDAK TERPOTONG) =====
       await printDynamicReceipt(receiptHtml);
 
       posCart = [];
