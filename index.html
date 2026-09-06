@@ -1388,6 +1388,11 @@
                   <select id="prod-unit-type">
                     <option value="pcs">Per Pcs</option>
                     <option value="kg">Per Kg</option>
+                    <option value="liter">Per Liter</option>
+                    <option value="lusin">Per Lusin</option>
+                    <option value="pack">Per Pack / Bungkus</option>
+                    <option value="ball">Per Ball</option>
+                    <option value="slop">Per Slop</option>
                     <option value="dus">Per Dus</option>
                     <option value="renteng">Per Renteng</option>
                     <option value="digital">Digital (Nominal)</option>
@@ -1564,6 +1569,32 @@
 
     const $ = (id) => document.getElementById(id);
 
+    // ===== FUNGSI BANTU UNTUK SATUAN BARU =====
+    function getUnitPretty(unitType) {
+      const map = {
+        pcs: 'Pcs',
+        kg: 'Kg',
+        liter: 'Liter',
+        lusin: 'Lusin',
+        pack: 'Pack',
+        ball: 'Ball',
+        slop: 'Slop',
+        dus: 'Dus',
+        renteng: 'Renteng',
+        digital: 'Digital'
+      };
+      return map[unitType] || 'Pcs';
+    }
+
+    function formatQtyLabel(qty, unitType) {
+      if (unitType === 'digital') return '1 Transaksi';
+      return (qty || 0) + ' ' + getUnitPretty(unitType);
+    }
+
+    function isVolumeUnitType(unitType) {
+      return unitType === 'kg' || unitType === 'liter';
+    }
+
     // ====== OPTIMASI MAPS: LAZY LOAD + CACHE + TILE CEPAT ======
     let leafletReady = null;
     const geocodeCache = new Map();
@@ -1623,29 +1654,26 @@
     }
 
     function addFastTiles(map) {
-  // OSM Standard – tidak butuh API key, tidak ada tulisan "API KEY REQUIRED"
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    subdomains: 'abc',
-    maxZoom: 19,
-    preferCanvas: true,
-    updateWhenIdle: true,
-    updateWhenZooming: false,
-    keepBuffer: 2
-  }).addTo(map);
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        subdomains: 'abc',
+        maxZoom: 19,
+        preferCanvas: true,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 2
+      }).addTo(map);
 
-  // Jika tile OSM utama gagal, pakai OSM tanpa subdomain
-  osm.once('tileerror', () => {
-    if (map.hasLayer(osm)) map.removeLayer(osm);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(map);
-  });
+      osm.once('tileerror', () => {
+        if (map.hasLayer(osm)) map.removeLayer(osm);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(map);
+      });
 
-  return osm;
-}
-
+      return osm;
+    }
 
     // ===== THEME =====
     const DEFAULT_THEME = {
@@ -2185,9 +2213,7 @@
       );
     };
 
-    const autoUseMyLocation = () => {
-      // Sengaja NONAKTIF supaya tidak meminta izin lokasi diam-diam.
-    };
+    const autoUseMyLocation = () => {};
 
     const restoreLocationOnCart = () => {
       const saved = safeParse(localStorage.getItem('adidin_last_location'), null);
@@ -2416,27 +2442,40 @@
       const fragment = document.createDocumentFragment();
       filtered.forEach(p => {
         const isKg = p.unitType === 'kg';
+        const isLiter = p.unitType === 'liter';
+        const isVolumeUnit = isKg || isLiter;
         const isDigital = p.unitType === 'digital';
         const isAvailable = p.available && (p.stock > 0 || isDigital);
         const canOrder = isAvailable;
+        const volumeNoun = isLiter ? 'Liter' : 'Kilo';
+        const volumeShort = isLiter ? 'L' : 'Kg';
+        const volumeKey = isLiter ? 'liter' : 'kg';
+
         let satuan = '/pcs';
         if (isKg) satuan = '/kg';
+        else if (isLiter) satuan = '/liter';
         else if (p.unitType === 'dus') satuan = '/dus';
         else if (p.unitType === 'renteng') satuan = '/renteng';
+        else if (p.unitType === 'lusin') satuan = '/lusin';
+        else if (p.unitType === 'pack') satuan = '/pack';
+        else if (p.unitType === 'ball') satuan = '/ball';
+        else if (p.unitType === 'slop') satuan = '/slop';
         else if (isDigital) satuan = ' (Nominal Bebas)';
+
         let extraControl = '';
         let priceHtml = `<span>Rp ${(p.price||0).toLocaleString('id-ID')}${satuan}</span>`;
-        if (isKg && isAvailable) {
+
+        if (isVolumeUnit && isAvailable) {
           extraControl = `
             <div class="weight-selector-box">
-              <label>Pilih/Ketik Jumlah Kilo:</label>
+              <label>Pilih/Ketik Jumlah ${volumeNoun}:</label>
               <div class="weight-presets">
-                <button type="button" data-id="${p.id}" data-val="0.25">¼ kg</button>
-                <button type="button" data-id="${p.id}" data-val="0.5">½ kg</button>
-                <button type="button" data-id="${p.id}" data-val="1" class="active">1 kg</button>
+                <button type="button" data-id="${p.id}" data-val="0.25">¼ ${volumeKey}</button>
+                <button type="button" data-id="${p.id}" data-val="0.5">½ ${volumeKey}</button>
+                <button type="button" data-id="${p.id}" data-val="1" class="active">1 ${volumeKey}</button>
               </div>
               <div class="weight-custom-input">
-                <input type="number" id="input-weight-${p.id}" data-id="${p.id}" data-price="${p.price}" value="1" min="0.05" step="0.05"><span>Kg</span>
+                <input type="number" id="input-qty-${p.id}" data-id="${p.id}" data-price="${p.price}" data-unit="${volumeNoun}" value="1" min="0.05" step="0.05"><span>${volumeShort}</span>
               </div>
             </div>`;
         } else if (isDigital && isAvailable) {
@@ -2484,19 +2523,20 @@
           const target = e.target;
           target.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
           target.classList.add('active');
-          const input = $('input-weight-' + target.getAttribute('data-id'));
+          const input = $('input-qty-' + target.getAttribute('data-id'));
           if (input) {
             input.value = target.getAttribute('data-val');
             const prod = products.find(p => p.id == target.getAttribute('data-id'));
-            if (prod) calcWeight(target.getAttribute('data-id'), prod.price);
+            if (prod) calcWeight(target.getAttribute('data-id'), prod.price, input.getAttribute('data-unit') || 'Kg');
           }
         })
       );
-      container.querySelectorAll('input[id^="input-weight-"]').forEach(inp =>
+      container.querySelectorAll('input[id^="input-qty-"]').forEach(inp =>
         inp.addEventListener('input', e => {
           const pid = e.target.getAttribute('data-id');
           const price = parseFloat(e.target.getAttribute('data-price'));
-          if (pid && price) calcWeight(pid, price);
+          const unit = e.target.getAttribute('data-unit') || 'Kg';
+          if (pid && price) calcWeight(pid, price, unit);
         })
       );
       container.querySelectorAll('input[id^="input-digital-"]').forEach(inp =>
@@ -2508,15 +2548,15 @@
       );
     };
 
-    const calcWeight = (id, pricePerKg) => {
-      const input = $('input-weight-' + id);
+    const calcWeight = (id, pricePerUnit, unitLabel = 'Kg') => {
+      const input = $('input-qty-' + id);
       const priceBox = $('main-price-box-' + id);
       const sub = $('sub-calc-' + id);
       if (!input || !priceBox) return;
-      const kg = parseFloat(input.value) || 0;
-      const total = Math.round(pricePerKg * kg);
+      const qty = parseFloat(input.value) || 0;
+      const total = Math.round(pricePerUnit * qty);
       priceBox.innerHTML = `Rp ${total.toLocaleString('id-ID')}`;
-      if (sub) sub.innerHTML = `Harga untuk ${kg} Kg (Rp ${pricePerKg.toLocaleString('id-ID')}/kg)`;
+      if (sub) sub.innerHTML = `Harga untuk ${qty} ${unitLabel} (Rp ${pricePerUnit.toLocaleString('id-ID')}/${unitLabel.toLowerCase()})`;
     };
 
     const buyProduct = (id) => {
@@ -2527,10 +2567,10 @@
       }
       let qty = 1;
       let customPrice = prod.price;
-      if (prod.unitType === 'kg') {
-        const inputKg = $('input-weight-' + id);
-        qty = parseFloat(inputKg ? inputKg.value : 1) || 0;
-        if (qty <= 0) return alert("Jumlah kg tidak valid!");
+      if (prod.unitType === 'kg' || prod.unitType === 'liter') {
+        const inputQty = $('input-qty-' + id);
+        qty = parseFloat(inputQty ? inputQty.value : 1) || 0;
+        if (qty <= 0) return alert(prod.unitType === 'liter' ? "Jumlah liter tidak valid!" : "Jumlah kg tidak valid!");
       } else if (prod.unitType === 'digital') {
         const inputDig = $('input-digital-' + id);
         const nominal = parseInt(inputDig ? inputDig.value : 0) || 0;
@@ -2567,13 +2607,15 @@
       let subtotal = 0;
       const frag = document.createDocumentFragment();
       cart.forEach((item, idx) => {
-        const isKg = item.unitChosen === 'kg';
-        const isDigital = item.unitChosen === 'digital';
+        const unit = item.unitChosen || item.product.unitType || 'pcs';
+        const isDigital = unit === 'digital';
+        const isVolumeUnit = isVolumeUnitType(unit);
+        const step = isVolumeUnit ? 0.25 : 1;
         const toppings = item.toppings || [];
         const topingCost = toppings.reduce((s,t) => s + (t.price||0), 0) * (item.qty || 1);
         const total = Math.round((item.product.price || 0) * (item.qty || 1)) + Math.round(topingCost);
         subtotal += total;
-        const qtyLabel = isKg ? `${item.qty} Kg` : isDigital ? "1 Transaksi" : `${item.qty} Pcs`;
+        const qtyLabel = formatQtyLabel(item.qty, unit);
         const topingText = toppings.length ? `<div style="font-size:10px;color:var(--primary);margin-bottom:2px;">Toping: ${toppings.map(t=>t.name).join(', ')}</div>` : '';
         const row = document.createElement('div');
         row.className = 'cart-item';
@@ -2582,11 +2624,11 @@
           <div class="cart-item-details">
             <h4>${item.product.name}</h4>
             ${topingText}
-            <p style="font-size:11px;color:var(--muted);">Satuan: ${(item.unitChosen||'pcs').toUpperCase()}</p>
+            <p style="font-size:11px;color:var(--muted);">Satuan: ${getUnitPretty(unit)}</p>
             <div class="cart-qty-controls">
-              ${isDigital ? '' : `<button data-idx="${idx}" data-step="${isKg ? 0.25 : 1}" class="qty-minus">-</button>`}
+              ${isDigital ? '' : `<button data-idx="${idx}" data-step="${step}" class="qty-minus">-</button>`}
               <span style="font-weight:700;color:var(--primary);font-size:12px;">${qtyLabel}</span>
-              ${isDigital ? '' : `<button data-idx="${idx}" data-step="${isKg ? 0.25 : 1}" class="qty-plus">+</button>`}
+              ${isDigital ? '' : `<button data-idx="${idx}" data-step="${step}" class="qty-plus">+</button>`}
               <button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-idx="${idx}"><i class="fas fa-trash"></i> Hapus</button>
             </div>
           </div>
@@ -2673,7 +2715,6 @@
         address: loc.address || ""
       };
       initMapPicker(loc.lat, loc.lng);
-      // Khusus untuk ongkir saja -> TIDAK mengisi alamat manual di form
       $('checkout-address').value = '';
       $('map-status').innerText = `📍 ${loc.label} dipakai untuk ONGKIR. Silakan tulis alamat lengkap manual di bawah.`;
       $('saved-locations-list').value = "";
@@ -2723,7 +2764,10 @@
         const card = document.createElement('div');
         card.className = 'pos-item-card';
         card.onclick = () => addPos(p);
-        card.innerHTML = `<img src="${p.img}" alt=""><h5>${p.name}</h5><p>Rp ${p.price.toLocaleString('id-ID')}</p><div style="font-size:9px;color:var(--muted);">Stok: ${p.unitType === 'digital' ? '∞' : p.stock} | Rak: ${p.rack||'-'}</div>${(p.toppings&&p.toppings.length) ? '<div style="font-size:9px;color:var(--primary);">Toping tersedia</div>' : ''}`;
+        const stockTxt = p.unitType === 'digital'
+          ? '∞'
+          : `${p.stock} ${getUnitPretty(p.unitType)}`;
+        card.innerHTML = `<img src="${p.img}" alt=""><h5>${p.name}</h5><p>Rp ${p.price.toLocaleString('id-ID')}</p><div style="font-size:9px;color:var(--muted);">Stok: ${stockTxt} | Rak: ${p.rack||'-'}</div>${(p.toppings&&p.toppings.length) ? '<div style="font-size:9px;color:var(--primary);">Toping tersedia</div>' : ''}`;
         frag.appendChild(card);
       });
       container.appendChild(frag);
@@ -3042,7 +3086,7 @@
       const isKasir = currentUser && currentUser.role === 'kasir';
       const frag = document.createDocumentFragment();
       filtered.forEach(p => {
-        const unit = p.unitType === 'kg' ? 'Kg' : p.unitType === 'dus' ? 'Dus' : p.unitType === 'renteng' ? 'Renteng' : p.unitType === 'digital' ? 'Digital' : 'Pcs';
+        const unit = p.unitType === 'digital' ? 'Digital' : getUnitPretty(p.unitType);
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><img src="${p.img}" alt=""></td>
@@ -3201,7 +3245,6 @@
       updateSchedulePreview();
     }
 
-    // Event untuk mode kirim sekarang / jadwal
     $('delivery-mode').addEventListener('change', updateScheduleUI);
     $('checkout-schedule').addEventListener('input', updateSchedulePreview);
 
@@ -3245,7 +3288,6 @@
       e.preventDefault();
       if (cart.length === 0) return alert("Keranjang kosong!");
 
-      // ===== VALIDASI ALAMAT MANUAL WAJIB LENGKAP =====
       const address = $('checkout-address').value.trim();
       if (!address) {
         alert("⚠️ Alamat lengkap WAJIB diisi! Peta tidak mengisi alamat otomatis.");
@@ -3293,13 +3335,13 @@
         const hpp = Math.round((item.product.costPrice || 0) * item.qty);
         subtotal += cost;
         totalHpp += hpp;
-        const satuan = item.unitChosen === 'kg' ? 'Kg' : item.unitChosen === 'digital' ? 'Transaksi' : 'Pcs';
+        const unit = item.unitChosen || item.product.unitType || 'pcs';
+        const satuan = unit === 'digital' ? 'Transaksi' : getUnitPretty(unit);
         const topingStr = toppings.length ? ` | Toping: ${toppings.map(t=>`${t.name} (+${(t.price||0).toLocaleString('id-ID')})`).join(', ')}` : '';
         itemsMsg += `${i+1}. ${item.product.name} [Rp ${item.product.price.toLocaleString('id-ID')} x ${item.qty} ${satuan}${topingStr}] -> Rp ${cost.toLocaleString('id-ID')}\n`;
-        itemsArr.push({ productId: item.product.id, productName: item.product.name, price: item.product.price, costPrice: item.product.costPrice||0, qty: item.qty, unit: item.unitChosen, toppings });
+        itemsArr.push({ productId: item.product.id, productName: item.product.name, price: item.product.price, costPrice: item.product.costPrice||0, qty: item.qty, unit: unit, toppings });
       });
 
-      // ===== HITUNG STATUS ONGKIR =====
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
       const shippingFee = isAuto ? calculateShippingFee(subtotal) : 0;
 
@@ -3646,7 +3688,9 @@
             ? ' + ' + item.toppings.map(t => `${t.name} (+Rp ${(t.price||0).toLocaleString('id-ID')})`).join(', ')
             : '';
           const sub = Math.round(price * qty) + (((item.toppings||[]).reduce((s,t)=>s+(t.price||0),0)) * qty);
-          itemsHtml += `${i+1}. ${item.productName || item.productId} [Rp ${price.toLocaleString('id-ID')} x ${qty}${toppingText}] = Rp ${sub.toLocaleString('id-ID')}\n`;
+          const itemUnit = item.unit || (item.product ? item.product.unitType : null) || 'pcs';
+          const unitPretty = itemUnit === 'digital' ? 'Transaksi' : getUnitPretty(itemUnit);
+          itemsHtml += `${i+1}. ${item.productName || item.productId} [Rp ${price.toLocaleString('id-ID')} x ${qty} ${unitPretty}${toppingText}] = Rp ${sub.toLocaleString('id-ID')}\n`;
         });
       } else if (order.itemsSummary) {
         itemsHtml = order.itemsSummary;
@@ -3683,7 +3727,6 @@
         <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
         <div class="text-center" style="font-size:11px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
 
-        <!-- ===== QR CODE DI BAWAH STRUK ===== -->
         <div class="text-center" style="margin-top:10px;padding-top:5px;border-top:1px dashed #000;">
           <div style="font-size:10px;margin-bottom:4px;">Scan untuk kunjungi toko kami</div>
           ${
@@ -3716,8 +3759,9 @@
         const topDesc = i.toppings && i.toppings.length > 0
           ? ` - Toping: ${i.toppings.map(t => `${t.name} +${(t.price || 0).toLocaleString('id-ID')}`).join(', ')}`
           : '';
+        const unitTxt = i.product.unitType === 'digital' ? 'Transaksi' : getUnitPretty(i.product.unitType || 'pcs');
 
-        summary += `${idx + 1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty}${topDesc}] = Rp ${sub.toLocaleString('id-ID')}\n`;
+        summary += `${idx + 1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty} ${unitTxt}${topDesc}] = Rp ${sub.toLocaleString('id-ID')}\n`;
 
         items.push({
           productId: i.product.id,
@@ -3797,7 +3841,6 @@
         <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
         <div class="text-center" style="font-size:11px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
 
-        <!-- ===== QR CODE DI BAWAH STRUK ===== -->
         <div class="text-center" style="margin-top:10px;padding-top:5px;border-top:1px dashed #000;">
           <div style="font-size:10px;margin-bottom:4px;">Scan untuk kunjungi toko kami</div>
           ${
