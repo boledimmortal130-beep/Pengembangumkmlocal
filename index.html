@@ -1623,30 +1623,29 @@
     }
 
     function addFastTiles(map) {
-      const tiles = L.tileLayer(
-        'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-        {
-          attribution: '&copy; OSM &copy; CARTO',
-          subdomains: 'abcd',
-          maxZoom: 19,
-          preferCanvas: true,
-          updateWhenIdle: true,
-          updateWhenZooming: false,
-          keepBuffer: 2
-        }
-      ).addTo(map);
+  // OSM Standard – tidak butuh API key, tidak ada tulisan "API KEY REQUIRED"
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    subdomains: 'abc',
+    maxZoom: 19,
+    preferCanvas: true,
+    updateWhenIdle: true,
+    updateWhenZooming: false,
+    keepBuffer: 2
+  }).addTo(map);
 
-      tiles.once('tileerror', () => {
-        if (map.hasLayer(tiles)) map.removeLayer(tiles);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 19,
-          preferCanvas: true
-        }).addTo(map);
-      });
+  // Jika tile OSM utama gagal, pakai OSM tanpa subdomain
+  osm.once('tileerror', () => {
+    if (map.hasLayer(osm)) map.removeLayer(osm);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+  });
 
-      return tiles;
-    }
+  return osm;
+}
+
 
     // ===== THEME =====
     const DEFAULT_THEME = {
