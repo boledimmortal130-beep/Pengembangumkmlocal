@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1063,6 +1062,48 @@
     .location-warning i {
       color: var(--danger);
     }
+    
+    /* Tambahkan styling untuk fitur ongkir per barang */
+    .shipping-per-item {
+      background: #f0fdf4;
+      border: 2px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 15px;
+    }
+    
+    .shipping-per-item h4 {
+      margin-bottom: 10px;
+      color: var(--success);
+    }
+    
+    .per-item-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    
+    .per-item-row input {
+      flex: 1;
+    }
+    
+    .remove-per-item {
+      background: #fee2e2;
+      color: var(--danger);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .add-per-item {
+      background: #dcfce7;
+      color: var(--success);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -1499,6 +1540,21 @@
                 <div class="form-group"><label>Gratis Ongkir jika Subtotal ≥ (Rp)</label>
                   <input type="number" id="ship-free-min" value="100000">
                 </div>
+                
+                <!-- Tambahkan fitur ongkir per barang -->
+                <div class="shipping-per-item">
+                  <h4><i class="fas fa-box"></i> Ongkir Tambahan Per Barang</h4>
+                  <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+                    Jika pelanggan membeli lebih dari jumlah tertentu, tambahkan ongkir per barang.
+                  </p>
+                  <div id="per-item-container">
+                    <!-- Item akan ditambahkan secara dinamis -->
+                  </div>
+                  <button type="button" class="add-per-item" id="btn-add-per-item">
+                    <i class="fas fa-plus"></i> Tambah Aturan Ongkir Tambahan
+                  </button>
+                </div>
+                
                 <button class="btn-primary btn-block" type="submit">Simpan Pengaturan</button>
               </form>
             </div>
@@ -1798,7 +1854,11 @@
       storeAddress: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon",
       perKm: 3000,
       minFee: 5000,
-      freeMin: 100000
+      freeMin: 100000,
+      // Tambahkan konfigurasi ongkir per barang
+      perItemRules: [
+        // Format: { minQuantity: 15, additionalFee: 5000 }
+      ]
     });
 
     if (typeof shippingConfig.enabled === 'undefined') {
@@ -1939,6 +1999,10 @@
       $('ship-per-km').value = shippingConfig.perKm;
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
+      
+      // Render aturan ongkir per barang
+      renderPerItemRules();
+      
       if (currentUser && currentUser.role === 'admin' && $('admin-section').classList.contains('active') && $('admin-map')) {
         requestAnimationFrame(() => {
           initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
@@ -1957,24 +2021,44 @@
       return R * c;
     };
 
-    const calculateShippingFee = (subtotal) => {
+    const calculateShippingFee = (subtotal, itemCount) => {
       if (!shippingConfig.enabled || !subtotal || subtotal <= 0) return 0;
       if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
       if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
       if (!shippingConfig.storeLat || !shippingConfig.storeLng) return 0;
+      
       const distance = haversineDistance(
         shippingConfig.storeLat,
         shippingConfig.storeLng,
         userLocation.lat,
         userLocation.lng
       );
+      
       let cost;
       if (distance <= 1) {
         cost = shippingConfig.minFee || 0;
       } else {
         cost = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
       }
-      return Math.max(0, Math.round(cost));
+      
+      // Tambahkan ongkir per barang jika ada
+      const additionalShipping = calculateAdditionalShipping(itemCount);
+      return Math.max(0, Math.round(cost + additionalShipping));
+    };
+
+    // Fungsi untuk menghitung ongkir tambahan berdasarkan jumlah barang
+    const calculateAdditionalShipping = (itemCount) => {
+      let additionalFee = 0;
+      
+      if (shippingConfig.perItemRules && Array.isArray(shippingConfig.perItemRules)) {
+        shippingConfig.perItemRules.forEach(rule => {
+          if (itemCount >= rule.minQuantity) {
+            additionalFee += rule.additionalFee;
+          }
+        });
+      }
+      
+      return additionalFee;
     };
 
     const getOngkirStatusInfo = (subtotal) => {
@@ -1995,10 +2079,16 @@
       const noteEl = $('summary-ongkir-note');
       const distInfo = $('map-distance-info');
 
+      // Hitung jumlah item dalam keranjang
+      let itemCount = 0;
+      cart.forEach(item => {
+        itemCount += item.qty || 1;
+      });
+
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
 
       let shippingFee = 0;
-      if (isAuto) shippingFee = calculateShippingFee(subtotal);
+      if (isAuto) shippingFee = calculateShippingFee(subtotal, itemCount);
 
       if (!isEnabled) {
         shippingSpan.innerText = "Gratis / Tidak ada";
@@ -3284,6 +3374,34 @@
       return true;
     }
 
+    // ===== FUNGSI UNTUK ATURAN ONGKIR PER BARANG =====
+    function renderPerItemRules() {
+      const container = $('per-item-container');
+      container.innerHTML = '';
+      
+      if (!shippingConfig.perItemRules || !Array.isArray(shippingConfig.perItemRules)) {
+        shippingConfig.perItemRules = [];
+      }
+      
+      shippingConfig.perItemRules.forEach((rule, index) => {
+        const row = document.createElement('div');
+        row.className = 'per-item-row';
+        row.innerHTML = `
+          <input type="number" placeholder="Minimal Jumlah Barang" value="${rule.minQuantity || ''}" min="1" data-field="minQuantity" data-index="${index}">
+          <input type="number" placeholder="Ongkir Tambahan (Rp)" value="${rule.additionalFee || ''}" min="0" data-field="additionalFee" data-index="${index}">
+          <span class="remove-per-item" data-index="${index}"><i class="fas fa-trash"></i> Hapus</span>
+        `;
+        container.appendChild(row);
+      });
+      
+      // Tambahkan tombol untuk menambahkan aturan baru
+      const addButton = document.createElement('button');
+      addButton.className = 'add-per-item';
+      addButton.innerHTML = '<i class="fas fa-plus"></i> Tambah Aturan Ongkir Tambahan';
+      addButton.id = 'btn-add-per-item';
+      container.appendChild(addButton);
+    }
+
     // ===== EVENT LISTENERS =====
     $('btn-home').addEventListener('click', () => switchPage('buyer'));
     $('btn-cart-view').addEventListener('click', () => switchPage('cart'));
@@ -3388,7 +3506,7 @@
       });
 
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
-      const shippingFee = isAuto ? calculateShippingFee(subtotal) : 0;
+      const shippingFee = isAuto ? calculateShippingFee(subtotal, cart.length) : 0;
 
       let ongkirLabel;
       if (!isEnabled) {
@@ -3520,6 +3638,41 @@
       }, { enableHighAccuracy: true, timeout: 10000 });
     });
 
+    // Event listener untuk menambahkan aturan ongkir per barang
+    $('btn-add-per-item').addEventListener('click', () => {
+      if (!shippingConfig.perItemRules) {
+        shippingConfig.perItemRules = [];
+      }
+      shippingConfig.perItemRules.push({ minQuantity: 15, additionalFee: 5000 });
+      saveShippingConfig();
+    });
+
+    // Event listener untuk mengubah aturan ongkir per barang
+    $('shipping-config-form').addEventListener('input', (e) => {
+      if (e.target.dataset.field) {
+        const index = parseInt(e.target.dataset.index);
+        const field = e.target.dataset.field;
+        const value = e.target.value;
+        
+        if (shippingConfig.perItemRules && shippingConfig.perItemRules[index]) {
+          shippingConfig.perItemRules[index][field] = field === 'minQuantity' ? parseInt(value) : parseInt(value);
+          saveShippingConfig();
+        }
+      }
+    });
+
+    // Event listener untuk menghapus aturan ongkir per barang
+    $('shipping-config-form').addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-per-item') || 
+          e.target.closest('.remove-per-item')) {
+        const index = parseInt(e.target.closest('.remove-per-item').dataset.index);
+        if (shippingConfig.perItemRules && shippingConfig.perItemRules[index]) {
+          shippingConfig.perItemRules.splice(index, 1);
+          saveShippingConfig();
+        }
+      }
+    });
+
     $('shipping-config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       let storeLat = parseFloat($('ship-lat').value) || 0;
@@ -3547,7 +3700,8 @@
         storeAddress: address,
         perKm: parseFloat($('ship-per-km').value) || 0,
         minFee: parseFloat($('ship-min-fee').value) || 0,
-        freeMin: parseFloat($('ship-free-min').value) || 0
+        freeMin: parseFloat($('ship-free-min').value) || 0,
+        perItemRules: shippingConfig.perItemRules || []
       };
       saveShippingConfig();
       alert("Pengaturan ongkir disimpan! ✅");
