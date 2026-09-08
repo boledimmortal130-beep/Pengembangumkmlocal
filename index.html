@@ -978,12 +978,11 @@
         max-width: 80mm;
         font-family: 'Courier New', Courier, monospace;
         color: #000;
-        font-size: 9pt;               /* Teks umum struk: 9pt */
+        font-size: 9pt;
         line-height: 1.3;
         background: #fff;
       }
 
-      /* Teks biasa dipaksa 9pt agar konsisten */
       #printable-receipt div,
       #printable-receipt span,
       #printable-receipt p,
@@ -994,27 +993,27 @@
         font-size: 9pt !important;
       }
 
-      /* Nama toko — besar */
+      /* Nama toko — ukuran font SAMA seperti teks lain */
       #printable-receipt .text-header,
       #printable-receipt .text-header * {
-        font-size: 14pt !important;
+        font-size: 9pt !important;
         font-weight: bold !important;
         text-align: center !important;
-        line-height: 1.2 !important;
+        line-height: 1.3 !important;
       }
 
-      /* Tagline / sub header */
+      /* Tagline / sub header — ukuran font SAMA */
       #printable-receipt .text-header-sub,
       #printable-receipt .text-header-sub * {
-        font-size: 11pt !important;
+        font-size: 9pt !important;
         font-weight: bold !important;
         text-align: center !important;
       }
 
-      /* Baris TOTAL — diperbesar */
+      /* Baris TOTAL — ukuran font SAMA, tetap TEBAL */
       #printable-receipt .total-line td,
       #printable-receipt .total-line * {
-        font-size: 13pt !important;
+        font-size: 9pt !important;
         font-weight: bold !important;
         padding-top: 2px;
       }
@@ -1111,7 +1110,6 @@
       .logo h1 { font-size: 16px; }
     }
     
-    /* Tambahan untuk validasi lokasi */
     .location-warning {
       background: #fee2e2;
       border: 1px solid #fecaca;
@@ -1129,7 +1127,6 @@
       color: var(--danger);
     }
     
-    /* Tambahkan styling untuk fitur ongkir per barang */
     .shipping-per-item {
       background: #f0fdf4;
       border: 2px solid #a7f3d0;
@@ -1171,7 +1168,6 @@
       margin-top: 8px;
     }
     
-    /* Per-item actions */
     .per-item-actions {
       display: flex;
       gap: 4px;
@@ -1641,14 +1637,12 @@
                   <input type="number" id="ship-free-min" value="100000">
                 </div>
                 
-                <!-- Tambahkan fitur ongkir per barang -->
                 <div class="shipping-per-item">
                   <h4><i class="fas fa-box"></i> Ongkir Tambahan Per Barang</h4>
                   <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
                     Jika pelanggan membeli lebih dari jumlah tertentu, tambahkan ongkir per barang.
                   </p>
                   <div id="per-item-container">
-                    <!-- Item akan ditambahkan secara dinamis -->
                   </div>
                   <button type="button" class="add-per-item" id="btn-add-per-item">
                     <i class="fas fa-plus"></i> Tambah Aturan Ongkir Tambahan
@@ -1739,7 +1733,6 @@
 
     const $ = (id) => document.getElementById(id);
 
-    // ===== FUNGSI BANTU UNTUK SATUAN BARU =====
     function getUnitPretty(unitType) {
       const map = {
         pcs: 'Pcs',
@@ -1955,9 +1948,7 @@
       perKm: 3000,
       minFee: 5000,
       freeMin: 100000,
-      // Tambahkan konfigurasi ongkir per barang
       perItemRules: [
-        // Format: { minQuantity: 15, additionalFee: 5000 }
       ]
     });
 
@@ -2096,7 +2087,6 @@
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
       
-      // Render aturan ongkir per barang
       renderPerItemRules();
       
       if (currentUser && currentUser.role === 'admin' && $('admin-section').classList.contains('active') && $('admin-map')) {
@@ -2137,12 +2127,10 @@
         cost = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
       }
       
-      // Tambahkan ongkir per barang jika ada
       const additionalShipping = calculateAdditionalShipping(itemCount);
       return Math.max(0, Math.round(cost + additionalShipping));
     };
 
-    // Fungsi untuk menghitung ongkir tambahan berdasarkan jumlah barang
     const calculateAdditionalShipping = (itemCount) => {
       let additionalFee = 0;
       
@@ -2219,7 +2207,6 @@
       const noteEl = $('summary-ongkir-note');
       const distInfo = $('map-distance-info');
 
-      // Hitung jumlah item dalam keranjang
       let itemCount = 0;
       cart.forEach(item => {
         itemCount += item.qty || 1;
@@ -3352,16 +3339,13 @@
       }
     }
 
-    // ===== VALIDASI LOKASI =====
     function validateLocation() {
-      // Validasi lokasi pengiriman wajib diisi
       if (!userLocation || !userLocation.lat || !userLocation.lng) {
         alert("⚠️ Lokasi pengiriman wajib ditentukan. Gunakan tombol 'Gunakan Lokasi Saya' untuk menentukan lokasi pengiriman.");
         $('btn-use-my-location').click();
         return false;
       }
       
-      // Validasi alamat lengkap wajib diisi
       const address = $('checkout-address').value.trim();
       if (!address || address.length < 10) {
         alert("⚠️ Alamat lengkap WAJIB diisi! Peta tidak mengisi alamat otomatis.");
@@ -3372,7 +3356,6 @@
       return true;
     }
 
-    // ===== FUNGSI UNTUK ATURAN ONGKIR PER BARANG =====
     function renderPerItemRules() {
       const container = $('per-item-container');
       container.innerHTML = '';
@@ -3385,24 +3368,17 @@
         const row = document.createElement('div');
         row.className = 'per-item-row';
         row.innerHTML = `
-          <input type="number" placeholder="Minimal Jumlah Barang" value="${rule.minQuantity || ''}" min="1" data-field="minQuantity" data-index="${index}">
-          <input type="number" placeholder="Ongkir Tambahan (Rp)" value="${rule.additionalFee || ''}" min="0" data-field="additionalFee" data-index="${index}">
+          <input type="number" placeholder="Minimal Jumlah Barang" value="${rule.minQuantity || ''}" min="1" data-field="minQuantity" data-index="${index}" readonly>
+          <input type="number" placeholder="Ongkir Tambahan (Rp)" value="${rule.additionalFee || ''}" min="0" data-field="additionalFee" data-index="${index}" readonly>
           <div class="per-item-actions">
             <button class="btn-edit-per-item" data-index="${index}">Edit</button>
             <button class="btn-save-per-item hidden" data-index="${index}">Simpan</button>
-            <button class="btn-cancel-per-item" data-index="${index}">Batal</button>
+            <button class="btn-cancel-per-item hidden" data-index="${index}">Batal</button>
             <span class="remove-per-item" data-index="${index}"><i class="fas fa-trash"></i> Hapus</span>
           </div>
         `;
         container.appendChild(row);
       });
-      
-      // Tambahkan tombol untuk menambahkan aturan baru
-      const addButton = document.createElement('button');
-      addButton.className = 'add-per-item';
-      addButton.innerHTML = '<i class="fas fa-plus"></i> Tambah Aturan Ongkir Tambahan';
-      addButton.id = 'btn-add-per-item';
-      container.appendChild(addButton);
     }
 
     // ===== EVENT LISTENERS =====
@@ -3439,11 +3415,9 @@
       updateShippingDisplay();
     });
 
-    // Modifikasi fungsi submit checkout untuk memvalidasi lokasi
     $('checkout-form').addEventListener('submit', function(e) {
       e.preventDefault();
       
-      // Validasi lokasi sebelum melanjutkan
       if (!validateLocation()) {
         return;
       }
@@ -3631,7 +3605,6 @@
       }, { enableHighAccuracy: true, timeout: 10000 });
     });
 
-    // Event listener untuk menambahkan aturan ongkir per barang
     $('btn-add-per-item').addEventListener('click', () => {
       if (!shippingConfig.perItemRules) {
         shippingConfig.perItemRules = [];
@@ -3640,7 +3613,6 @@
       saveShippingConfig();
     });
 
-    // Event listener untuk mengubah aturan ongkir per barang
     $('shipping-config-form').addEventListener('input', (e) => {
       if (e.target.dataset.field) {
         const index = parseInt(e.target.dataset.index);
@@ -3648,13 +3620,12 @@
         const value = e.target.value;
         
         if (shippingConfig.perItemRules && shippingConfig.perItemRules[index]) {
-          shippingConfig.perItemRules[index][field] = field === 'minQuantity' ? parseInt(value) : parseInt(value);
+          shippingConfig.perItemRules[index][field] = parseInt(value);
           saveShippingConfig();
         }
       }
     });
 
-    // Event listener untuk menghapus aturan ongkir per barang
     $('shipping-config-form').addEventListener('click', (e) => {
       if (e.target.classList.contains('remove-per-item') || 
           e.target.closest('.remove-per-item')) {
@@ -3665,38 +3636,31 @@
         }
       }
       
-      // Event listener untuk tombol edit
       if (e.target.classList.contains('btn-edit-per-item') || 
           e.target.closest('.btn-edit-per-item')) {
         const index = parseInt(e.target.closest('.btn-edit-per-item').dataset.index);
         const row = e.target.closest('.per-item-row');
         const inputs = row.querySelectorAll('input');
-        const editBtn = row.querySelector('.btn-edit-per-item');
-        const saveBtn = row.querySelector('.btn-save-per-item');
-        const cancelBtn = row.querySelector('.btn-cancel-per-item');
         
-        // Ubah input menjadi editable
         inputs.forEach(input => {
           input.removeAttribute('readonly');
         });
         
-        // Tampilkan tombol simpan dan batal, sembunyikan tombol edit
+        const editBtn = row.querySelector('.btn-edit-per-item');
+        const saveBtn = row.querySelector('.btn-save-per-item');
+        const cancelBtn = row.querySelector('.btn-cancel-per-item');
+        
         editBtn.classList.add('hidden');
         saveBtn.classList.remove('hidden');
         cancelBtn.classList.remove('hidden');
       }
       
-      // Event listener untuk tombol simpan
       if (e.target.classList.contains('btn-save-per-item') || 
           e.target.closest('.btn-save-per-item')) {
         const index = parseInt(e.target.closest('.btn-save-per-item').dataset.index);
         const row = e.target.closest('.per-item-row');
         const inputs = row.querySelectorAll('input');
-        const editBtn = row.querySelector('.btn-edit-per-item');
-        const saveBtn = row.querySelector('.btn-save-per-item');
-        const cancelBtn = row.querySelector('.btn-cancel-per-item');
         
-        // Simpan nilai dari input
         const minQty = parseInt(inputs[0].value) || 0;
         const fee = parseInt(inputs[1].value) || 0;
         
@@ -3705,39 +3669,38 @@
           shippingConfig.perItemRules[index].additionalFee = fee;
           saveShippingConfig();
           
-          // Ubah input menjadi readonly
           inputs.forEach(input => {
             input.setAttribute('readonly', true);
           });
           
-          // Tampilkan tombol edit, sembunyikan tombol simpan dan batal
+          const editBtn = row.querySelector('.btn-edit-per-item');
+          const saveBtn = row.querySelector('.btn-save-per-item');
+          const cancelBtn = row.querySelector('.btn-cancel-per-item');
+          
           editBtn.classList.remove('hidden');
           saveBtn.classList.add('hidden');
           cancelBtn.classList.add('hidden');
         }
       }
       
-      // Event listener untuk tombol batal
       if (e.target.classList.contains('btn-cancel-per-item') || 
           e.target.closest('.btn-cancel-per-item')) {
         const index = parseInt(e.target.closest('.btn-cancel-per-item').dataset.index);
         const row = e.target.closest('.per-item-row');
         const inputs = row.querySelectorAll('input');
-        const editBtn = row.querySelector('.btn-edit-per-item');
-        const saveBtn = row.querySelector('.btn-save-per-item');
-        const cancelBtn = row.querySelector('.btn-cancel-per-item');
         
-        // Kembalikan nilai ke awal
         const rule = shippingConfig.perItemRules[index];
         inputs[0].value = rule.minQuantity;
         inputs[1].value = rule.additionalFee;
         
-        // Ubah input menjadi readonly
         inputs.forEach(input => {
           input.setAttribute('readonly', true);
         });
         
-        // Tampilkan tombol edit, sembunyikan tombol simpan dan batal
+        const editBtn = row.querySelector('.btn-edit-per-item');
+        const saveBtn = row.querySelector('.btn-save-per-item');
+        const cancelBtn = row.querySelector('.btn-cancel-per-item');
+        
         editBtn.classList.remove('hidden');
         saveBtn.classList.add('hidden');
         cancelBtn.classList.add('hidden');
@@ -3904,27 +3867,27 @@
   .text-center { text-align: center; }
   .text-bold { font-weight: bold; }
 
-  /* ===== Nama toko: double height/width ===== */
+  /* ===== Nama toko: ukuran SAMA seperti teks lain ===== */
   .text-header,
   .text-header * {
-    font-size: 14pt !important;
+    font-size: 9pt !important;
     font-weight: bold !important;
     text-align: center !important;
-    line-height: 1.2 !important;
+    line-height: 1.3 !important;
   }
 
-  /* ===== Tagline ===== */
+  /* ===== Tagline: ukuran SAMA ===== */
   .text-header-sub,
   .text-header-sub * {
-    font-size: 11pt !important;
+    font-size: 9pt !important;
     font-weight: bold !important;
     text-align: center !important;
   }
 
-  /* ===== Baris TOTAL diperbesar ===== */
+  /* ===== Baris TOTAL: ukuran SAMA, tetap tebal ===== */
   .total-line td,
   .total-line * {
-    font-size: 13pt !important;
+    font-size: 9pt !important;
     font-weight: bold !important;
     padding-top: 2px;
   }
