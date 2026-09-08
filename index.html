@@ -19,6 +19,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
+    /* Your CSS remains unchanged */
     * {
       margin: 0;
       padding: 0;
@@ -1063,8 +1064,8 @@
       color: var(--danger);
     }
     
-    /* ===== FITUR ONGKIR TAMBAHAN BARU ===== */
-    .shipping-additional-config {
+    /* Tambahkan styling untuk fitur ongkir per barang */
+    .shipping-per-item {
       background: #f0fdf4;
       border: 2px solid #a7f3d0;
       border-radius: 8px;
@@ -1072,47 +1073,71 @@
       margin-top: 15px;
     }
     
-    .addition-rule-card {
-      background: #fff;
-      border: 1px dashed #86efac;
-      border-radius: 8px;
-      padding: 10px;
-      margin: 10px 0;
-    }
-    
-    .addition-rule-card h4 {
-      margin-bottom: 6px;
+    .shipping-per-item h4 {
+      margin-bottom: 10px;
       color: var(--success);
-      font-size: 13px;
     }
     
-    .rule-desc {
-      font-size: 10px;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-    
-    .switch-row {
+    .per-item-row {
       display: flex;
-      align-items: center;
       gap: 8px;
-      background: #ecfdf5;
-      border: 1px solid #bbf7d0;
-      border-radius: 6px;
-      padding: 6px 8px;
       margin-bottom: 8px;
-      font-size: 12px;
-      font-weight: 700;
+      align-items: center;
+    }
+    
+    .per-item-row input {
+      flex: 1;
+    }
+    
+    .remove-per-item {
+      background: #fee2e2;
+      color: var(--danger);
+      padding: 4px 8px;
+      border-radius: 4px;
       cursor: pointer;
     }
     
-    .switch-row input {
-      width: 16px;
-      height: 16px;
+    .add-per-item {
+      background: #dcfce7;
+      color: var(--success);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 8px;
     }
     
-    .summary-line.additional-line {
-      color: #b45309;
+    /* Per-item actions */
+    .per-item-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    
+    .btn-edit-per-item {
+      background: #e0e7ff;
+      color: #4338ca;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    
+    .btn-save-per-item {
+      background: #dcfce7;
+      color: var(--success);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    
+    .btn-cancel-per-item {
+      background: #fee2e2;
+      color: var(--danger);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -1197,10 +1222,7 @@
           <div class="order-summary">
             <h3>Ringkasan Belanja</h3>
             <div class="summary-line"><span>Subtotal:</span> <span id="summary-subtotal">Rp 0</span></div>
-            <div class="summary-line"><span>Ongkos Kirim / Jarak:</span> <span id="summary-shipping">Belum dihitung</span></div>
-            <div class="summary-line additional-line" id="additional-shipping-row" style="display:none;">
-              <span>Ongkir Tambahan:</span> <span id="summary-additional">Rp 0</span>
-            </div>
+            <div class="summary-line"><span>Ongkos Kirim:</span> <span id="summary-shipping">Belum dihitung</span></div>
             <hr style="border:none;border-top:2px dashed #fdba74;margin:5px 0;">
             <div class="summary-line total"><span>Total:</span> <span id="summary-total">Rp 0 (+Ongkir)</span></div>
             <div class="summary-line" id="summary-ongkir-note" style="font-size:10px;color:var(--muted);font-style:italic;text-align:right;display:none;"></div>
@@ -1554,56 +1576,20 @@
                   <input type="number" id="ship-free-min" value="100000">
                 </div>
                 
-                <!-- FITUR ONGKIR TAMBAHAN BARU -->
-                <div class="shipping-additional-config">
-                  <h4 style="margin-bottom:6px;"><i class="fas fa-cubes"></i> Fitur Ongkir Tambahan Otomatis</h4>
-                  <p class="rule-desc">
-                    Ongkir tambahan dihitung otomatis dari jumlah barang, terpisah dari ongkir jarak.
-                    Setelah diisi, klik tombol <strong>Simpan Pengaturan</strong> di bawah.
+                <!-- Tambahkan fitur ongkir per barang -->
+                <div class="shipping-per-item">
+                  <h4><i class="fas fa-box"></i> Ongkir Tambahan Per Barang</h4>
+                  <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
+                    Jika pelanggan membeli lebih dari jumlah tertentu, tambahkan ongkir per barang.
                   </p>
-
-                  <div class="addition-rule-card">
-                    <h4><i class="fas fa-box-open"></i> 1. Ongkir Tambahan Pesanan (Sekali / Flat)</h4>
-                    <p class="rule-desc">
-                      Jika total barang melebihi batas maksimal, pesanan dikenakan biaya tambahan tetap.
-                      <br><strong>Contoh:</strong> maksimal 15 barang, biaya tambahan Rp5.000 → pelanggan beli 17 barang otomatis +Rp5.000 sekali.
-                    </p>
-                    <label class="switch-row">
-                      <input type="checkbox" id="add-order-enabled">
-                      <span>Aktifkan ongkir tambahan ini</span>
-                    </label>
-                    <div class="form-group">
-                      <label>Maksimal jumlah barang tanpa biaya tambahan</label>
-                      <input type="number" id="add-order-max" min="1" value="15">
-                    </div>
-                    <div class="form-group">
-                      <label>Harga tambahan untuk seluruh pesanan (Rp)</label>
-                      <input type="number" id="add-order-fee" min="0" step="500" value="0">
-                    </div>
+                  <div id="per-item-container">
+                    <!-- Item akan ditambahkan secara dinamis -->
                   </div>
-
-                  <div class="addition-rule-card">
-                    <h4><i class="fas fa-boxes"></i> 2. Ongkir Tambahan Per Barang (Kelebihan)</h4>
-                    <p class="rule-desc">
-                      Jika total barang melebihi batas maksimal, setiap barang yang kelebihan dikenakan harga per barang.
-                      <br><strong>Contoh:</strong> maksimal 15 barang, harga per barang Rp1.000 → pelanggan beli 17 barang:
-                      17 − 15 = 2 barang kelebihan × Rp1.000 = <strong>+Rp2.000 otomatis</strong>.
-                    </p>
-                    <label class="switch-row">
-                      <input type="checkbox" id="add-item-enabled">
-                      <span>Aktifkan ongkir per barang ini</span>
-                    </label>
-                    <div class="form-group">
-                      <label>Maksimal jumlah barang tanpa biaya per barang</label>
-                      <input type="number" id="add-item-max" min="1" value="15">
-                    </div>
-                    <div class="form-group">
-                      <label>Harga per barang (Rp)</label>
-                      <input type="number" id="add-item-fee" min="0" step="100" value="1000">
-                    </div>
-                  </div>
+                  <button type="button" class="add-per-item" id="btn-add-per-item">
+                    <i class="fas fa-plus"></i> Tambah Aturan Ongkir Tambahan
+                  </button>
                 </div>
-
+                
                 <button class="btn-primary btn-block" type="submit">Simpan Pengaturan</button>
               </form>
             </div>
@@ -1896,35 +1882,7 @@
     let encodedImage = "";
     let pendingToppingCallback = null;
 
-    // ===== SANITASI KONFIGURASI ONGKIR =====
-    function sanitizeShippingConfig(input) {
-      const cfg = input && typeof input === 'object' ? input : {};
-      return {
-        enabled: cfg.enabled !== false,
-        storeLat: parseFloat(cfg.storeLat) || -6.693932,
-        storeLng: parseFloat(cfg.storeLng) || 108.509458,
-        storeAddress: cfg.storeAddress || "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon",
-        perKm: parseFloat(cfg.perKm) || 0,
-        minFee: parseFloat(cfg.minFee) || 0,
-        freeMin: parseFloat(cfg.freeMin) || 0,
-
-        // Fitur 1: Ongkir tambahan dikenakan SEKALI jika total barang melebihi batas
-        addOrderFee: {
-          enabled: !!(cfg.addOrderFee && cfg.addOrderFee.enabled),
-          maxItems: Number(cfg.addOrderFee && cfg.addOrderFee.maxItems) > 0 ? Number(cfg.addOrderFee.maxItems) : 15,
-          fee: Number(cfg.addOrderFee && cfg.addOrderFee.fee) >= 0 ? Number(cfg.addOrderFee.fee) : 0
-        },
-
-        // Fitur 2: Ongkir tambahan PER BARANG untuk setiap kelebihan di atas batas
-        addItemFee: {
-          enabled: !!(cfg.addItemFee && cfg.addItemFee.enabled),
-          maxItems: Number(cfg.addItemFee && cfg.addItemFee.maxItems) > 0 ? Number(cfg.addItemFee.maxItems) : 15,
-          fee: Number(cfg.addItemFee && cfg.addItemFee.fee) >= 0 ? Number(cfg.addItemFee.fee) : 1000
-        }
-      };
-    }
-
-    let shippingConfig = sanitizeShippingConfig(safeParse(localStorage.getItem('adidin_shipping_config'), {
+    let shippingConfig = safeParse(localStorage.getItem('adidin_shipping_config'), {
       enabled: true,
       storeLat: -6.693932,
       storeLng: 108.509458,
@@ -1932,9 +1890,15 @@
       perKm: 3000,
       minFee: 5000,
       freeMin: 100000,
-      addOrderFee: { enabled: false, maxItems: 15, fee: 0 },
-      addItemFee: { enabled: false, maxItems: 15, fee: 1000 }
-    }));
+      // Tambahkan konfigurasi ongkir per barang
+      perItemRules: [
+        // Format: { minQuantity: 15, additionalFee: 5000 }
+      ]
+    });
+
+    if (typeof shippingConfig.enabled === 'undefined') {
+      shippingConfig.enabled = true;
+    }
 
     let userLocation = null;
     let mapPicker = null;
@@ -1946,6 +1910,10 @@
     let adminMarker = null;
     let adminTileLayer = null;
     let adminFallbackAdded = false;
+
+    // Hapus variabel savedLocations dan lastLocation karena tidak digunakan lagi
+    // let savedLocations = safeParse(localStorage.getItem('adidin_saved_locations'), []);
+    // let lastLocation = safeParse(localStorage.getItem('adidin_last_location'), null);
 
     const getActiveAnnouncements = () => {
       return broadcastHistory.filter(b => b.enabled !== false);
@@ -2066,15 +2034,10 @@
       $('ship-per-km').value = shippingConfig.perKm;
       $('ship-min-fee').value = shippingConfig.minFee;
       $('ship-free-min').value = shippingConfig.freeMin;
-
-      // Muat data fitur ongkir tambahan baru
-      $('add-order-enabled').checked = !!(shippingConfig.addOrderFee && shippingConfig.addOrderFee.enabled);
-      $('add-order-max').value = (shippingConfig.addOrderFee && shippingConfig.addOrderFee.maxItems) || 15;
-      $('add-order-fee').value = (shippingConfig.addOrderFee && shippingConfig.addOrderFee.fee) || 0;
-      $('add-item-enabled').checked = !!(shippingConfig.addItemFee && shippingConfig.addItemFee.enabled);
-      $('add-item-max').value = (shippingConfig.addItemFee && shippingConfig.addItemFee.maxItems) || 15;
-      $('add-item-fee').value = (shippingConfig.addItemFee && shippingConfig.addItemFee.fee) || 1000;
-
+      
+      // Render aturan ongkir per barang
+      renderPerItemRules();
+      
       if (currentUser && currentUser.role === 'admin' && $('admin-section').classList.contains('active') && $('admin-map')) {
         requestAnimationFrame(() => {
           initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng);
@@ -2093,50 +2056,44 @@
       return R * c;
     };
 
-    // Hitung ongkir jarak otomatis
-    const calculateDistanceCost = () => {
-      if (!userLocation || !userLocation.lat || !userLocation.lng) return null;
-      if (!shippingConfig.storeLat || !shippingConfig.storeLng) return null;
-
+    const calculateShippingFee = (subtotal, itemCount) => {
+      if (!shippingConfig.enabled || !subtotal || subtotal <= 0) return 0;
+      if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
+      if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
+      if (!shippingConfig.storeLat || !shippingConfig.storeLng) return 0;
+      
       const distance = haversineDistance(
         shippingConfig.storeLat,
         shippingConfig.storeLng,
         userLocation.lat,
         userLocation.lng
       );
-
+      
       let cost;
-      if (distance <= 1) cost = shippingConfig.minFee || 0;
-      else cost = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
-
-      return Math.max(0, Math.round(cost));
+      if (distance <= 1) {
+        cost = shippingConfig.minFee || 0;
+      } else {
+        cost = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
+      }
+      
+      // Tambahkan ongkir per barang jika ada
+      const additionalShipping = calculateAdditionalShipping(itemCount);
+      return Math.max(0, Math.round(cost + additionalShipping));
     };
 
-    // Hitung total jumlah barang dari seluruh isi keranjang
-    const getCartItemQty = () => {
-      return cart.reduce((sum, it) => sum + (parseFloat(it.qty) || 1), 0);
-    };
-
-    // Hitung ongkir tambahan otomatis sesuai pengaturan admin
-    const calculateAdditionalShipping = (totalQty) => {
-      if (totalQty === undefined || totalQty === null) totalQty = getCartItemQty();
-
+    // Fungsi untuk menghitung ongkir tambahan berdasarkan jumlah barang
+    const calculateAdditionalShipping = (itemCount) => {
       let additionalFee = 0;
-
-      // 1) Ongkir tambahan SEKALI untuk pesanan
-      const orderRule = shippingConfig.addOrderFee || {};
-      if (orderRule.enabled && Number(orderRule.maxItems) > 0 && totalQty > Number(orderRule.maxItems)) {
-        additionalFee += Number(orderRule.fee) || 0;
+      
+      if (shippingConfig.perItemRules && Array.isArray(shippingConfig.perItemRules)) {
+        shippingConfig.perItemRules.forEach(rule => {
+          if (itemCount >= rule.minQuantity) {
+            additionalFee += rule.additionalFee;
+          }
+        });
       }
-
-      // 2) Ongkir tambahan PER BARANG untuk setiap kelebihan
-      const itemRule = shippingConfig.addItemFee || {};
-      if (itemRule.enabled && Number(itemRule.maxItems) > 0 && totalQty > Number(itemRule.maxItems)) {
-        const excess = totalQty - Number(itemRule.maxItems);
-        additionalFee += excess * (Number(itemRule.fee) || 0);
-      }
-
-      return Math.max(0, Math.round(additionalFee));
+      
+      return additionalFee;
     };
 
     const getOngkirStatusInfo = (subtotal) => {
@@ -2148,76 +2105,110 @@
       return { isEnabled, isFree, isAuto };
     };
 
+    // ===== UPDATE SCHEDULE UI =====
+    function updateScheduleUI() {
+      const modeGroup = $('delivery-mode-group');
+      const mode = $('delivery-mode');
+      const scheduleGroup = $('schedule-group');
+      const scheduleInput = $('checkout-schedule');
+      const warning = $('schedule-required-warning');
+      const note = $('schedule-note');
+
+      if (!mode || !scheduleGroup || !scheduleInput) return;
+
+      const isStoreClosed = !storeOpen;
+
+      if (isStoreClosed) {
+        if (modeGroup) modeGroup.classList.add('hidden');
+        if (warning) warning.classList.remove('hidden');
+        mode.value = 'schedule';
+      } else {
+        if (modeGroup) modeGroup.classList.remove('hidden');
+        if (warning) warning.classList.add('hidden');
+      }
+
+      const isScheduleMode = !storeOpen || mode.value === 'schedule';
+
+      scheduleGroup.classList.toggle('hidden', !isScheduleMode);
+      scheduleInput.required = isScheduleMode;
+      scheduleInput.min = toDateTimeLocalValue(new Date());
+
+      if (isScheduleMode) {
+        if (!scheduleInput.value) {
+          scheduleInput.value = getSuggestedScheduleValue();
+        }
+        if (note) {
+          note.innerHTML = 'Pilih <strong>hari, tanggal, bulan, tahun, jam & menit</strong> pengiriman/pengambilan.';
+        }
+      } else {
+        if (note) {
+          note.innerHTML = 'Pesanan akan dikirim/dipersiapkan segera. Pilih "Atur Jadwal / Pesan untuk Besok" jika ingin menjadwalkan.';
+        }
+      }
+
+      updateSchedulePreview();
+    }
+
     const updateShippingDisplay = () => {
       if (!$('summary-shipping')) return;
-
-      const subtotal = parseInt($('summary-subtotal').innerText.replace(/\D/g, '')) || 0;
+      const subtotalEl = $('summary-subtotal');
+      const subtotal = parseInt(subtotalEl.innerText.replace(/\D/g,'')) || 0;
       const shippingSpan = $('summary-shipping');
       const totalSpan = $('summary-total');
       const noteEl = $('summary-ongkir-note');
       const distInfo = $('map-distance-info');
-      const addRow = $('additional-shipping-row');
-      const addSpan = $('summary-additional');
 
-      const totalQty = getCartItemQty();
-      const additionalFee = calculateAdditionalShipping(totalQty);
+      // Hitung jumlah item dalam keranjang
+      let itemCount = 0;
+      cart.forEach(item => {
+        itemCount += item.qty || 1;
+      });
 
-      if (addSpan) addSpan.innerText = `Rp ${additionalFee.toLocaleString('id-ID')}`;
-      if (addRow) addRow.style.display = additionalFee > 0 ? '' : 'none';
+      const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
 
-      const isEnabled = shippingConfig.enabled === true;
-      const isFree = isEnabled && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin;
-      const hasLocation = !!(userLocation && userLocation.lat && userLocation.lng);
-      const distanceAble = isEnabled && !isFree && hasLocation && !!shippingConfig.storeLat && !!shippingConfig.storeLng;
-      const distanceUnknown = isEnabled && !isFree && subtotal > 0 && !distanceAble;
+      let shippingFee = 0;
+      if (isAuto) shippingFee = calculateShippingFee(subtotal, itemCount);
 
-      let distanceLabel;
-      if (!isEnabled || !subtotal) distanceLabel = 'Tidak ada';
-      else if (isFree) distanceLabel = 'GRATIS 🎉';
-      else if (!distanceAble) distanceLabel = 'Dikonfirmasi Admin';
-      else distanceLabel = `Rp ${(calculateDistanceCost() || 0).toLocaleString('id-ID')}`;
-
-      shippingSpan.innerText = distanceLabel;
-
-      if (shippingConfig.enabled && subtotal > 0 && !isFree && distanceAble) {
-        const distanceCost = calculateDistanceCost() || 0;
-        totalSpan.innerText = `Rp ${(subtotal + distanceCost + additionalFee).toLocaleString('id-ID')}`;
+      if (!isEnabled) {
+        shippingSpan.innerText = "Gratis / Tidak ada";
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+      } else if (isFree) {
+        shippingSpan.innerText = "GRATIS 🎉";
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+      } else if (!isAuto) {
+        shippingSpan.innerText = "Dikonfirmasi Admin";
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
       } else {
-        totalSpan.innerText = `Rp ${(subtotal + additionalFee).toLocaleString('id-ID')}`;
+        shippingSpan.innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+        totalSpan.innerText = `Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}`;
       }
 
       if (noteEl) {
-        if (distanceUnknown) {
+        if (isEnabled && !isFree && !isAuto && subtotal > 0) {
           noteEl.style.display = 'block';
-          noteEl.innerText = "⚠️ Ongkir jarak belum termasuk — admin akan menghitung ongkir setelah pesanan diterima. Ongkir tambahan kelebihan barang sudah dihitung otomatis.";
-        } else noteEl.style.display = 'none';
+          noteEl.innerText = "⚠️ Ongkir belum termasuk — admin akan menghitung ongkir setelah pesanan dikirim.";
+        } else {
+          noteEl.style.display = 'none';
+        }
       }
 
       if (distInfo) {
-        const orderRule = shippingConfig.addOrderFee || {};
-        const itemRule = shippingConfig.addItemFee || {};
-        let detailTambahan = '';
-
-        if (additionalFee > 0) {
-          const detail = [];
-          if (orderRule.enabled && totalQty > Number(orderRule.maxItems)) {
-            detail.push(`melebihi ${orderRule.maxItems} barang → +Rp ${Number(orderRule.fee || 0).toLocaleString('id-ID')} (sekali)`);
-          }
-          if (itemRule.enabled && totalQty > Number(itemRule.maxItems)) {
-            const excess = totalQty - Number(itemRule.maxItems);
-            const fee = Number(itemRule.fee || 0) * excess;
-            detail.push(`melebihi ${itemRule.maxItems} barang → ${excess} × Rp ${Number(itemRule.fee || 0).toLocaleString('id-ID')} = Rp ${fee.toLocaleString('id-ID')}`);
-          }
-          detailTambahan = ' | Ongkir Tambahan: ' + detail.join(' | ');
-        }
-
-        if (!isEnabled) distInfo.innerText = `🚚 Ongkir jarak nonaktif. Total barang: ${totalQty}${detailTambahan}`;
-        else if (!subtotal) distInfo.innerText = '🛒 Tambahkan produk untuk menghitung ongkir.';
-        else if (isFree) distInfo.innerText = `🎉 Ongkir jarak GRATIS! Total barang: ${totalQty}${detailTambahan || '.'}`;
-        else if (!distanceAble) distInfo.innerText = `📍 Lokasi untuk hitung ongkir jarak belum dipilih; ketik alamat manual / klik "Gunakan Lokasi Saya". Total barang: ${totalQty}${detailTambahan}`;
-        else {
-          const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
-          distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Ongkir Jarak: ${distanceLabel} | Total barang: ${totalQty}${detailTambahan}`;
+        if (!isEnabled) {
+          distInfo.innerText = "🚚 Toko saat ini tidak membebankan ongkir.";
+        } else if (!subtotal) {
+          distInfo.innerText = "🛒 Tambahkan produk untuk menghitung ongkir.";
+        } else if (isFree) {
+          distInfo.innerText = `🎉 Selamat! Belanja mencapai Rp ${(shippingConfig.freeMin||0).toLocaleString('id-ID')}, ongkir GRATIS.`;
+        } else if (!isAuto) {
+          distInfo.innerText = "📍 Alamat tujuan sudah WAJIB diketik manual di bawah. Peta/lokasi hanya untuk hitung ongkir otomatis — klik 'Gunakan Lokasi Saya' jika ingin ongkir langsung terhitung.";
+        } else {
+          const distance = haversineDistance(
+            shippingConfig.storeLat,
+            shippingConfig.storeLng,
+            userLocation.lat,
+            userLocation.lng
+          );
+          distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Estimasi Ongkir: Rp ${shippingFee.toLocaleString('id-ID')} (1 km pertama Rp ${(shippingConfig.minFee||0).toLocaleString('id-ID')}, berikutnya Rp ${(shippingConfig.perKm||0).toLocaleString('id-ID')}/km)`;
         }
       }
     };
@@ -2232,6 +2223,8 @@
           ? `📍 Lokasi untuk ONGKIR: ${finalAddress} — alamat tetap TULIS MANUAL di kolom Alamat.`
           : `📍 Koordinat untuk ONGKIR: ${finalAddress}`;
       }
+      // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
+      // persistUserLocation();
       requestShippingUpdate();
     };
 
@@ -2338,6 +2331,8 @@
           const p = e.target.getLatLng();
           userLocation = { lat: p.lat, lng: p.lng, address: '' };
           updateShippingDisplay();
+          // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
+          // persistUserLocation();
           reverseGeocode(p.lat, p.lng);
         });
 
@@ -2345,6 +2340,8 @@
           mapMarker.setLatLng(e.latlng);
           userLocation = { lat: e.latlng.lat, lng: e.latlng.lng, address: '' };
           updateShippingDisplay();
+          // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
+          // persistUserLocation();
           reverseGeocode(e.latlng.lat, e.latlng.lng);
         });
       } else {
@@ -2380,6 +2377,8 @@
           userLocation = { lat, lng, address: '' };
 
           await initMapPicker(lat, lng);
+          // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
+          // persistUserLocation();
           reverseGeocode(lat, lng);
           updateShippingDisplay();
 
@@ -2401,6 +2400,23 @@
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
+
+    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
+    // const restoreLocationOnCart = () => {
+    //   const saved = safeParse(localStorage.getItem('adidin_last_location'), null);
+    //
+    //   if (saved && saved.lat && saved.lng) {
+    //     userLocation = saved;
+    //     initMapPicker(saved.lat, saved.lng);
+    //     $('map-status').innerText = '📍 Lokasi ongkir tersimpan. Alamat lengkap tetap tulis manual di bawah.';
+    //     updateShippingDisplay();
+    //   } else {
+    //     userLocation = null;
+    //     $('map-picker').style.display = 'none';
+    //     $('map-status').innerText = '📍 Klik "Gunakan Lokasi Saya" untuk hitung ongkir otomatis. Tanpa peta, ongkir akan dikonfirmasi admin saat pesanan diproses.';
+    //     updateShippingDisplay();
+    //   }
+    // };
 
     const saveProducts = () => {
       if (firebaseReady) {
@@ -2529,6 +2545,8 @@
         $('cart-dashboard').classList.add('active');
         $('btn-cart-view').classList.add('active');
         renderCart();
+        // Tidak perlu restore lokasi karena kita tidak menyimpan lokasi pengguna
+        // restoreLocationOnCart();
       } else {
         $('admin-section').classList.add('active');
         $('btn-admin-nav').classList.add('active');
@@ -2819,6 +2837,78 @@
       if (cart[idx].qty <= 0) cart.splice(idx, 1);
       saveCart(); renderCart();
     };
+
+    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
+    // const persistUserLocation = () => {
+    //   if (userLocation && userLocation.lat) {
+    //     localStorage.setItem('adidin_last_location', JSON.stringify(userLocation));
+    //   }
+    //   renderSavedLocations();
+    // };
+
+    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
+    // const renderSavedLocations = () => {
+    //   const sel = $('saved-locations-list');
+    //   const btnSave = $('btn-save-location');
+    //   if (!sel) return;
+    //   sel.innerHTML = '<option value="">-- Lokasi Tersimpan --</option>';
+    //   (savedLocations || []).forEach((loc, i) => {
+    //     const opt = document.createElement('option');
+    //     opt.value = i;
+    //     const label = loc.label || 'Lokasi ' + (i + 1);
+    //     const shortAddr = loc.address && loc.address.split(',').slice(0, 2).join(',');
+    //     opt.innerText = label + (shortAddr ? ' — ' + shortAddr : '');
+    //     sel.appendChild(opt);
+    //   });
+    //   if (savedLocations.length > 0) {
+    //     sel.classList.remove('hidden');
+    //   } else {
+    //     sel.classList.add('hidden');
+    //   }
+    //   if (btnSave) btnSave.disabled = !userLocation || !userLocation.lat;
+    // };
+
+    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
+    // const handleSaveLocation = () => {
+    //   if (!userLocation || !userLocation.lat) {
+    //     alert("Pilih/Gunakan lokasi dulu sebelum menyimpan.");
+    //     return;
+    //   }
+    //   const label = prompt("Nama untuk lokasi ini (misal: Rumah, Kantor, Kos):", "Lokasi Saya");
+    //   if (!label || !label.trim()) return;
+    //   const newLoc = {
+    //     label: label.trim(),
+    //     lat: userLocation.lat,
+    //     lng: userLocation.lng,
+    //     address: userLocation.address || ""
+    //   };
+    //   const existIdx = savedLocations.findIndex(l => l.label && l.label.toLowerCase() === label.trim().toLowerCase());
+    //   if (existIdx !== -1) {
+    //     savedLocations[existIdx] = newLoc;
+    //   } else {
+    //     savedLocations.push(newLoc);
+    //   }
+    //   localStorage.setItem('adidin_saved_locations', JSON.stringify(savedLocations));
+    //   renderSavedLocations();
+    //   alert(`Lokasi "${label}" sudah disimpan ✅`);
+    // };
+
+    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
+    // const loadSavedLocation = (index) => {
+    //   const loc = savedLocations[parseInt(index)];
+    //   if (!loc) return;
+    //   userLocation = {
+    //     lat: loc.lat,
+    //     lng: loc.lng,
+    //     address: loc.address || ""
+    //   };
+    //   initMapPicker(loc.lat, loc.lng);
+    //   $('checkout-address').value = '';
+    //   $('map-status').innerText = `📍 ${loc.label} dipakai untuk ONGKIR. Silakan tulis alamat lengkap manual di bawah.`;
+    //   $('saved-locations-list').value = "";
+    //   updateShippingDisplay();
+    //   persistUserLocation();
+    // };
 
     const checkSession = () => {
       if (currentUser) {
@@ -3300,57 +3390,16 @@
       }
     }
 
-    function updateScheduleUI() {
-      const modeGroup = $('delivery-mode-group');
-      const mode = $('delivery-mode');
-      const scheduleGroup = $('schedule-group');
-      const scheduleInput = $('checkout-schedule');
-      const warning = $('schedule-required-warning');
-      const note = $('schedule-note');
-
-      if (!mode || !scheduleGroup || !scheduleInput) return;
-
-      const isStoreClosed = !storeOpen;
-
-      if (isStoreClosed) {
-        if (modeGroup) modeGroup.classList.add('hidden');
-        if (warning) warning.classList.remove('hidden');
-        mode.value = 'schedule';
-      } else {
-        if (modeGroup) modeGroup.classList.remove('hidden');
-        if (warning) warning.classList.add('hidden');
-      }
-
-      const isScheduleMode = !storeOpen || mode.value === 'schedule';
-
-      scheduleGroup.classList.toggle('hidden', !isScheduleMode);
-      scheduleInput.required = isScheduleMode;
-      scheduleInput.min = toDateTimeLocalValue(new Date());
-
-      if (isScheduleMode) {
-        if (!scheduleInput.value) {
-          scheduleInput.value = getSuggestedScheduleValue();
-        }
-        if (note) {
-          note.innerHTML = 'Pilih <strong>hari, tanggal, bulan, tahun, jam & menit</strong> pengiriman/pengambilan.';
-        }
-      } else {
-        if (note) {
-          note.innerHTML = 'Pesanan akan dikirim/dipersiapkan segera. Pilih "Atur Jadwal / Pesan untuk Besok" jika ingin menjadwalkan.';
-        }
-      }
-
-      updateSchedulePreview();
-    }
-
     // ===== VALIDASI LOkASI =====
     function validateLocation() {
+      // Validasi lokasi pengiriman wajib diisi
       if (!userLocation || !userLocation.lat || !userLocation.lng) {
         alert("⚠️ Lokasi pengiriman wajib ditentukan. Gunakan tombol 'Gunakan Lokasi Saya' untuk menentukan lokasi pengiriman.");
         $('btn-use-my-location').click();
         return false;
       }
       
+      // Validasi alamat lengkap wajib diisi
       const address = $('checkout-address').value.trim();
       if (!address || address.length < 10) {
         alert("⚠️ Alamat lengkap WAJIB diisi! Peta tidak mengisi alamat otomatis.");
@@ -3359,6 +3408,39 @@
       }
       
       return true;
+    }
+
+    // ===== FUNGSI UNTUK ATURAN ONGKIR PER BARANG =====
+    function renderPerItemRules() {
+      const container = $('per-item-container');
+      container.innerHTML = '';
+      
+      if (!shippingConfig.perItemRules || !Array.isArray(shippingConfig.perItemRules)) {
+        shippingConfig.perItemRules = [];
+      }
+      
+      shippingConfig.perItemRules.forEach((rule, index) => {
+        const row = document.createElement('div');
+        row.className = 'per-item-row';
+        row.innerHTML = `
+          <input type="number" placeholder="Minimal Jumlah Barang" value="${rule.minQuantity || ''}" min="1" data-field="minQuantity" data-index="${index}">
+          <input type="number" placeholder="Ongkir Tambahan (Rp)" value="${rule.additionalFee || ''}" min="0" data-field="additionalFee" data-index="${index}">
+          <div class="per-item-actions">
+            <button class="btn-edit-per-item" data-index="${index}">Edit</button>
+            <button class="btn-save-per-item hidden" data-index="${index}">Simpan</button>
+            <button class="btn-cancel-per-item" data-index="${index}">Batal</button>
+            <span class="remove-per-item" data-index="${index}"><i class="fas fa-trash"></i> Hapus</span>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+      
+      // Tambahkan tombol untuk menambahkan aturan baru
+      const addButton = document.createElement('button');
+      addButton.className = 'add-per-item';
+      addButton.innerHTML = '<i class="fas fa-plus"></i> Tambah Aturan Ongkir Tambahan';
+      addButton.id = 'btn-add-per-item';
+      container.appendChild(addButton);
     }
 
     // ===== EVENT LISTENERS =====
@@ -3385,19 +3467,25 @@
         if (mapStatusEl) {
           mapStatusEl.innerText = '📍 Alamat dikenali untuk estimasi ongkir. Ongkir final tetap ditentukan admin.';
         }
+        // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
+        // persistUserLocation();
       } else {
         if (mapStatusEl) {
           mapStatusEl.innerText = '⚠️ Alamat tidak dikenali untuk estimasi ongkir. Klik "Gunakan Lokasi Saya" atau biarkan admin menghitung ongkir.';
         }
         userLocation = null;
+        // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
+        // persistUserLocation();
       }
 
       updateShippingDisplay();
     });
 
+    // Modifikasi fungsi submit checkout untuk memvalidasi lokasi
     $('checkout-form').addEventListener('submit', function(e) {
       e.preventDefault();
       
+      // Validasi lokasi sebelum melanjutkan
       if (!validateLocation()) {
         return;
       }
@@ -3458,35 +3546,25 @@
         itemsArr.push({ productId: item.product.id, productName: item.product.name, price: item.product.price, costPrice: item.product.costPrice||0, qty: item.qty, unit: unit, toppings });
       });
 
-      const totalQtyCheckout = cart.reduce((sum, it) => sum + (parseFloat(it.qty) || 1), 0);
-
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
+      const shippingFee = isAuto ? calculateShippingFee(subtotal, cart.length) : 0;
 
-      let distanceFee = 0;
-      if (isEnabled && isAuto && !isFree) {
-        distanceFee = calculateDistanceCost() || 0;
+      let ongkirLabel;
+      if (!isEnabled) {
+        ongkirLabel = "Tidak Ada";
+      } else if (isFree) {
+        ongkirLabel = "GRATIS 🎉";
+      } else if (!isAuto) {
+        ongkirLabel = "Dikonfirmasi Admin / Nego via WA";
+      } else {
+        ongkirLabel = `Rp ${shippingFee.toLocaleString('id-ID')}`;
       }
 
-      const additionalFee = calculateAdditionalShipping(totalQtyCheckout);
-
-      let distanceLabel;
-      if (!isEnabled) distanceLabel = "Tidak Ada";
-      else if (isFree) distanceLabel = "GRATIS 🎉";
-      else if (!isAuto) distanceLabel = "Dikonfirmasi Admin / Nego via WA";
-      else distanceLabel = `Rp ${distanceFee.toLocaleString('id-ID')}`;
-
-      const additionalLabel = additionalFee > 0
-        ? `Rp ${additionalFee.toLocaleString('id-ID')}`
-        : "Tidak ada";
-
-      const ongkirLabel = distanceLabel + (additionalFee > 0 ? ` + Ongkir Tambahan ${additionalLabel}` : "");
-
-      const shippingFee = distanceFee + additionalFee;
       const totalTerhitung = (!isEnabled || isFree || isAuto);
       const totalFinal = subtotal + shippingFee;
       const totalLabel = totalTerhitung
         ? `Rp ${totalFinal.toLocaleString('id-ID')}`
-        : `Rp ${(subtotal + additionalFee).toLocaleString('id-ID')} (ongkir jarak dikonfirmasi admin)`;
+        : `Rp ${subtotal.toLocaleString('id-ID')} (belum termasuk ongkir)`;
 
       const now = new Date();
       const order = {
@@ -3494,11 +3572,8 @@
         timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`,
         buyerName: name, buyerPhone: phone, buyerAddress: address,
         timeOption: time, note, itemsSummary: itemsMsg, itemsList: itemsArr,
-        subtotal, totalHpp, netProfit: subtotal - totalHpp,
-        shippingFee: shippingFee,
-        baseShippingFee: distanceFee,
-        additionalShippingFee: additionalFee,
-        ongkirLabel: `${distanceLabel}${additionalFee > 0 ? ' + Ongkir Tambahan ' + additionalLabel : ''}`,
+        subtotal, totalHpp, netProfit: subtotal - totalHpp, shippingFee: shippingFee,
+        ongkirLabel: ongkirLabel,
         distanceKm: userLocation && shippingConfig.storeLat ? haversineDistance(
           shippingConfig.storeLat,
           shippingConfig.storeLng,
@@ -3512,7 +3587,7 @@
       historyList.unshift(order);
       saveHistory();
 
-      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir Jarak: ${distanceLabel}\nOngkir Tambahan: ${additionalLabel}\nTOTAL: ${totalLabel}\n\n*Data Pengiriman:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
+      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirLabel}\nTOTAL: ${totalLabel}\n\n*Data Pengiriman:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
       window.open(`https://api.whatsapp.com/send?phone=${MAIN_WA_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
       cart = [];
       saveCart();
@@ -3574,6 +3649,12 @@
     $('pos-search').addEventListener('input', renderPosProducts);
     $('pos-cash-input').addEventListener('input', calcPosChange);
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
+    // Hapus event listener untuk save location karena tidak digunakan lagi
+    // $('btn-save-location').addEventListener('click', handleSaveLocation);
+    // Hapus event listener untuk saved locations karena tidak digunakan lagi
+    // $('saved-locations-list').addEventListener('change', function() {
+    //   loadSavedLocation(this.value);
+    // });
 
     $('btn-use-my-location-store').addEventListener('click', () => {
       if (!navigator.geolocation) {
@@ -3598,6 +3679,119 @@
       }, { enableHighAccuracy: true, timeout: 10000 });
     });
 
+    // Event listener untuk menambahkan aturan ongkir per barang
+    $('btn-add-per-item').addEventListener('click', () => {
+      if (!shippingConfig.perItemRules) {
+        shippingConfig.perItemRules = [];
+      }
+      shippingConfig.perItemRules.push({ minQuantity: 15, additionalFee: 5000 });
+      saveShippingConfig();
+    });
+
+    // Event listener untuk mengubah aturan ongkir per barang
+    $('shipping-config-form').addEventListener('input', (e) => {
+      if (e.target.dataset.field) {
+        const index = parseInt(e.target.dataset.index);
+        const field = e.target.dataset.field;
+        const value = e.target.value;
+        
+        if (shippingConfig.perItemRules && shippingConfig.perItemRules[index]) {
+          shippingConfig.perItemRules[index][field] = field === 'minQuantity' ? parseInt(value) : parseInt(value);
+          saveShippingConfig();
+        }
+      }
+    });
+
+    // Event listener untuk menghapus aturan ongkir per barang
+    $('shipping-config-form').addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-per-item') || 
+          e.target.closest('.remove-per-item')) {
+        const index = parseInt(e.target.closest('.remove-per-item').dataset.index);
+        if (shippingConfig.perItemRules && shippingConfig.perItemRules[index]) {
+          shippingConfig.perItemRules.splice(index, 1);
+          saveShippingConfig();
+        }
+      }
+      
+      // Event listener untuk tombol edit
+      if (e.target.classList.contains('btn-edit-per-item') || 
+          e.target.closest('.btn-edit-per-item')) {
+        const index = parseInt(e.target.closest('.btn-edit-per-item').dataset.index);
+        const row = e.target.closest('.per-item-row');
+        const inputs = row.querySelectorAll('input');
+        const editBtn = row.querySelector('.btn-edit-per-item');
+        const saveBtn = row.querySelector('.btn-save-per-item');
+        const cancelBtn = row.querySelector('.btn-cancel-per-item');
+        
+        // Ubah input menjadi editable
+        inputs.forEach(input => {
+          input.removeAttribute('readonly');
+        });
+        
+        // Tampilkan tombol simpan dan batal, sembunyikan tombol edit
+        editBtn.classList.add('hidden');
+        saveBtn.classList.remove('hidden');
+        cancelBtn.classList.remove('hidden');
+      }
+      
+      // Event listener untuk tombol simpan
+      if (e.target.classList.contains('btn-save-per-item') || 
+          e.target.closest('.btn-save-per-item')) {
+        const index = parseInt(e.target.closest('.btn-save-per-item').dataset.index);
+        const row = e.target.closest('.per-item-row');
+        const inputs = row.querySelectorAll('input');
+        const editBtn = row.querySelector('.btn-edit-per-item');
+        const saveBtn = row.querySelector('.btn-save-per-item');
+        const cancelBtn = row.querySelector('.btn-cancel-per-item');
+        
+        // Simpan nilai dari input
+        const minQty = parseInt(inputs[0].value) || 0;
+        const fee = parseInt(inputs[1].value) || 0;
+        
+        if (minQty > 0 && fee >= 0) {
+          shippingConfig.perItemRules[index].minQuantity = minQty;
+          shippingConfig.perItemRules[index].additionalFee = fee;
+          saveShippingConfig();
+          
+          // Ubah input menjadi readonly
+          inputs.forEach(input => {
+            input.setAttribute('readonly', true);
+          });
+          
+          // Tampilkan tombol edit, sembunyikan tombol simpan dan batal
+          editBtn.classList.remove('hidden');
+          saveBtn.classList.add('hidden');
+          cancelBtn.classList.add('hidden');
+        }
+      }
+      
+      // Event listener untuk tombol batal
+      if (e.target.classList.contains('btn-cancel-per-item') || 
+          e.target.closest('.btn-cancel-per-item')) {
+        const index = parseInt(e.target.closest('.btn-cancel-per-item').dataset.index);
+        const row = e.target.closest('.per-item-row');
+        const inputs = row.querySelectorAll('input');
+        const editBtn = row.querySelector('.btn-edit-per-item');
+        const saveBtn = row.querySelector('.btn-save-per-item');
+        const cancelBtn = row.querySelector('.btn-cancel-per-item');
+        
+        // Kembalikan nilai ke awal
+        const rule = shippingConfig.perItemRules[index];
+        inputs[0].value = rule.minQuantity;
+        inputs[1].value = rule.additionalFee;
+        
+        // Ubah input menjadi readonly
+        inputs.forEach(input => {
+          input.setAttribute('readonly', true);
+        });
+        
+        // Tampilkan tombol edit, sembunyikan tombol simpan dan batal
+        editBtn.classList.remove('hidden');
+        saveBtn.classList.add('hidden');
+        cancelBtn.classList.add('hidden');
+      }
+    });
+
     $('shipping-config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       let storeLat = parseFloat($('ship-lat').value) || 0;
@@ -3618,7 +3812,7 @@
         alert("Lokasi toko belum lengkap. Gunakan tombol 'Cari di Peta' atau klik pada peta untuk menentukan lokasi.");
         return;
       }
-      shippingConfig = sanitizeShippingConfig({
+      shippingConfig = {
         enabled: $('ship-enabled').value === 'true',
         storeLat: storeLat,
         storeLng: storeLng,
@@ -3626,17 +3820,8 @@
         perKm: parseFloat($('ship-per-km').value) || 0,
         minFee: parseFloat($('ship-min-fee').value) || 0,
         freeMin: parseFloat($('ship-free-min').value) || 0,
-        addOrderFee: {
-          enabled: $('add-order-enabled').checked,
-          maxItems: parseInt($('add-order-max').value) || 15,
-          fee: parseFloat($('add-order-fee').value) || 0
-        },
-        addItemFee: {
-          enabled: $('add-item-enabled').checked,
-          maxItems: parseInt($('add-item-max').value) || 15,
-          fee: parseFloat($('add-item-fee').value) || 0
-        }
-      });
+        perItemRules: shippingConfig.perItemRules || []
+      };
       saveShippingConfig();
       alert("Pengaturan ongkir disimpan! ✅");
     });
@@ -3950,7 +4135,7 @@
 
       const receiptHtml = `
         <div class="text-center text-bold" style="font-size:15px;">PENGEMBANG UMKM LOCAL</div>
-        <div class="text-center text-bold" style="font-size:12px;"> go jag ga jig jaya</div>
+        <div class="text-center text-bold" style="font-size:12px;">🚀 go jag ga jig jaya</div>
         <div class="text-center" style="font-size:11px;">Jl. Syekh Datul Kahfi DS. GAMEL</div>
         <hr>
         <div style="font-size:11px;">${order.timestamp}</div>
@@ -3974,7 +4159,7 @@
         </table>
         <hr>
         <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
-        <div class="text-center" style="font-size:11px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL </div>
+        <div class="text-center" style="font-size:11px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
 
         <div class="text-center" style="margin-top:10px;padding-top:5px;border-top:1px dashed #000;">
           <div style="font-size:10px;margin-bottom:4px;">Scan untuk kunjungi toko kami</div>
@@ -4166,17 +4351,14 @@
         db.ref('shipping_config').on('value', (snap) => {
           const data = snap.val();
           if (data) {
-            shippingConfig = sanitizeShippingConfig(data);
-            if (!data.addOrderFee || !data.addItemFee) {
-              db.ref('shipping_config').set(shippingConfig);
+            if (typeof data.enabled !== 'undefined') {
+              shippingConfig = data;
+            } else {
+              shippingConfig = { ...shippingConfig, ...data };
             }
             localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
             applyShippingForm();
             renderCart();
-          } else {
-            shippingConfig = sanitizeShippingConfig({});
-            localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
-            db.ref('shipping_config').set(shippingConfig);
           }
         });
         db.ref('theme_promo').on('value', (snap) => {
@@ -4214,9 +4396,12 @@
     setInterval(updateClock, 1000);
     updateClock();
 
+    // ===== FIX: SERVICE WORKER =====
+    // Remove service worker registration since sw.js file doesn't exist
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        // Commented out because sw.js doesn't exist
+        // navigator.serviceWorker.register('sw.js').catch(() => {});
       });
     }
 
@@ -4225,6 +4410,8 @@
     renderAnnouncement();
     saveCart();
     calcFinance(historyList);
+    // Hapus panggilan renderSavedLocations karena tidak digunakan lagi
+    // renderSavedLocations();
     checkSession();
     switchPage('buyer');
 
