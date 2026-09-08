@@ -19,7 +19,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
   <style>
-    /* Your CSS remains unchanged */
+    /* ====== CSS UTAMA ====== */
     * {
       margin: 0;
       padding: 0;
@@ -978,51 +978,75 @@
         max-width: 80mm;
         font-family: 'Courier New', Courier, monospace;
         color: #000;
-        font-size: 14px; /* Diperbesar dari 12px menjadi 14px */
-        line-height: 1.3; /* Diperbesar dari 1.2 menjadi 1.3 */
+        font-size: 9pt;               /* Teks umum struk: 9pt */
+        line-height: 1.3;
         background: #fff;
       }
-      
-      /* Menambahkan ukuran font lebih besar untuk heading */
-      #printable-receipt .text-bold {
-        font-size: 16px; /* Diperbesar dari 15px menjadi 16px */
-        font-weight: bold;
-      }
-      
-      /* Menambahkan ukuran font lebih besar untuk isi struk */
-      #printable-receipt .text-center {
-        font-size: 14px; /* Diperbesar dari 11px menjadi 14px */
-      }
-      
+
+      /* Teks biasa dipaksa 9pt agar konsisten */
       #printable-receipt div,
-      #printable-receipt table,
-      #printable-receipt pre {
-        font-size: 13px; /* Diperbesar dari 11px menjadi 13px */
-      }
-      
-      #printable-receipt hr {
-        margin: 5px 0; /* Sedikit lebih besar */
-      }
-      
-      /* Ukuran font untuk tabel */
+      #printable-receipt span,
+      #printable-receipt p,
+      #printable-receipt td,
+      #printable-receipt th,
+      #printable-receipt pre,
       #printable-receipt table {
-        font-size: 12px; /* Diperbesar dari 10px menjadi 12px */
+        font-size: 9pt !important;
       }
-      
-      /* Ukuran font untuk QR code */
+
+      /* Nama toko — besar */
+      #printable-receipt .text-header,
+      #printable-receipt .text-header * {
+        font-size: 14pt !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        line-height: 1.2 !important;
+      }
+
+      /* Tagline / sub header */
+      #printable-receipt .text-header-sub,
+      #printable-receipt .text-header-sub * {
+        font-size: 11pt !important;
+        font-weight: bold !important;
+        text-align: center !important;
+      }
+
+      /* Baris TOTAL — diperbesar */
+      #printable-receipt .total-line td,
+      #printable-receipt .total-line * {
+        font-size: 13pt !important;
+        font-weight: bold !important;
+        padding-top: 2px;
+      }
+
+      #printable-receipt .text-center {
+        text-align: center;
+      }
+
+      #printable-receipt table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      #printable-receipt hr {
+        border: 0;
+        border-top: 1px dashed #000;
+        margin: 3px 0;
+      }
+
+      #printable-receipt pre {
+        font-family: inherit;
+        white-space: pre-wrap;
+      }
+
       #printable-receipt img {
         max-width: 100%;
         height: auto;
       }
-      
-      @page { 
-        size: auto; 
-        margin: 0mm; 
-        /* Menambahkan margin kecil untuk keselarasan cetak */
-        margin-top: 2mm;
-        margin-bottom: 2mm;
-        margin-left: 2mm;
-        margin-right: 2mm;
+
+      @page {
+        size: auto;
+        margin: 2mm;
       }
     }
 
@@ -1952,10 +1976,6 @@
     let adminTileLayer = null;
     let adminFallbackAdded = false;
 
-    // Hapus variabel savedLocations dan lastLocation karena tidak digunakan lagi
-    // let savedLocations = safeParse(localStorage.getItem('adidin_saved_locations'), []);
-    // let lastLocation = safeParse(localStorage.getItem('adidin_last_location'), null);
-
     const getActiveAnnouncements = () => {
       return broadcastHistory.filter(b => b.enabled !== false);
     };
@@ -2264,8 +2284,6 @@
           ? `📍 Lokasi untuk ONGKIR: ${finalAddress} — alamat tetap TULIS MANUAL di kolom Alamat.`
           : `📍 Koordinat untuk ONGKIR: ${finalAddress}`;
       }
-      // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
-      // persistUserLocation();
       requestShippingUpdate();
     };
 
@@ -2372,8 +2390,6 @@
           const p = e.target.getLatLng();
           userLocation = { lat: p.lat, lng: p.lng, address: '' };
           updateShippingDisplay();
-          // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
-          // persistUserLocation();
           reverseGeocode(p.lat, p.lng);
         });
 
@@ -2381,8 +2397,6 @@
           mapMarker.setLatLng(e.latlng);
           userLocation = { lat: e.latlng.lat, lng: e.latlng.lng, address: '' };
           updateShippingDisplay();
-          // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
-          // persistUserLocation();
           reverseGeocode(e.latlng.lat, e.latlng.lng);
         });
       } else {
@@ -2418,8 +2432,6 @@
           userLocation = { lat, lng, address: '' };
 
           await initMapPicker(lat, lng);
-          // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
-          // persistUserLocation();
           reverseGeocode(lat, lng);
           updateShippingDisplay();
 
@@ -2441,23 +2453,6 @@
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
-
-    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
-    // const restoreLocationOnCart = () => {
-    //   const saved = safeParse(localStorage.getItem('adidin_last_location'), null);
-    //
-    //   if (saved && saved.lat && saved.lng) {
-    //     userLocation = saved;
-    //     initMapPicker(saved.lat, saved.lng);
-    //     $('map-status').innerText = '📍 Lokasi ongkir tersimpan. Alamat lengkap tetap tulis manual di bawah.';
-    //     updateShippingDisplay();
-    //   } else {
-    //     userLocation = null;
-    //     $('map-picker').style.display = 'none';
-    //     $('map-status').innerText = '📍 Klik "Gunakan Lokasi Saya" untuk hitung ongkir otomatis. Tanpa peta, ongkir akan dikonfirmasi admin saat pesanan diproses.';
-    //     updateShippingDisplay();
-    //   }
-    // };
 
     const saveProducts = () => {
       if (firebaseReady) {
@@ -2586,8 +2581,6 @@
         $('cart-dashboard').classList.add('active');
         $('btn-cart-view').classList.add('active');
         renderCart();
-        // Tidak perlu restore lokasi karena kita tidak menyimpan lokasi pengguna
-        // restoreLocationOnCart();
       } else {
         $('admin-section').classList.add('active');
         $('btn-admin-nav').classList.add('active');
@@ -2878,78 +2871,6 @@
       if (cart[idx].qty <= 0) cart.splice(idx, 1);
       saveCart(); renderCart();
     };
-
-    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
-    // const persistUserLocation = () => {
-    //   if (userLocation && userLocation.lat) {
-    //     localStorage.setItem('adidin_last_location', JSON.stringify(userLocation));
-    //   }
-    //   renderSavedLocations();
-    // };
-
-    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
-    // const renderSavedLocations = () => {
-    //   const sel = $('saved-locations-list');
-    //   const btnSave = $('btn-save-location');
-    //   if (!sel) return;
-    //   sel.innerHTML = '<option value="">-- Lokasi Tersimpan --</option>';
-    //   (savedLocations || []).forEach((loc, i) => {
-    //     const opt = document.createElement('option');
-    //     opt.value = i;
-    //     const label = loc.label || 'Lokasi ' + (i + 1);
-    //     const shortAddr = loc.address && loc.address.split(',').slice(0, 2).join(',');
-    //     opt.innerText = label + (shortAddr ? ' — ' + shortAddr : '');
-    //     sel.appendChild(opt);
-    //   });
-    //   if (savedLocations.length > 0) {
-    //     sel.classList.remove('hidden');
-    //   } else {
-    //     sel.classList.add('hidden');
-    //   }
-    //   if (btnSave) btnSave.disabled = !userLocation || !userLocation.lat;
-    // };
-
-    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
-    // const handleSaveLocation = () => {
-    //   if (!userLocation || !userLocation.lat) {
-    //     alert("Pilih/Gunakan lokasi dulu sebelum menyimpan.");
-    //     return;
-    //   }
-    //   const label = prompt("Nama untuk lokasi ini (misal: Rumah, Kantor, Kos):", "Lokasi Saya");
-    //   if (!label || !label.trim()) return;
-    //   const newLoc = {
-    //     label: label.trim(),
-    //     lat: userLocation.lat,
-    //     lng: userLocation.lng,
-    //     address: userLocation.address || ""
-    //   };
-    //   const existIdx = savedLocations.findIndex(l => l.label && l.label.toLowerCase() === label.trim().toLowerCase());
-    //   if (existIdx !== -1) {
-    //     savedLocations[existIdx] = newLoc;
-    //   } else {
-    //     savedLocations.push(newLoc);
-    //   }
-    //   localStorage.setItem('adidin_saved_locations', JSON.stringify(savedLocations));
-    //   renderSavedLocations();
-    //   alert(`Lokasi "${label}" sudah disimpan ✅`);
-    // };
-
-    // Fungsi ini tidak digunakan lagi karena kita tidak menyimpan lokasi pengguna
-    // const loadSavedLocation = (index) => {
-    //   const loc = savedLocations[parseInt(index)];
-    //   if (!loc) return;
-    //   userLocation = {
-    //     lat: loc.lat,
-    //     lng: loc.lng,
-    //     address: loc.address || ""
-    //   };
-    //   initMapPicker(loc.lat, loc.lng);
-    //   $('checkout-address').value = '';
-    //   $('map-status').innerText = `📍 ${loc.label} dipakai untuk ONGKIR. Silakan tulis alamat lengkap manual di bawah.`;
-    //   $('saved-locations-list').value = "";
-    //   updateShippingDisplay();
-    //   persistUserLocation();
-    // };
 
     const checkSession = () => {
       if (currentUser) {
@@ -3431,7 +3352,7 @@
       }
     }
 
-    // ===== VALIDASI LOkASI =====
+    // ===== VALIDASI LOKASI =====
     function validateLocation() {
       // Validasi lokasi pengiriman wajib diisi
       if (!userLocation || !userLocation.lat || !userLocation.lng) {
@@ -3508,15 +3429,11 @@
         if (mapStatusEl) {
           mapStatusEl.innerText = '📍 Alamat dikenali untuk estimasi ongkir. Ongkir final tetap ditentukan admin.';
         }
-        // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
-        // persistUserLocation();
       } else {
         if (mapStatusEl) {
           mapStatusEl.innerText = '⚠️ Alamat tidak dikenali untuk estimasi ongkir. Klik "Gunakan Lokasi Saya" atau biarkan admin menghitung ongkir.';
         }
         userLocation = null;
-        // Tidak perlu menyimpan lokasi karena kita tidak menyimpan lokasi pengguna
-        // persistUserLocation();
       }
 
       updateShippingDisplay();
@@ -3690,12 +3607,6 @@
     $('pos-search').addEventListener('input', renderPosProducts);
     $('pos-cash-input').addEventListener('input', calcPosChange);
     $('btn-use-my-location').addEventListener('click', handleUseMyLocation);
-    // Hapus event listener untuk save location karena tidak digunakan lagi
-    // $('btn-save-location').addEventListener('click', handleSaveLocation);
-    // Hapus event listener untuk saved locations karena tidak digunakan lagi
-    // $('saved-locations-list').addEventListener('change', function() {
-    //   loadSavedLocation(this.value);
-    // });
 
     $('btn-use-my-location-store').addEventListener('click', () => {
       if (!navigator.geolocation) {
@@ -3959,35 +3870,68 @@
 
         iframeDoc.open();
         iframeDoc.write(`<!DOCTYPE html>
-      <html>
-      <head>
-      <meta charset="UTF-8">
-      <title>Struk Panjang Otomatis</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html { width: 80mm; margin: 0; padding: 0; }
-        body {
-          width: 80mm;
-          margin: 0;
-          padding: 3mm 4mm;
-          font-family: 'Courier New', Courier, monospace;
-          font-size: 14px;
-          line-height: 1.3;
-          color: #000;
-          background: #fff;
-          overflow: visible;
-        }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 2px 0; vertical-align: top; }
-        .text-center { text-align: center; }
-        hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
-        .text-bold { font-weight: bold; }
-        pre { font-family: inherit; white-space: pre-wrap; }
-        img { max-width: 100%; }
-      </style>
-      </head>
-      <body>${htmlBody}</body>
-      </html>`);
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Struk Panjang Otomatis</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { width: 80mm; margin: 0; padding: 0; }
+  body {
+    width: 80mm;
+    margin: 0;
+    padding: 2mm 3mm;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 9pt;
+    line-height: 1.3;
+    color: #000;
+    background: #fff;
+    overflow: visible;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 1px 0; vertical-align: top; }
+  hr { border: 0; border-top: 1px dashed #000; margin: 3px 0; }
+  pre { font-family: inherit; white-space: pre-wrap; }
+  img { max-width: 100%; }
+
+  /* ===== Paksa semua teks umum ke 9pt ===== */
+  body, body div, body span, body p,
+  body td, body th, body pre {
+    font-size: 9pt !important;
+    line-height: 1.3 !important;
+  }
+
+  .text-center { text-align: center; }
+  .text-bold { font-weight: bold; }
+
+  /* ===== Nama toko: double height/width ===== */
+  .text-header,
+  .text-header * {
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+  }
+
+  /* ===== Tagline ===== */
+  .text-header-sub,
+  .text-header-sub * {
+    font-size: 11pt !important;
+    font-weight: bold !important;
+    text-align: center !important;
+  }
+
+  /* ===== Baris TOTAL diperbesar ===== */
+  .total-line td,
+  .total-line * {
+    font-size: 13pt !important;
+    font-weight: bold !important;
+    padding-top: 2px;
+  }
+</style>
+</head>
+<body>${htmlBody}</body>
+</html>`);
         iframeDoc.close();
 
         let attempts = 0;
@@ -4045,12 +3989,15 @@
         items.forEach((item, i) => {
           const qty = item.qty || 1;
           const price = item.price || 0;
-          const toppingText = (item.toppings && item.toppings.length)
-            ? ' + ' + item.toppings.map(t => `${t.name} (+Rp ${(t.price||0).toLocaleString('id-ID')})`).join(', ')
+          const toppings = item.toppings || [];
+          const toppingText = toppings.length
+            ? ' + ' + toppings.map(t => `${t.name} (+Rp ${(t.price||0).toLocaleString('id-ID')})`).join(', ')
             : '';
-          const sub = Math.round(price * qty) + (((item.toppings||[]).reduce((s,t)=>s+(t.price||0),0)) * qty);
+          const topCost = toppings.reduce((s,t) => s + (t.price||0), 0) * qty;
+          const sub = Math.round((price * qty) + topCost);
           const itemUnit = item.unit || (item.product ? item.product.unitType : null) || 'pcs';
           const unitPretty = itemUnit === 'digital' ? 'Transaksi' : getUnitPretty(itemUnit);
+
           itemsHtml += `${i+1}. ${item.productName || item.productId} [Rp ${price.toLocaleString('id-ID')} x ${qty} ${unitPretty}${toppingText}] = Rp ${sub.toLocaleString('id-ID')}\n`;
         });
       } else if (order.itemsSummary) {
@@ -4062,40 +4009,38 @@
       const qrDataUrl = await generateReceiptQR();
 
       const receiptHtml = `
-        <div class="text-center text-bold" style="font-size:16px;">PENGEMBANG UMKM LOCAL</div>
-        <div class="text-center text-bold" style="font-size:14px;">🚀 go jag ga jig jaya</div>
-        <div class="text-center" style="font-size:13px;">Jl. Syekh Datul Kahfi DS. GAMEL</div>
+        <div class="text-header">PENGEMBANG UMKM LOCAL</div>
+        <div class="text-header-sub">🚀 go jag ga jig jaya</div>
+        <div class="text-center">Jl. Syekh Datul Kahfi DS. GAMEL</div>
         <hr>
-        <div style="font-size:12px;">Waktu: ${order.timestamp}</div>
-        <div style="font-size:12px;">No Pesanan: ${order.id || '-'}</div>
-        <div style="font-size:12px;">Sumber: ${order.source || 'Online Shop'}</div>
-        <div style="font-size:12px;">Status: ${(order.orderStatus || 'active').toUpperCase()}</div>
+        <div>Waktu: ${order.timestamp}</div>
+        <div>No Pesanan: ${order.id || '-'}</div>
+        <div>Sumber: ${order.source || 'Online Shop'}</div>
+        <div>Status: ${(order.orderStatus || 'active').toUpperCase()}</div>
         <hr>
-        <div style="font-size:13px;">Pelanggan: ${order.buyerName || '-'}</div>
-        <div style="font-size:13px;">WA: ${order.buyerPhone || '-'}</div>
-        <div style="font-size:13px;">Alamat: ${order.buyerAddress || '-'}</div>
-        <div style="font-size:13px;">Waktu Kirim: ${order.timeOption || '-'}</div>
+        <div>Pelanggan: ${order.buyerName || '-'}</div>
+        <div>WA: ${order.buyerPhone || '-'}</div>
+        <div>Alamat: ${order.buyerAddress || '-'}</div>
+        <div>Waktu Kirim: ${order.timeOption || '-'}</div>
         <hr>
-        <pre style="font-family:inherit;">${itemsHtml}</pre>
+        <pre>${itemsHtml}</pre>
         <hr>
-        <table style="font-size:13px;">
+        <table>
           <tr><td>Subtotal</td><td style="text-align:right;">Rp ${(order.subtotal||0).toLocaleString('id-ID')}</td></tr>
           <tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr>
-          <tr class="text-bold"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr>
+          <tr class="total-line">
+            <td>TOTAL</td>
+            <td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td>
+          </tr>
         </table>
         <hr>
-        <div class="text-center" style="font-size:12px;">Catatan: ${order.note || '-'}</div>
-        <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
-        <div class="text-center" style="font-size:13px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
-
-        <div class="text-center" style="margin-top:10px;padding-top:5px;border-top:1px dashed #000;">
-          <div style="font-size:12px;margin-bottom:4px;">Scan untuk kunjungi toko kami</div>
-          ${
-            qrDataUrl
-              ? `<img src="${qrDataUrl}" width="110" height="110" style="display:inline-block;margin:0 auto;">`
-              : `<div style="font-size:12px;color:#999;">QR tidak tersedia</div>`
-          }
-          <div style="font-size:11px;margin-top:4px;word-break:break-all;">${STORE_URL}</div>
+        <div>Catatan: ${order.note || '-'}</div>
+        <div class="text-center">Terima Kasih!</div>
+        <div class="text-center">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
+        <div class="text-center" style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;">
+          <div>Scan untuk kunjungi toko kami</div>
+          ${qrDataUrl ? `<img src="${qrDataUrl}" width="100" height="100" style="display:inline-block;margin:2px auto;">` : '<div>QR tidak tersedia</div>'}
+          <div>${STORE_URL}</div>
         </div>
       `;
 
@@ -4175,41 +4120,36 @@
       const qrDataUrl = await generateReceiptQR();
 
       const receiptHtml = `
-        <div class="text-center text-bold" style="font-size:16px;">PENGEMBANG UMKM LOCAL</div>
-        <div class="text-center text-bold" style="font-size:14px;"> go jag ga jig jaya</div>
-        <div class="text-center" style="font-size:13px;">Jl. Syekh Datul Kahfi DS. GAMEL</div>
+        <div class="text-header">PENGEMBANG UMKM LOCAL</div>
+        <div class="text-header-sub">🚀 go jag ga jig jaya</div>
+        <div class="text-center">Jl. Syekh Datul Kahfi DS. GAMEL</div>
         <hr>
-        <div style="font-size:13px;">${order.timestamp}</div>
-        <div style="font-size:13px;">Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
+        <div>${order.timestamp}</div>
+        <div>Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
         <hr>
-        <pre style="font-family:inherit;">${summary}</pre>
+        <pre>${summary}</pre>
         <hr>
-        <table style="font-size:13px;">
-          <tr class="text-bold">
+        <table>
+          <tr class="total-line">
             <td>TOTAL</td>
             <td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td>
           </tr>
-          <tr style="font-size:12px;">
+          <tr>
             <td>BAYAR</td>
             <td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td>
           </tr>
-          <tr style="font-size:12px;">
+          <tr>
             <td>KEMBALI</td>
             <td style="text-align:right;">Rp ${(cash - total).toLocaleString('id-ID')}</td>
           </tr>
         </table>
         <hr>
-        <div class="text-center" style="margin-top:5px;">Terima Kasih!</div>
-        <div class="text-center" style="font-size:13px;margin-top:3px;">belanja lebih mudah di PENGEMBANG UMKM LOCAL </div>
-
-        <div class="text-center" style="margin-top:10px;padding-top:5px;border-top:1px dashed #000;">
-          <div style="font-size:12px;margin-bottom:4px;">Scan untuk kunjungi toko kami</div>
-          ${
-            qrDataUrl
-              ? `<img src="${qrDataUrl}" width="110" height="110" style="display:inline-block;margin:0 auto;">`
-              : `<div style="font-size:12px;color:#999;">QR tidak tersedia</div>`
-          }
-          <div style="font-size:11px;margin-top:4px;word-break:break-all;">${STORE_URL}</div>
+        <div class="text-center">Terima Kasih!</div>
+        <div class="text-center">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
+        <div class="text-center" style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;">
+          <div>Scan untuk kunjungi toko kami</div>
+          ${qrDataUrl ? `<img src="${qrDataUrl}" width="100" height="100" style="display:inline-block;margin:2px auto;">` : '<div>QR tidak tersedia</div>'}
+          <div>${STORE_URL}</div>
         </div>
       `;
 
@@ -4438,11 +4378,9 @@
     updateClock();
 
     // ===== FIX: SERVICE WORKER =====
-    // Remove service worker registration since sw.js file doesn't exist
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // Commented out because sw.js doesn't exist
-        // navigator.serviceWorker.register('sw.js').catch(() => {});
+        // Service worker tidak dipakai karena file sw.js tidak tersedia
       });
     }
 
@@ -4451,8 +4389,6 @@
     renderAnnouncement();
     saveCart();
     calcFinance(historyList);
-    // Hapus panggilan renderSavedLocations karena tidak digunakan lagi
-    // renderSavedLocations();
     checkSession();
     switchPage('buyer');
 
