@@ -978,7 +978,7 @@
         max-width: 80mm;
         font-family: 'Courier New', Courier, monospace;
         color: #000;
-        font-size: 16pt;
+        font-size: 10px;
         line-height: 1.3;
         background: #fff;
       }
@@ -990,30 +990,27 @@
       #printable-receipt th,
       #printable-receipt pre,
       #printable-receipt table {
-        font-size: 16pt !important;
+        font-size: 10px !important;
       }
 
-      /* Nama toko — ukuran font SAMA seperti teks lain */
       #printable-receipt .text-header,
       #printable-receipt .text-header * {
-        font-size: 16pt !important;
+        font-size: 10px !important;
         font-weight: bold !important;
         text-align: center !important;
         line-height: 1.3 !important;
       }
 
-      /* Tagline / sub header — ukuran font SAMA */
       #printable-receipt .text-header-sub,
       #printable-receipt .text-header-sub * {
-        font-size: 16pt !important;
+        font-size: 10px !important;
         font-weight: bold !important;
         text-align: center !important;
       }
 
-      /* Baris TOTAL — ukuran font SAMA, tetap TEBAL */
       #printable-receipt .total-line td,
       #printable-receipt .total-line * {
-        font-size: 16pt !important;
+        font-size: 10px !important;
         font-weight: bold !important;
         padding-top: 2px;
       }
@@ -1469,6 +1466,14 @@
 
         <div class="card" id="pos-module-card">
           <h3><i class="fas fa-cash-register"></i> Kasir POS</h3>
+          <div style="margin-bottom: 10px;">
+            <button type="button" class="btn-primary" id="btn-connect-bt-pos" style="width:100%; background:#0ea5e9; font-size:13px; padding:10px;">
+              <i class="fas fa-bluetooth"></i> Hubungkan Printer Bluetooth
+            </button>
+            <small id="bt-status-label" style="display:block; font-size:10px; color:var(--muted); margin-top:4px;">
+              Status: Belum terhubung
+            </small>
+          </div>
           <div class="pos-grid">
             <div>
               <div style="display:flex;gap:6px;margin-bottom:8px;">
@@ -3845,7 +3850,7 @@
     margin: 0;
     padding: 2mm 3mm;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 16pt;
+    font-size: 10px;
     line-height: 1.3;
     color: #000;
     background: #fff;
@@ -3857,37 +3862,37 @@
   pre { font-family: inherit; white-space: pre-wrap; }
   img { max-width: 100%; }
 
-  /* ===== Paksa semua teks umum ke 16pt ===== */
+  /* Semua teks umum memakai ukuran yang sama */
   body, body div, body span, body p,
   body td, body th, body pre {
-    font-size: 16pt !important;
+    font-size: 10px !important;
     line-height: 1.3 !important;
   }
 
   .text-center { text-align: center; }
   .text-bold { font-weight: bold; }
 
-  /* ===== Nama toko: ukuran SAMA seperti teks lain ===== */
+  /* Nama toko: ukuran SAMA seperti teks lain */
   .text-header,
   .text-header * {
-    font-size: 16pt !important;
+    font-size: 10px !important;
     font-weight: bold !important;
     text-align: center !important;
     line-height: 1.3 !important;
   }
 
-  /* ===== Tagline: ukuran SAMA ===== */
+  /* Tagline: ukuran SAMA */
   .text-header-sub,
   .text-header-sub * {
-    font-size: 16pt !important;
+    font-size: 10px !important;
     font-weight: bold !important;
     text-align: center !important;
   }
 
-  /* ===== Baris TOTAL: ukuran SAMA, tetap tebal ===== */
+  /* Baris TOTAL: ukuran SAMA, tetap tebal */
   .total-line td,
   .total-line * {
-    font-size: 16pt !important;
+    font-size: 10px !important;
     font-weight: bold !important;
     padding-top: 2px;
   }
@@ -4010,6 +4015,178 @@
       await printDynamicReceipt(receiptHtml);
     };
 
+    // ============================================================
+    // MODUL CETAK BLUETOOTH THERMAL ESC/POS
+    // - Font A (12x24 dots)
+    // - Code Page PC850 [multiple]
+    // ============================================================
+    let btPrinterChar = null;
+    let btStatusEl = document.getElementById('bt-status-label');
+
+    const BT_SERVICE_UUIDS = [
+      '0000ffe0-0000-1000-8000-00805f9b34fb',
+      '0000ff00-0000-1000-8000-00805f9b34fb',
+      '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+    ];
+
+    const BT_CHAR_UUIDS = [
+      '0000ffe1-0000-1000-8000-00805f9b34fb',
+      '0000ff02-0000-1000-8000-00805f9b34fb',
+      '49535343-8841-43f4-a8d4-ecbe34729bb3'
+    ];
+
+    function setBtStatus(text, ok = false) {
+      if (btStatusEl) {
+        btStatusEl.textContent = text;
+        btStatusEl.style.color = ok ? '#16a34a' : 'var(--muted)';
+      }
+    }
+
+    async function sendRaw(bytes) {
+      if (!btPrinterChar) throw new Error('Printer Bluetooth belum terhubung.');
+
+      const CHUNK = 20;
+      for (let i = 0; i < bytes.length; i += CHUNK) {
+        const chunk = bytes.slice(i, i + CHUNK);
+        await btPrinterChar.writeValue(chunk);
+        await new Promise(r => setTimeout(r, 10));
+      }
+    }
+
+    function escposInit() {
+      return new Uint8Array([
+        0x1b, 0x40,
+        0x1b, 0x4d, 0x00,
+        0x1b, 0x74, 0x02
+      ]);
+    }
+
+    async function connectBluetooth() {
+      if (!navigator.bluetooth) {
+        alert('Browser tidak mendukung Web Bluetooth.\nGunakan Chrome / Edge terbaru di Android atau Windows.');
+        return false;
+      }
+
+      try {
+        setBtStatus('Memindai printer Bluetooth...');
+
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: BT_SERVICE_UUIDS
+        });
+
+        setBtStatus('Menghubungkan ke ' + device.name + ' ...');
+
+        const server = await device.gatt.connect();
+
+        device.addEventListener('gattserverdisconnected', () => {
+          btPrinterChar = null;
+          setBtStatus('Printer Bluetooth terputus.');
+          alert('Printer Bluetooth terputus.');
+        });
+
+        btPrinterChar = null;
+
+        for (let i = 0; i < BT_SERVICE_UUIDS.length; i++) {
+          try {
+            const service = await server.getPrimaryService(BT_SERVICE_UUIDS[i]);
+            const characteristic = await service.getCharacteristic(BT_CHAR_UUIDS[i]);
+
+            if (characteristic) {
+              btPrinterChar = characteristic;
+              break;
+            }
+          } catch (e) {}
+        }
+
+        if (!btPrinterChar) {
+          throw new Error('Service printer tidak ditemukan. Periksa UUID printer Anda.');
+        }
+
+        await sendRaw(escposInit());
+
+        setBtStatus('✅ Terhubung: ' + device.name, true);
+        alert('✅ Printer Bluetooth terhubung: ' + device.name + '\nFont A (12x24) + PC850 aktif.');
+        return true;
+      } catch (err) {
+        console.error(err);
+        setBtStatus('❌ ' + err.message);
+        alert('Gagal konek Bluetooth: ' + err.message);
+        return false;
+      }
+    }
+
+    async function btPrintLine(text, align = 'l', bold = false) {
+      const bytes = [];
+
+      const alignCode = align === 'c' ? 0x01 : align === 'r' ? 0x02 : 0x00;
+      bytes.push(0x1b, 0x61, alignCode);
+
+      if (bold) bytes.push(0x1b, 0x45, 0x01);
+
+      const encoder = new TextEncoder();
+      const lineText = (text === undefined || text === null ? '' : String(text)) + '\n';
+      const encoded = encoder.encode(lineText);
+      for (let b of encoded) bytes.push(b);
+
+      if (bold) bytes.push(0x1b, 0x45, 0x00);
+
+      await sendRaw(new Uint8Array(bytes));
+    }
+
+    async function btFeed(n = 4) {
+      if (n > 0) await sendRaw(new Uint8Array(n));
+    }
+
+    async function cetakStrukBluetoothPOS(summary, total, cash, change, kasir, timestamp) {
+      if (!btPrinterChar) {
+        const ok = await connectBluetooth();
+        if (!ok) return;
+      }
+
+      await sendRaw(escposInit());
+
+      await btPrintLine('================================', 'c');
+      await btPrintLine('PENGEMBANG UMKM LOCAL', 'c', true);
+      await btPrintLine('go jag ga jig group', 'c');
+      await btPrintLine('Jl. Syekh Datul Kahfi DS. GAMEL', 'c');
+      await btPrintLine('================================', 'c');
+
+      await btPrintLine('Kasir : ' + kasir);
+      await btPrintLine('Waktu : ' + timestamp);
+      await btPrintLine('--------------------------------');
+
+      const lines = String(summary).split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        await btPrintLine(line);
+      }
+
+      await btPrintLine('--------------------------------');
+      await btPrintLine('TOTAL: Rp ' + Number(total).toLocaleString('id-ID'), 'c', true);
+      await btPrintLine('BAYAR: Rp ' + Number(cash).toLocaleString('id-ID'), 'c');
+      await btPrintLine('KEMBALI: Rp ' + Number(change).toLocaleString('id-ID'), 'c');
+      await btPrintLine('--------------------------------');
+
+      await btPrintLine('Terima Kasih', 'c');
+      await btPrintLine('Belanja Lebih Mudah & Hemat', 'c');
+      await btPrintLine('===============================', 'c');
+
+      await btFeed(4);
+
+      setBtStatus('✅ Struk terkirim');
+    }
+
+    const btnConnectBt = document.getElementById('btn-connect-bt-pos');
+    if (btnConnectBt) {
+      btnConnectBt.addEventListener('click', async () => {
+        if (!btPrinterChar) {
+          await connectBluetooth();
+        } else {
+          alert('Printer sudah terhubung.');
+        }
+      });
+    }
+
     // ===== HANDLER TOMBOL SELESAI & CETAK STRUK (DENGAN QR) =====
     $('btn-process-pos').addEventListener('click', async () => {
       if (posCart.length === 0) return alert("Pilih item dahulu!");
@@ -4080,43 +4257,58 @@
       historyList.unshift(order);
       saveHistory();
 
-      const qrDataUrl = await generateReceiptQR();
+      // Jika Bluetooth sudah tersambung, cetak langsung via Bluetooth
+      if (btPrinterChar) {
+        await cetakStrukBluetoothPOS(summary, total, cash, (cash - total), (currentUser ? currentUser.username : 'Kasir'), order.timestamp);
+      } else {
+        // Belum terhubung — tanyakan ke user
+        const pilihanCetak = confirm('Printer Bluetooth belum terhubung.\n\n[OK] = Hubungkan Bluetooth\n[Batal] = Cetak via browser biasa');
 
-      const receiptHtml = `
-        <div class="text-header">PENGEMBANG UMKM LOCAL</div>
-        <div class="text-header-sub">🚀 go jag ga jig jaya</div>
-        <div class="text-center">Jl. Syekh Datul Kahfi DS. GAMEL</div>
-        <hr>
-        <div>${order.timestamp}</div>
-        <div>Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
-        <hr>
-        <pre>${summary}</pre>
-        <hr>
-        <table>
-          <tr class="total-line">
-            <td>TOTAL</td>
-            <td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td>
-          </tr>
-          <tr>
-            <td>BAYAR</td>
-            <td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td>
-          </tr>
-          <tr>
-            <td>KEMBALI</td>
-            <td style="text-align:right;">Rp ${(cash - total).toLocaleString('id-ID')}</td>
-          </tr>
-        </table>
-        <hr>
-        <div class="text-center">Terima Kasih!</div>
-        <div class="text-center">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
-        <div class="text-center" style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;">
-          <div>Scan untuk kunjungi toko kami</div>
-          ${qrDataUrl ? `<img src="${qrDataUrl}" width="100" height="100" style="display:inline-block;margin:2px auto;">` : '<div>QR tidak tersedia</div>'}
-          <div>${STORE_URL}</div>
-        </div>
-      `;
+        if (pilihanCetak) {
+          const okBt = await connectBluetooth();
+          if (okBt) {
+            await cetakStrukBluetoothPOS(summary, total, cash, (cash - total), (currentUser ? currentUser.username : 'Kasir'), order.timestamp);
+          }
+        } else {
+          const qrDataUrl = await generateReceiptQR();
 
-      await printDynamicReceipt(receiptHtml);
+          const receiptHtml = `
+            <div class="text-header">PENGEMBANG UMKM LOCAL</div>
+            <div class="text-header-sub">🚀 go jag ga jig jaya</div>
+            <div class="text-center">Jl. Syekh Datul Kahfi DS. GAMEL</div>
+            <hr>
+            <div>${order.timestamp}</div>
+            <div>Kasir: ${currentUser ? currentUser.username : 'Kasir'}</div>
+            <hr>
+            <pre>${summary}</pre>
+            <hr>
+            <table>
+              <tr class="total-line">
+                <td>TOTAL</td>
+                <td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td>
+              </tr>
+              <tr>
+                <td>BAYAR</td>
+                <td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td>
+              </tr>
+              <tr>
+                <td>KEMBALI</td>
+                <td style="text-align:right;">Rp ${(cash - total).toLocaleString('id-ID')}</td>
+              </tr>
+            </table>
+            <hr>
+            <div class="text-center">Terima Kasih!</div>
+            <div class="text-center">belanja lebih mudah di PENGEMBANG UMKM LOCAL 🛍️</div>
+            <div class="text-center" style="border-top:1px dashed #000;padding-top:4px;margin-top:4px;">
+              <div>Scan untuk kunjungi toko kami</div>
+              ${qrDataUrl ? `<img src="${qrDataUrl}" width="100" height="100" style="display:inline-block;margin:2px auto;">` : '<div>QR tidak tersedia</div>'}
+              <div>${STORE_URL}</div>
+            </div>
+          `;
+
+          await printDynamicReceipt(receiptHtml);
+        }
+      }
 
       posCart = [];
       $('pos-cash-input').value = "";
