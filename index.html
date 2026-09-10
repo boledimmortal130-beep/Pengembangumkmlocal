@@ -259,11 +259,11 @@
             <h3 style="border:none;padding-bottom:0;"><i class="fas fa-map-marker-alt"></i> Lokasi Pengiriman (WAJIB)</h3>
             <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
               ⚠️ <strong>Alamat tujuan WAJIB diketik manual dan lengkap</strong> di kolom "Alamat Lengkap" bagian Data Pengiriman di bawah.<br>
-              🗺️ Peta di bawah <strong>otomatis aktif saat halaman Keranjang dibuka / saat Anda menekan tombol "Gunakan Lokasi Saya"</strong>, untuk menghitung ongkir.
+              🗺️ Peta di bawah <strong>otomatis aktif dan lokasi akurat langsung muncul saat Anda menekan tombol "Gunakan Lokasi Saya"</strong>, untuk menghitung ongkir.
             </p>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
               <button type="button" class="btn-secondary" id="btn-use-my-location" style="flex:1;">
-                <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya / Izinkan Lokasi
+                <i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya
               </button>
             </div>
             <div id="map-picker" style="height:250px;border:2px solid #fed7aa;border-radius:8px;margin-top:8px;display:none;"></div>
@@ -945,7 +945,7 @@
       requestShippingUpdate();
     };
 
-    // ===== MAPS & GEOLOKASI PELANGGAN VERSI FINAL (STABIL & CEPAT) =====
+    // ===== MAPS & GEOLOKASI PELANGGAN VERSI FINAL (STABIL, AKURAT & CEPAT) =====
     let locatingNow = false;
     let livePositionWatchId = null;
     let lastLivePosition = null;
@@ -979,6 +979,14 @@
       }
     };
 
+    /**
+     * Ambil posisi GPS paling AKURAT.
+     * Strategi:
+     *  1. Pakai watchPosition untuk mengumpulkan beberapa sampel GPS.
+     *  2. Pilih sampel dengan nilai akurasi (meter) terkecil.
+     *  3. Selesai begitu akurasi sudah ≤ ACCURACY_TARGET (default 25 m),
+     *     atau saat MAX_WAIT terlampaui (pakai sampel terbaik yang sudah didapat).
+     */
     const getFreshPosition = () =>
       new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -988,44 +996,72 @@
 
         startLivePositionWatch();
 
-        const timer = setTimeout(() => {
+        const ACCURACY_TARGET = 25;   // meter
+        const MAX_WAIT = 15000;        // ms
+        let bestPos = null;
+        let settled = false;
+        let watchId = null;
+        let timeoutId = null;
+
+        const cleanup = () => {
+          if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
+            watchId = null;
+          }
+          if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
+        };
+
+        const finish = (pos) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve(pos);
+        };
+
+        const fallbackOrFail = (err) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          // Pakai posisi rewatch terakhir kalau cukup fresh
           if (lastLivePosition && Date.now() - lastLivePosition.ts < 30000) {
             resolve({
               coords: {
                 latitude: lastLivePosition.lat,
                 longitude: lastLivePosition.lng,
-                accuracy: lastLivePosition.accuracy,
+                accuracy: lastLivePosition.accuracy || 999,
                 timestamp: lastLivePosition.ts
               }
             });
           } else {
-            reject(new Error("TIMEOUT_MENDAPATKAN_LOKASI"));
+            reject(err);
           }
-        }, 12000);
+        };
 
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            clearTimeout(timer);
-            resolve(pos);
-          },
-          err => {
-            if (lastLivePosition && Date.now() - lastLivePosition.ts < 30000) {
-              clearTimeout(timer);
-              resolve({
-                coords: {
-                  latitude: lastLivePosition.lat,
-                  longitude: lastLivePosition.lng,
-                  accuracy: lastLivePosition.accuracy || 999,
-                  timestamp: lastLivePosition.ts
-                }
-              });
-            } else {
-              clearTimeout(timer);
-              reject(err);
-            }
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
+        try {
+          watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+              const acc = pos.coords.accuracy || 9999;
+              if (!bestPos || acc < (bestPos.coords.accuracy || 9999)) {
+                bestPos = pos;
+              }
+              if (acc <= ACCURACY_TARGET) {
+                finish(bestPos);
+              }
+            },
+            (err) => {
+              if (!bestPos) fallbackOrFail(err);
+            },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+          );
+        } catch (e) {
+          fallbackOrFail(e);
+          return;
+        }
+
+        timeoutId = setTimeout(() => {
+          if (bestPos) finish(bestPos);
+          else fallbackOrFail(new Error("TIMEOUT_MENDAPATKAN_LOKASI"));
+        }, MAX_WAIT);
       });
 
     const initMapPicker = async (lat, lng) => {
@@ -1047,7 +1083,7 @@
           scrollWheelZoom: true,
           tap: true,
           touchZoom: true
-        }).setView([lat, lng], 16);
+        }).setView([lat, lng], 17);
 
         mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
 
@@ -1078,23 +1114,26 @@
         });
       } else {
         $("map-picker").style.display = "block";
-        mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 16, 16));
+        mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
         if (mapMarker) mapMarker.setLatLng([lat, lng]);
       }
 
       scheduleInvalidate(mapPicker);
+      // Paksa refresh ukuran setelah container terlihat
+      setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 200);
+      setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 600);
     };
 
     const showMapAt = async (lat, lng) => {
       await initMapPicker(lat, lng);
       $("map-picker").style.display = "block";
-      scheduleInvalidate(mapPicker);
+      setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 200);
     };
 
     const setCustomerMapLocation = async (lat, lng) => {
       await initMapPicker(lat, lng);
       if (mapPicker) {
-        mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 16, 16));
+        mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
       }
       if (mapMarker) {
         mapMarker.setLatLng([lat, lng]);
@@ -1117,11 +1156,11 @@
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendapatkan GPS akurat...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendapatkan lokasi akurat...';
       }
 
       if (mapStatusEl) {
-        mapStatusEl.innerHTML = "📡 Mengambil lokasi GPS terbaru. Pastikan GPS aktif & izin browser diberikan…";
+        mapStatusEl.innerHTML = "📡 Mengambil lokasi GPS terbaru. Pastikan GPS perangkat aktif…";
       }
 
       locatingNow = true;
@@ -1130,12 +1169,15 @@
         const pos = await getFreshPosition();
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : null;
 
+        // Peta langsung tampil otomatis di sini
         await setCustomerMapLocation(lat, lng);
 
         if (mapStatusEl) {
-          mapStatusEl.innerHTML =
-            "✅ Lokasi berhasil diperbarui real-time. Geser marker hanya jika ingin mengubah titik pengantaran.";
+          mapStatusEl.innerHTML = acc
+            ? `✅ Lokasi berhasil diperbarui (akurasi ±${acc} m). Geser marker hanya jika ingin mengubah titik antar.`
+            : "✅ Lokasi berhasil diperbarui. Geser marker hanya jika ingin mengubah titik antar.";
         }
 
         updateShippingDisplay();
@@ -1144,19 +1186,18 @@
         console.warn("Gagal ambil lokasi:", err);
         if (mapStatusEl) {
           mapStatusEl.innerHTML =
-            "⚠️ Tidak dapat mengakses lokasi. Aktifkan GPS, izinkan lokasi di pengaturan browser, lalu klik tombol lokasi lagi.";
+            "⚠️ Tidak dapat mengakses lokasi. Aktifkan GPS di perangkat Anda, lalu klik tombol \"Gunakan Lokasi Saya\" lagi.";
         }
         alert(
           "Lokasi dibutuhkan agar ongkir bisa dihitung otomatis.\n\n" +
-          "Aktifkan GPS / izinkan lokasi browser, lalu klik tombol \"Gunakan Lokasi Saya / Izinkan Lokasi\" lagi."
+          "Aktifkan GPS di perangkat Anda lalu klik tombol \"Gunakan Lokasi Saya\" lagi."
         );
         return false;
       } finally {
         locatingNow = false;
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML =
-            '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya / Izinkan Lokasi';
+          btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
         }
         updateShippingDisplay();
       }
@@ -1304,7 +1345,7 @@
             scheduleInvalidate(mapPicker);
             mapPicker.setView(
               [userLocation.lat || -6.693932, userLocation.lng || 108.509458],
-              Math.max((mapPicker.getZoom() || 15), 16)
+              Math.max((mapPicker.getZoom() || 16), 16)
             );
           }
         }, 300);
@@ -1903,7 +1944,7 @@
       if (!userLocation || !userLocation.lat || !userLocation.lng) {
         const ok = await locateCustomerCurrent({ force: true });
         if (!ok) {
-          alert("⚠️ Lokasi WAJIB untuk hitung ongkir.\n\nKlik OK, lalu izinkan akses lokasi saat browser meminta.\nJika sudah ditolak, buka pengaturan browser dan aktifkan untuk situs ini.");
+          alert("⚠️ Lokasi WAJIB untuk hitung ongkir.\n\nKlik OK, lalu klik tombol \"Gunakan Lokasi Saya\" dan aktifkan GPS di perangkat Anda.");
           return false;
         }
       } else if ($('delivery-mode') && $('delivery-mode').value === 'now') {
@@ -2380,10 +2421,10 @@
     $('btn-toggle-store-status').addEventListener('click', toggleStore);
     $('btn-clear-cart').addEventListener('click', () => { if (confirm("Kosongkan keranjang?")) { cart = []; saveCart(); renderCart(); } });
 
-    // TOMBOL GUNALOKASI / IZINKAN LOKASI
+    // TOMBOL GUNAKAN LOKASI SAYA — peta & lokasi akurat langsung muncul otomatis
     $('btn-use-my-location').addEventListener('click', async (e) => {
       e.preventDefault();
-      // force = true => selalu ambil GPS terbaru & kembalikan marker ke titik akurat real-time
+      // force = true → selalu ambil GPS terbaru & map langsung tampil di titik akurat
       await locateCustomerCurrent({ force: true });
     });
 
