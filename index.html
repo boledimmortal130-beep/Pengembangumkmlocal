@@ -157,14 +157,6 @@
       body *{visibility:hidden!important}
       #printable-receipt,#printable-receipt *{visibility:visible!important}
       #printable-receipt{display:block!important;position:absolute;left:0;top:0;width:100%;max-width:80mm;font-family:'Courier New',Courier,monospace;color:#000;font-size:10px;line-height:1.3;background:#fff}
-      #printable-receipt div,#printable-receipt span,#printable-receipt p,#printable-receipt td,#printable-receipt th,#printable-receipt pre,#printable-receipt table{font-size:10px!important}
-      #printable-receipt .text-header,#printable-receipt .text-header *{font-size:10px!important;font-weight:bold!important;text-align:center!important;line-height:1.3!important}
-      #printable-receipt .text-header-sub,#printable-receipt .text-header-sub *{font-size:10px!important;font-weight:bold!important;text-align:center!important}
-      #printable-receipt .total-line td,#printable-receipt .total-line *{font-size:10px!important;font-weight:bold!important;padding-top:2px}
-      #printable-receipt table{width:100%;border-collapse:collapse}
-      #printable-receipt hr{border:0;border-top:1px dashed #000;margin:3px 0}
-      #printable-receipt pre{font-family:inherit;white-space:pre-wrap}
-      #printable-receipt img{max-width:100%;height:auto}
       @page{size:auto;margin:2mm}
     }
     footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));margin-top:15px;padding:14px 0;border-top:4px solid #fecaca;color:var(--header-text);font-size:12px;text-align:center}
@@ -173,15 +165,11 @@
     .shipping-per-item h4{margin-bottom:10px;color:var(--success)}
     .per-item-rule-box{background:#fff;border:1px solid #86efac;border-radius:8px;padding:10px;margin-bottom:10px}
     .per-item-rule-box h5{font-size:13px;margin-bottom:8px;color:var(--success);border-bottom:1px dashed #bbf7d0;padding-bottom:6px}
-    .per-item-rule-box .form-group{margin-bottom:8px}
-    @media(max-width:480px){#admin-map{height:200px}.product-grid{grid-template-columns:1fr}.nav-link{font-size:12px;padding:6px 8px}.logo h1{font-size:16px}}
     @media(max-width:768px){.admin-grid{grid-template-columns:1fr}.cart-container{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,1fr)}}
     #map-picker,#admin-map{display:block;width:100%;z-index:1;background:#e2e8f0;border-radius:8px}
     #map-picker{height:250px}
     #admin-map{height:300px}
     .leaflet-container{width:100%;height:100%;font-family:inherit;z-index:1}
-    .leaflet-control-zoom,.leaflet-bar{border-radius:6px!important;overflow:hidden}
-    .leaflet-control-attribution{font-size:9px!important;background:rgba(255,255,255,.7)!important;padding:2px 6px!important;border-radius:4px 0 0 0}
     @media(max-width:480px){#map-picker{height:220px}#admin-map{height:200px}}
   </style>
 </head>
@@ -277,7 +265,7 @@
             <div class="form-group"><label>No HP / WhatsApp</label><input type="tel" id="checkout-phone" required placeholder="0812xxxx"></div>
             <div class="form-group">
               <label>Alamat Lengkap / No. Tujuan Digital <span style="color:var(--danger);">*</span></label>
-              <textarea id="checkout-address" required minlength="10" placeholder="Tulis alamat lengkap: nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, kode pos. Contoh: Jl. Melati No. 10, RT 02/RW 05, Kel. Sukamaju, Kec. Cirebon Utara, Kota Cirebon, 45111"></textarea>
+              <textarea id="checkout-address" required minlength="10" placeholder="Tulis alamat lengkap: nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, kode pos."></textarea>
               <small style="font-size:10px;color:var(--muted);">Harus diketik manual. Peta tidak mengisi otomatis kolom ini.</small>
             </div>
 
@@ -452,32 +440,28 @@
                 <div class="form-group"><label>Geser Penanda / Klik Peta untuk Menentukan Lokasi Toko</label><div id="admin-map"></div><p id="admin-map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p></div>
                 <input type="hidden" id="ship-lat" value="-6.200000">
                 <input type="hidden" id="ship-lng" value="106.816666">
-                <div class="form-group"><label>Tarif Dasar 0–1 km (Rp)</label><input type="number" id="ship-min-fee" value="5000"><small style="font-size:10px;color:var(--muted);">Ongkir untuk jarak 1 km pertama</small></div>
-                <div class="form-group"><label>Tarif per km berikutnya (setelah 1 km) (Rp)</label><input type="number" id="ship-per-km" value="3000"><small style="font-size:10px;color:var(--muted);">Contoh: 2 km = 5.000 + 3.000 = Rp8.000</small></div>
+                <div class="form-group"><label>Tarif Dasar 0–1 km (Rp)</label><input type="number" id="ship-min-fee" value="5000"></div>
+                <div class="form-group"><label>Tarif per km berikutnya (Rp)</label><input type="number" id="ship-per-km" value="3000"></div>
                 <div class="form-group"><label>Gratis Ongkir jika Subtotal ≥ (Rp)</label><input type="number" id="ship-free-min" value="100000"></div>
                 <div class="shipping-per-item">
                   <h4><i class="fas fa-boxes"></i> Ongkir Tambahan Jika Barang Melebihi Batas</h4>
-                  <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Tentukan batas maksimal jumlah barang. Jika pembelian melebihi batas, ongkir tambahan akan dikenakan sesuai aturan di bawah.</p>
-
                   <div class="per-item-rule-box">
                     <h5><i class="fas fa-flag-checkered"></i> Fitur 1 — Batas Maksimal + Ongkir Tambahan Flat</h5>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
                       <input type="checkbox" id="extra-flat-enable" style="width:auto;transform:scale(1.2);">
                       <label style="margin:0;font-weight:600;display:inline;">Aktifkan ongkir tambahan flat</label>
                     </div>
-                    <div class="form-group"><label>Batas Maksimal Jumlah Barang</label><input type="number" id="extra-flat-max" min="1" value="3"><small style="font-size:10px;color:var(--muted);">Jika total barang di keranjang MELEBIHI angka ini, maka dikenakan ongkir tambahan flat sekali.</small></div>
-                    <div class="form-group"><label>Ongkir Tambahan Flat (Rp)</label><input type="number" id="extra-flat-fee" min="0" value="5000"><small style="font-size:10px;color:var(--muted);">Tarif tetap untuk semua barang / sekali charge.</small></div>
+                    <div class="form-group"><label>Batas Maksimal Jumlah Barang</label><input type="number" id="extra-flat-max" min="1" value="3"></div>
+                    <div class="form-group"><label>Ongkir Tambahan Flat (Rp)</label><input type="number" id="extra-flat-fee" min="0" value="5000"></div>
                   </div>
-
                   <div class="per-item-rule-box">
                     <h5><i class="fas fa-cubes"></i> Fitur 2 — Batas Maksimal + Ongkir Per Kelebihan Barang</h5>
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
                       <input type="checkbox" id="extra-per-enable" style="width:auto;transform:scale(1.2);">
                       <label style="margin:0;font-weight:600;display:inline;">Aktifkan ongkir per kelebihan barang</label>
                     </div>
-                    <div class="form-group"><label>Batas Maksimal Jumlah Barang (bebas ongkir tambahan)</label><input type="number" id="extra-per-max" min="1" value="3"></div>
+                    <div class="form-group"><label>Batas Maksimal Jumlah Barang</label><input type="number" id="extra-per-max" min="1" value="3"></div>
                     <div class="form-group"><label>Ongkir per Barang (Rp)</label><input type="number" id="extra-per-price" min="0" value="1000"></div>
-                    <p style="font-size:11px;color:var(--muted);">Contoh: batas maks 3, customer membeli 5, ongkir per barang Rp1.000 → (5 − 3) × 1.000 = <strong>Rp2.000</strong>.</p>
                   </div>
                 </div>
                 <button class="btn-primary btn-block" type="submit">Simpan Pengaturan</button>
@@ -687,12 +671,8 @@
     let userLocation = null;
     let mapPicker = null;
     let mapMarker = null;
-    let mapPickerFallbackAdded = false;
-    let pickerTileLayer = null;
     let adminMap = null;
     let adminMarker = null;
-    let adminTileLayer = null;
-    let adminFallbackAdded = false;
 
     const getActiveAnnouncements = () => broadcastHistory.filter(b => b.enabled !== false);
 
@@ -869,7 +849,7 @@
         if (!scheduleInput.value) scheduleInput.value = getSuggestedScheduleValue();
         if (note) note.innerHTML = 'Pilih <strong>hari, tanggal, bulan, tahun, jam & menit</strong> pengiriman/pengambilan.';
       } else {
-        if (note) note.innerHTML = 'Pesanan akan dikirim/dipersiapkan segera. Pilih "Atur Jadwal / Pesan untuk Besok" jika ingin menjadwalkan.';
+        if (note) note.innerHTML = 'Pesanan akan dikirim/dipersiapkan segera. Pilih jadwal jika ingin menjadwalkan.';
       }
       updateSchedulePreview();
     }
@@ -926,7 +906,7 @@
         if (!isEnabled) distInfo.innerText = "🚚 Toko saat ini tidak membebankan ongkir.";
         else if (!subtotal) distInfo.innerText = "🛒 Tambahkan produk untuk menghitung ongkir.";
         else if (isFree) distInfo.innerText = `🎉 Selamat! Belanja mencapai Rp ${(shippingConfig.freeMin||0).toLocaleString('id-ID')}, ongkir GRATIS.`;
-        else if (!isAuto) distInfo.innerText = "📍 Alamat tujuan sudah WAJIB diketik manual di bawah. Peta/lokasi hanya untuk hitung ongkir otomatis — klik 'Gunakan Lokasi Saya' jika ingin ongkir langsung terhitung.";
+        else if (!isAuto) distInfo.innerText = "📍 Alamat tujuan sudah WAJIB diketik manual di bawah. Peta/lokasi hanya untuk hitung ongkir otomatis.";
         else {
           const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
           let extraNote = "";
@@ -945,7 +925,7 @@
       requestShippingUpdate();
     };
 
-    // ===== MAPS & GEOLOKASI PELANGGAN VERSI FINAL (STABIL, AKURAT & CEPAT) =====
+    // ===== MAPS & GEOLOKASI PELANGGAN =====
     let locatingNow = false;
     let livePositionWatchId = null;
     let lastLivePosition = null;
@@ -969,60 +949,36 @@
               ts: Date.now()
             };
           },
-          err => {
-            console.warn("GPS watch error:", err && err.code, err && err.message);
-          },
+          err => { console.warn("GPS watch error:", err && err.code, err && err.message); },
           { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
         );
-      } catch (e) {
-        console.warn("GPS watch gagal:", e);
-      }
+      } catch (e) { console.warn("GPS watch gagal:", e); }
     };
 
-    /**
-     * Ambil posisi GPS paling AKURAT.
-     * Strategi:
-     *  1. Pakai watchPosition untuk mengumpulkan beberapa sampel GPS.
-     *  2. Pilih sampel dengan nilai akurasi (meter) terkecil.
-     *  3. Selesai begitu akurasi sudah ≤ ACCURACY_TARGET (default 25 m),
-     *     atau saat MAX_WAIT terlampaui (pakai sampel terbaik yang sudah didapat).
-     */
     const getFreshPosition = () =>
       new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("BROWSER_TIDAK_DUKUNG_GEOLOKASI"));
-          return;
-        }
+        if (!navigator.geolocation) { reject(new Error("BROWSER_TIDAK_DUKUNG_GEOLOKASI")); return; }
 
         startLivePositionWatch();
 
-        const ACCURACY_TARGET = 25;   // meter
-        const MAX_WAIT = 15000;        // ms
+        const ACCURACY_TARGET = 25;
+        const MAX_WAIT = 15000;
         let bestPos = null;
         let settled = false;
         let watchId = null;
         let timeoutId = null;
 
         const cleanup = () => {
-          if (watchId !== null) {
-            try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
-            watchId = null;
-          }
+          if (watchId !== null) { try { navigator.geolocation.clearWatch(watchId); } catch (e) {} watchId = null; }
           if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
         };
 
-        const finish = (pos) => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          resolve(pos);
-        };
+        const finish = (pos) => { if (settled) return; settled = true; cleanup(); resolve(pos); };
 
         const fallbackOrFail = (err) => {
           if (settled) return;
           settled = true;
           cleanup();
-          // Pakai posisi rewatch terakhir kalau cukup fresh
           if (lastLivePosition && Date.now() - lastLivePosition.ts < 30000) {
             resolve({
               coords: {
@@ -1041,22 +997,13 @@
           watchId = navigator.geolocation.watchPosition(
             (pos) => {
               const acc = pos.coords.accuracy || 9999;
-              if (!bestPos || acc < (bestPos.coords.accuracy || 9999)) {
-                bestPos = pos;
-              }
-              if (acc <= ACCURACY_TARGET) {
-                finish(bestPos);
-              }
+              if (!bestPos || acc < (bestPos.coords.accuracy || 9999)) bestPos = pos;
+              if (acc <= ACCURACY_TARGET) finish(bestPos);
             },
-            (err) => {
-              if (!bestPos) fallbackOrFail(err);
-            },
+            (err) => { if (!bestPos) fallbackOrFail(err); },
             { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
           );
-        } catch (e) {
-          fallbackOrFail(e);
-          return;
-        }
+        } catch (e) { fallbackOrFail(e); return; }
 
         timeoutId = setTimeout(() => {
           if (bestPos) finish(bestPos);
@@ -1066,51 +1013,28 @@
 
     const initMapPicker = async (lat, lng) => {
       const mapStatusEl = $("map-status");
-      try {
-        await loadLeaflet();
-      } catch (err) {
-        if (mapStatusEl) mapStatusEl.innerText = "⚠️ " + err.message;
-        return;
-      }
+      try { await loadLeaflet(); }
+      catch (err) { if (mapStatusEl) mapStatusEl.innerText = "⚠️ " + err.message; return; }
 
       if (!mapPicker) {
         $("map-picker").style.display = "block";
-
-        mapPicker = L.map("map-picker", {
-          zoomControl: true,
-          preferCanvas: true,
-          worldCopyJump: true,
-          scrollWheelZoom: true,
-          tap: true,
-          touchZoom: true
-        }).setView([lat, lng], 17);
-
+        mapPicker = L.map("map-picker", { zoomControl: true, preferCanvas: true, worldCopyJump: true, scrollWheelZoom: true, tap: true, touchZoom: true }).setView([lat, lng], 17);
         mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
-
         addFastTiles(mapPicker);
-
         mapMarker.on("drag", e => {
           const p = e.target.getLatLng();
-          userLocation = {
-            lat: p.lat,
-            lng: p.lng,
-            address: userLocation && userLocation.address ? userLocation.address : ""
-          };
+          userLocation = { lat: p.lat, lng: p.lng, address: userLocation && userLocation.address ? userLocation.address : "" };
           requestShippingUpdate();
         });
-
         mapMarker.on("dragend", e => {
           const p = e.target.getLatLng();
           userLocation = { lat: p.lat, lng: p.lng, address: "" };
-          updateShippingDisplay();
-          reverseGeocode(p.lat, p.lng);
+          updateShippingDisplay(); reverseGeocode(p.lat, p.lng);
         });
-
         mapPicker.on("click", e => {
           mapMarker.setLatLng(e.latlng);
           userLocation = { lat: e.latlng.lat, lng: e.latlng.lng, address: "" };
-          updateShippingDisplay();
-          reverseGeocode(e.latlng.lat, e.latlng.lng);
+          updateShippingDisplay(); reverseGeocode(e.latlng.lat, e.latlng.lng);
         });
       } else {
         $("map-picker").style.display = "block";
@@ -1119,25 +1043,14 @@
       }
 
       scheduleInvalidate(mapPicker);
-      // Paksa refresh ukuran setelah container terlihat
       setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 200);
       setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 600);
     };
 
-    const showMapAt = async (lat, lng) => {
-      await initMapPicker(lat, lng);
-      $("map-picker").style.display = "block";
-      setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 200);
-    };
-
     const setCustomerMapLocation = async (lat, lng) => {
       await initMapPicker(lat, lng);
-      if (mapPicker) {
-        mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
-      }
-      if (mapMarker) {
-        mapMarker.setLatLng([lat, lng]);
-      }
+      if (mapPicker) mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
+      if (mapMarker) mapMarker.setLatLng([lat, lng]);
       userLocation = { lat, lng, address: "" };
       reverseGeocode(lat, lng);
       updateShippingDisplay();
@@ -1145,23 +1058,13 @@
 
     const locateCustomerCurrent = async ({ force = false } = {}) => {
       if (locatingNow) return !!(userLocation && userLocation.lat);
-
-      // Kalau tidak di-force dan sudah punya lokasi, jangan ganggu marker
-      if (!force && userLocation && userLocation.lat) {
-        return true;
-      }
+      if (!force && userLocation && userLocation.lat) return true;
 
       const btn = $("btn-use-my-location");
       const mapStatusEl = $("map-status");
 
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendapatkan lokasi akurat...';
-      }
-
-      if (mapStatusEl) {
-        mapStatusEl.innerHTML = "📡 Mengambil lokasi GPS terbaru. Pastikan GPS perangkat aktif…";
-      }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendapatkan lokasi akurat...'; }
+      if (mapStatusEl) mapStatusEl.innerHTML = "📡 Mengambil lokasi GPS terbaru. Pastikan GPS perangkat aktif…";
 
       locatingNow = true;
 
@@ -1171,7 +1074,6 @@
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : null;
 
-        // Peta langsung tampil otomatis di sini
         await setCustomerMapLocation(lat, lng);
 
         if (mapStatusEl) {
@@ -1184,26 +1086,16 @@
         return true;
       } catch (err) {
         console.warn("Gagal ambil lokasi:", err);
-        if (mapStatusEl) {
-          mapStatusEl.innerHTML =
-            "⚠️ Tidak dapat mengakses lokasi. Aktifkan GPS di perangkat Anda, lalu klik tombol \"Gunakan Lokasi Saya\" lagi.";
-        }
-        alert(
-          "Lokasi dibutuhkan agar ongkir bisa dihitung otomatis.\n\n" +
-          "Aktifkan GPS di perangkat Anda lalu klik tombol \"Gunakan Lokasi Saya\" lagi."
-        );
+        if (mapStatusEl) mapStatusEl.innerHTML = "⚠️ Tidak dapat mengakses lokasi. Aktifkan GPS di perangkat Anda, lalu klik tombol \"Gunakan Lokasi Saya\" lagi.";
+        alert("Lokasi dibutuhkan agar ongkir bisa dihitung otomatis.\n\nAktifkan GPS di perangkat Anda lalu klik tombol \"Gunakan Lokasi Saya\" lagi.");
         return false;
       } finally {
         locatingNow = false;
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya';
-        }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya'; }
         updateShippingDisplay();
       }
     };
 
-    // Tetap dipakai oleh kode original lain
     const askLocationAuto = () => locateCustomerCurrent({ force: false });
 
     // ===== ADMIN MAP =====
@@ -1343,10 +1235,7 @@
           startLivePositionWatch();
           if (mapPicker) {
             scheduleInvalidate(mapPicker);
-            mapPicker.setView(
-              [userLocation.lat || -6.693932, userLocation.lng || 108.509458],
-              Math.max((mapPicker.getZoom() || 16), 16)
-            );
+            mapPicker.setView([userLocation ? userLocation.lat : -6.693932, userLocation ? userLocation.lng : 108.509458], Math.max((mapPicker.getZoom() || 16), 16));
           }
         }, 300);
       } else {
@@ -1736,15 +1625,18 @@
     };
 
     const renderBroadcastHistory = (list) => {
-      const tbody = $('admin-broadcast-history-table'); tbody.innerHTML = '';
+      const tbody = $('admin-broadcast-history-table');
+      if (!tbody) return;
+      tbody.innerHTML = '';
       if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:10px;">Belum ada arsip</td></tr>'; return; }
+      const canManage = currentUser && currentUser.role === 'admin';
       list.forEach(b => {
         const isEnabled = b.enabled !== false;
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${b.time}</td><td style="word-break:break-word;">${b.text} <span style="display:block;font-size:9px;color:${isEnabled ? 'var(--success)' : 'var(--danger)'};">[${isEnabled ? 'TAMPIL' : 'NONAKTIF'}]</span></td>
           <td><div style="display:flex;gap:4px;flex-wrap:wrap;">
-          <button class="${isEnabled ? 'btn-danger' : 'btn-success'}" style="padding:3px 8px;font-size:10px;" data-toggle-bc="${b.id}">${isEnabled ? 'Nonaktifkan' : 'Aktifkan'}</button>
-          <button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-bc="${b.id}"><i class="fas fa-trash"></i> Hapus</button></div></td>`;
+          ${canManage ? `<button class="${isEnabled ? 'btn-danger' : 'btn-success'}" style="padding:3px 8px;font-size:10px;" data-toggle-bc="${b.id}">${isEnabled ? 'Nonaktifkan' : 'Aktifkan'}</button>
+          <button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-bc="${b.id}"><i class="fas fa-trash"></i> Hapus</button>` : '<span style="font-size:10px;color:var(--muted);">Hanya admin</span>'}</div></td>`;
         tbody.appendChild(tr);
       });
       tbody.querySelectorAll('button[data-toggle-bc]').forEach(btn => btn.addEventListener('click', e => {
@@ -1766,22 +1658,32 @@
       'completed': { label: '● Selesai', cls: 'selesai' }
     };
 
+    // ★ renderHistory — tombol Cetak Struk tampil untuk SEMUA order (Online Shop & POS Kasir)
     const renderHistory = (list) => {
       const tbody = $('admin-history-table'); tbody.innerHTML = '';
       if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:15px;">Belum ada transaksi.</td></tr>'; return; }
       const isAdmin = currentUser && currentUser.role === 'admin';
       list.forEach(order => {
         const cfg = statusCfg[order.orderStatus] || statusCfg['active'];
-        const total = order.subtotal + (parseInt(order.shippingFee) || 0);
-        const profit = order.netProfit || (order.subtotal - (order.totalHpp || 0));
+        const total = (order.subtotal || 0) + (parseInt(order.shippingFee) || 0);
+        const profit = order.netProfit || ((order.subtotal || 0) - (order.totalHpp || 0));
         const completed = order.orderStatus === 'selesai' || order.orderStatus === 'completed';
         const tr = document.createElement('tr');
         if (completed) tr.className = 'row-order-completed';
-        const printBtn = order.source && order.source !== 'POS Kasir' ? `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>` : '';
+
+        const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
+        const srcLabel = order.source || 'Online Shop';
+        const waktu = order.timestamp || '-';
+        const nama = order.buyerName || '-';
+        const wa = order.buyerPhone || '-';
+        const alamat = order.buyerAddress || '-';
+        const waktuOpsi = order.timeOption || '-';
+        const catatan = order.note || '-';
+
         tr.innerHTML = `
-          <td>${order.timestamp}<br><span style="font-size:9px;color:var(--primary);">[${order.source||'Online'}]</span></td>
-          <td><span class="order-status-badge ${cfg.cls}">${cfg.label}</span><br><strong>${order.buyerName}</strong><br>WA: ${order.buyerPhone}<br>${order.buyerAddress}</td>
-          <td><pre style="font-size:11px;font-family:inherit;white-space:pre-wrap;">${order.itemsSummary}Waktu: ${order.timeOption}\nCatatan: ${order.note}</pre></td>
+          <td>${waktu}<br><span style="font-size:9px;color:var(--primary);">[${srcLabel}]</span></td>
+          <td><span class="order-status-badge ${cfg.cls}">${cfg.label}</span><br><strong>${nama}</strong><br>WA: ${wa}<br>${alamat}</td>
+          <td><pre style="font-size:11px;font-family:inherit;white-space:pre-wrap;">${order.itemsSummary || '-'}Waktu: ${waktuOpsi}\nCatatan: ${catatan}</pre></td>
           <td><input type="number" class="shipping-input" data-id="${order.id}" value="${order.shippingFee||0}" style="width:70px;padding:3px;font-size:11px;"></td>
           <td><strong>Rp ${total.toLocaleString('id-ID')}</strong></td>
           <td style="color:var(--success);font-weight:700;">Rp ${profit.toLocaleString('id-ID')}</td>
@@ -2028,29 +1930,43 @@
       setTimeout(tryPrint, 300);
     });
 
+    // ★ cetakStrukOrder — fallback aman untuk order lama + data kosong
     const cetakStrukOrder = async (orderId) => {
       const order = historyList.find(o => o.id === orderId);
       if (!order) { alert("Pesanan tidak ditemukan!"); return; }
+
       const items = order.itemsList && Array.isArray(order.itemsList) ? order.itemsList : [];
       let itemsHtml = "";
+
       if (items.length > 0) {
         items.forEach((item, i) => {
-          const qty = item.qty || 1, price = item.price || 0;
+          const qty = item.qty || 1;
+          const price = item.price || 0;
           const toppings = item.toppings || [];
-          const toppingText = toppings.length ? ' + ' + toppings.map(t => `${t.name} (+Rp ${(t.price||0).toLocaleString('id-ID')})`).join(', ') : '';
+          const toppingText = toppings.length
+            ? ' + ' + toppings.map(t => `${t.name} (+Rp ${(t.price||0).toLocaleString('id-ID')})`).join(', ')
+            : '';
           const topCost = toppings.reduce((s,t) => s + (t.price||0), 0) * qty;
           const sub = Math.round((price * qty) + topCost);
           const itemUnit = item.unit || (item.product ? item.product.unitType : null) || 'pcs';
           const unitPretty = itemUnit === 'digital' ? 'Transaksi' : getUnitPretty(itemUnit);
-          itemsHtml += `${i+1}. ${item.productName || item.productId} [Rp ${price.toLocaleString('id-ID')} x ${qty} ${unitPretty}${toppingText}] = Rp ${sub.toLocaleString('id-ID')}\n`;
+          const productName = item.productName || item.productId || 'Produk';
+          itemsHtml += `${i+1}. ${productName} [Rp ${price.toLocaleString('id-ID')} x ${qty} ${unitPretty}${toppingText}] = Rp ${sub.toLocaleString('id-ID')}\n`;
         });
-      } else if (order.itemsSummary) itemsHtml = order.itemsSummary;
+      } else if (order.itemsSummary) {
+        itemsHtml = String(order.itemsSummary);
+      } else {
+        itemsHtml = "(Tidak ada rincian barang)";
+      }
+
       const shippingFee = parseInt(order.shippingFee) || 0;
-      const total = (order.subtotal || 0) + shippingFee;
+      const subtotal = order.subtotal || 0;
+      const total = subtotal + shippingFee;
       const qrDataUrl = await generateReceiptQR();
       const kasirInfo = getKasirInfo();
       const waKasir = kasirInfo.wa, waToko = formatWA(MAIN_WA_NUMBER);
       const waktuCetak = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
       const receiptHtml = `
         <div class="text-header">PENGEMBANG UMKM LOCAL</div>
         <div class="text-header-sub">✨ go jag ga jig group ✨</div>
@@ -2059,6 +1975,7 @@
         <hr>
         <table class="info-table">
           <tr><td>No. Pesanan</td><td>:</td><td>${order.id || '-'}</td></tr>
+          <tr><td>Sumber</td><td>:</td><td>${order.source || 'Online Shop'}</td></tr>
           <tr><td>Waktu</td><td>:</td><td>${order.timestamp || '-'}</td></tr>
           <tr><td>Cetak</td><td>:</td><td>${waktuCetak}</td></tr>
           <tr><td>Status</td><td>:</td><td>${(order.orderStatus || 'active').toUpperCase()}</td></tr>
@@ -2078,7 +1995,7 @@
         <pre class="receipt-items">${itemsHtml}</pre>
         <hr>
         <table class="total-table">
-          <tr><td>Subtotal</td><td style="text-align:right;">Rp ${(order.subtotal||0).toLocaleString('id-ID')}</td></tr>
+          <tr><td>Subtotal</td><td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td></tr>
           <tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr>
           <tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr>
         </table>
@@ -2092,6 +2009,7 @@
           ${qrDataUrl ? `<img src="${qrDataUrl}" width="100" height="100" style="display:inline-block;margin:2px auto;">` : '<div>QR tidak tersedia</div>'}
           <div>${STORE_URL}</div>
         </div>`;
+
       await printDynamicReceipt(receiptHtml);
     };
 
@@ -2131,7 +2049,7 @@
         if (!btPrinterChar) throw new Error('Service printer tidak ditemukan. Periksa UUID printer Anda.');
         await sendRaw(escposInit());
         setBtStatus('✅ Terhubung: ' + device.name, true);
-        alert('✅ Printer Bluetooth terhubung: ' + device.name + '\nFont A (12x24) + PC850 aktif.');
+        alert('✅ Printer Bluetooth terhubung: ' + device.name);
         return true;
       } catch(err) {
         console.error(err);
@@ -2421,10 +2339,8 @@
     $('btn-toggle-store-status').addEventListener('click', toggleStore);
     $('btn-clear-cart').addEventListener('click', () => { if (confirm("Kosongkan keranjang?")) { cart = []; saveCart(); renderCart(); } });
 
-    // TOMBOL GUNAKAN LOKASI SAYA — peta & lokasi akurat langsung muncul otomatis
     $('btn-use-my-location').addEventListener('click', async (e) => {
       e.preventDefault();
-      // force = true → selalu ambil GPS terbaru & map langsung tampil di titik akurat
       await locateCustomerCurrent({ force: true });
     });
 
@@ -2445,7 +2361,6 @@
       updateShippingDisplay();
     });
 
-    // ===== CHECKOUT: LOKASI WAJIB =====
     $('checkout-form').addEventListener('submit', async function(e) {
       e.preventDefault();
 
@@ -2455,7 +2370,7 @@
 
       const address = $('checkout-address').value.trim();
       if (!address) { alert("⚠️ Alamat lengkap WAJIB diisi! Peta tidak mengisi alamat otomatis."); $('checkout-address').focus(); return; }
-      if (address.length < 10) { alert("⚠️ Alamat terlalu pendek. Tulis alamat lengkap minimal 10 karakter:\nContoh: Jl. Melati No. 10, RT 02/RW 05, Kel. Sukamaju, Kec. Cirebon Utara, Kota Cirebon 45111"); $('checkout-address').focus(); return; }
+      if (address.length < 10) { alert("⚠️ Alamat terlalu pendek. Tulis alamat lengkap minimal 10 karakter."); $('checkout-address').focus(); return; }
 
       const name = $('checkout-name').value;
       const phone = $('checkout-phone').value;
@@ -2465,7 +2380,7 @@
       if (scheduleMode) {
         if (!scheduleRaw) { alert("⚠️ Wajib pilih jadwal pengiriman/pengambilan dahulu."); return; }
         const scheduledDate = new Date(scheduleRaw);
-        if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) { alert("⚠️ Waktu pengiriman harus di masa mendatang (hari, tanggal, bulan, tahun, jam yang valid)!"); return; }
+        if (isNaN(scheduledDate.getTime()) || scheduledDate.getTime() <= Date.now()) { alert("⚠️ Waktu pengiriman harus di masa mendatang!"); return; }
         time = formatIndoDateTime(scheduledDate);
       } else time = "Kirim Sekarang";
 
@@ -2580,7 +2495,6 @@
       }, { enableHighAccuracy:true, timeout:10000 });
     });
 
-    // ===== SIMPAN PENGATURAN ONGKIR =====
     $('shipping-config-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       let storeLat = parseFloat($('ship-lat').value) || 0;
@@ -2595,7 +2509,7 @@
           reverseAdminGeocode(storeLat, storeLng);
         }
       }
-      if (!storeLat || !storeLng) { alert("Lokasi toko belum lengkap. Gunakan tombol 'Cari di Peta' atau klik pada peta untuk menentukan lokasi."); return; }
+      if (!storeLat || !storeLng) { alert("Lokasi toko belum lengkap."); return; }
 
       const extraFlatEnable = $('extra-flat-enable').checked;
       const extraPerEnable = $('extra-per-enable').checked;
@@ -2628,7 +2542,7 @@
         $('ship-lat').value = coords.lat; $('ship-lng').value = coords.lng;
         initAdminMap(coords.lat, coords.lng);
         reverseAdminGeocode(coords.lat, coords.lng);
-      } else alert("Alamat tidak ditemukan. Perbaiki alamat atau klik pada peta untuk menentukan lokasi.");
+      } else alert("Alamat tidak ditemukan.");
     });
 
     initFirebase();
