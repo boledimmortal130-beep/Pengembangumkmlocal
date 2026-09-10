@@ -517,6 +517,10 @@
 
     const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
 
+    // ===== BLUETOOTH PRINTER STATE (dideklarasikan lebih awal agar cetak struk histori siap pakai) =====
+    let btPrinterChar = null;
+    let btStatusEl = document.getElementById('bt-status-label');
+
     const safeParse = (json, fallback) => {
       try {
         const parsed = json ? JSON.parse(json) : null;
@@ -1671,6 +1675,7 @@
         const tr = document.createElement('tr');
         if (completed) tr.className = 'row-order-completed';
 
+        // tombol cetak untuk semua sumber (Online Shop & POS Kasir)
         const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
         const srcLabel = order.source || 'Online Shop';
         const waktu = order.timestamp || '-';
@@ -1930,12 +1935,121 @@
       setTimeout(tryPrint, 300);
     });
 
-    // ★ cetakStrukOrder — fallback aman untuk order lama + data kosong
+    // ★ Ambil data item order dengan toleransi data lama / kosong
+    const extractOrderItems = (order) => {
+      if (order.itemsList && Array.isArray(order.itemsList) && order.itemsList.length > 0) return order.itemsList;
+      return [];
+    };
+
+    // ★ CETAK STRUK VIA BLUETOOTH THERMAL (untuk Online Shop & POS Kasir)
+    const cetakStrukOrderBluetooth = async (order) => {
+      if (!btPrinterChar) {
+        const ok = await connectBluetooth();
+        if (!ok) return false;
+      }
+      const items = extractOrderItems(order);
+      const shippingFee = parseInt(order.shippingFee) || 0;
+      const subtotal = order.subtotal || 0;
+      const total = subtotal + shippingFee;
+      const kasirInfo = getKasirInfo();
+      const waToko = formatWA(MAIN_WA_NUMBER);
+      const waKasir = kasirInfo.wa;
+      const isPos = (order.source === 'POS Kasir');
+      const waktuCetak = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+      await sendRaw(escposInit());
+      await btPrintLine('================================','c');
+      await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
+      await btPrintLine('go jag ga jig group','c');
+      await btPrintLine('Jl. Syekh Datul Kahfi DS. Gamel','c');
+      await btPrintLine('WA Admin : ' + waToko,'c');
+      await btPrintLine('================================','c');
+      await btPrintLine('No. Struk : ' + (order.id || '-'));
+      await btPrintLine('Sumber    : ' + (order.source || 'Online Shop'));
+      await btPrintLine('Waktu     : ' + (order.timestamp || '-'));
+      await btPrintLine('Cetak     : ' + waktuCetak);
+      await btPrintLine('Status    : ' + (order.orderStatus || 'active').toUpperCase());
+      await btPrintLine('Kasir     : ' + kasirInfo.nama + ' (' + kasirInfo.peran.toUpperCase() + ')');
+      if (waKasir !== waToko) await btPrintLine('WA Petugas: ' + waKasir);
+      await btPrintLine('--------------------------------');
+
+      if (!isPos) {
+        await btPrintLine('-- DATA PELANGGAN --','c');
+        await btPrintLine('Nama   : ' + (order.buyerName || '-'));
+        await btPrintLine('WA     : ' + (order.buyerPhone || '-'));
+        await btPrintLine('Alamat : ' + (order.buyerAddress || '-'));
+        await btPrintLine('Waktu  : ' + (order.timeOption || '-'));
+        await btPrintLine('--------------------------------');
+      }
+
+      await btPrintLine('-- RINCIAN BELANJA --','c');
+      if (items.length > 0) {
+        let idx = 0;
+        for (const item of items) {
+          idx++;
+          const qty = item.qty || 1;
+          const price = item.price || 0;
+          const toppings = item.toppings || [];
+          const unit = item.unit || (item.product ? item.product.unitType : null) || 'pcs';
+          const unitPretty = unit === 'digital' ? 'Transaksi' : getUnitPretty(unit);
+          const topCost = toppings.reduce((s,t) => s + (t.price||0), 0) * qty;
+          const sub = Math.round((price * qty) + topCost);
+          const productName = item.productName || item.productId || 'Produk';
+          await btPrintLine(`${idx}. ${productName}`);
+          await btPrintLine(`   Rp ${Number(price).toLocaleString('id-ID')} x ${qty} ${unitPretty}`);
+          if (toppings.length > 0) await btPrintLine(`   + Toping: ${toppings.map(t => `${t.name} (+Rp ${(t.price||0).toLocaleString('id-ID')})`).join(', ')}`);
+          await btPrintLine(`   = Rp ${Number(sub).toLocaleString('id-ID')}`);
+        }
+      } else if (order.itemsSummary) {
+        const lines = String(order.itemsSummary).split('\n').filter(l => l.trim());
+        for (const line of lines) await btPrintLine(line);
+      } else {
+        await btPrintLine('(Tidak ada rincian barang)');
+      }
+
+      await btPrintLine('--------------------------------');
+      await btPrintLine('Subtotal : Rp ' + Number(subtotal).toLocaleString('id-ID'));
+      await btPrintLine('Ongkir   : ' + (shippingFee === 0 ? 'GRATIS' : 'Rp ' + Number(shippingFee).toLocaleString('id-ID')));
+      await btPrintLine('TOTAL    : Rp ' + Number(total).toLocaleString('id-ID'),'c',true);
+
+      if (isPos && order.note) {
+        await btPrintLine('--------------------------------');
+        await btPrintLine('-- PEMBAYARAN --','c');
+        await btPrintLine(order.note);
+      } else if (order.note) {
+        await btPrintLine('--------------------------------');
+        await btPrintLine('Catatan: ' + order.note);
+      }
+
+      await btPrintLine('--------------------------------');
+      await btPrintLine('Terima Kasih!','c');
+      await btPrintLine('Belanja Lebih Mudah & Hemat','c');
+      await btPrintLine('WA Admin: ' + waToko,'c');
+      await btPrintLine('===============================','c');
+      await btFeed(4);
+      setBtStatus('✅ Struk terkirim');
+      return true;
+    };
+
+    // ★ cetakStrukOrder — OTOMATIS cetak untuk SEMUA order (Online Shop & POS Kasir).
+    // Jika printer Bluetooth tersambung → cetak thermal. Jika tidak → cetak via browser.
     const cetakStrukOrder = async (orderId) => {
       const order = historyList.find(o => o.id === orderId);
       if (!order) { alert("Pesanan tidak ditemukan!"); return; }
 
-      const items = order.itemsList && Array.isArray(order.itemsList) ? order.itemsList : [];
+      // 1) Prioritas: printer Bluetooth thermal (jika sudah terhubung)
+      if (btPrinterChar) {
+        try {
+          await cetakStrukOrderBluetooth(order);
+          return;
+        } catch (err) {
+          console.error("Cetak Bluetooth gagal, fallback ke browser:", err);
+          alert("Gagal cetak via Bluetooth: " + (err && err.message ? err.message : err) + "\n\nBeralih mencetak lewat browser.");
+        }
+      }
+
+      // 2) Fallback / default: cetak struk lewat browser
+      const items = extractOrderItems(order);
       let itemsHtml = "";
 
       if (items.length > 0) {
@@ -2014,8 +2128,6 @@
     };
 
     // ===== BLUETOOTH THERMAL =====
-    let btPrinterChar = null;
-    let btStatusEl = document.getElementById('bt-status-label');
     const BT_SERVICE_UUIDS = ['0000ffe0-0000-1000-8000-00805f9b34fb','0000ff00-0000-1000-8000-00805f9b34fb','49535343-fe7d-4ae5-8fa9-9fafd205e455'];
     const BT_CHAR_UUIDS = ['0000ffe1-0000-1000-8000-00805f9b34fb','0000ff02-0000-1000-8000-00805f9b34fb','49535343-8841-43f4-a8d4-ecbe34729bb3'];
 
