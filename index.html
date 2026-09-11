@@ -11,9 +11,16 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+  <!-- ===== OPTIMASI KONEKSI: PRECONNECT & DNS-PREFETCH ===== -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://unpkg.com">
+  <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+  <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- ===== PERUBAHAN RINGAN: html5-qrcode & qrcodejs TIDAK dimuat di awal (lazy load saat dibutuhkan) ===== -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -113,11 +120,11 @@
     .cart-quick-add > p{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4}
     .quick-search-wrap{position:relative}
     .quick-search-wrap .search-input{background:#fff7ed}
-    .quick-search-results{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:2px solid var(--border);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.18);max-height:340px;overflow-y:auto;z-index:900;animation:bellAppear .15s ease-out}
+    .quick-search-results{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:2px solid var(--border);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.18);max-height:340px;overflow-y:auto;z-index:900;animation:bellAppear .15s ease-out;-webkit-overflow-scrolling:touch}
     .quick-search-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px dashed #fed7aa;cursor:pointer;transition:background .15s}
     .quick-search-item:last-child{border-bottom:none}
     .quick-search-item:hover{background:#fff7ed}
-    .quick-search-item img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0}
+    .quick-search-item img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#fff7ed}
     .quick-search-info{flex:1;min-width:0}
     .quick-search-info h5{font-size:13px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .quick-search-info .qprice{font-size:12px;color:var(--primary);font-weight:800}
@@ -147,7 +154,7 @@
     .pos-item-card{background:var(--card-bg);border:2px solid var(--border);border-radius:8px;padding:8px;text-align:center;cursor:pointer;transition:.2s}
     .pos-item-card:hover{border-color:var(--primary);background:#fff7ed;transform:translateY(-2px)}
     .pos-item-card img{width:100%;height:60px;object-fit:cover;border-radius:6px}
-    .table-responsive{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+    .table-responsive{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:8px;-webkit-overflow-scrolling:touch}
     .admin-table{width:100%;border-collapse:collapse;font-size:11px;min-width:680px}
     .admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
     .admin-table th{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:var(--header-text);font-weight:700;white-space:nowrap}
@@ -233,7 +240,7 @@
       </div>
 
       <div class="search-filter-box">
-        <div class="search-input"><i class="fas fa-search"></i><input type="text" id="search-buyer" placeholder="Cari nama barang..."></div>
+        <div class="search-input"><i class="fas fa-search"></i><input type="text" id="search-buyer" placeholder="Cari nama barang..." autocomplete="off" enterkeyhint="search" spellcheck="false"></div>
         <div class="filter-select"><i class="fas fa-filter"></i><select id="category-filter"><option value="all">Semua Kategori</option></select></div>
       </div>
 
@@ -246,14 +253,14 @@
 
       <div id="closed-store-notice" class="store-status-banner closed hidden"><i class="fas fa-store-slash"></i><span>Toko sedang <strong>TUTUP</strong>. Anda tetap dapat memesan — wajib menentukan tanggal & jam pengiriman/pengambilan.</span></div>
 
-      <!-- ===== FITUR BARU: TAMBAH CEPAT BARANG DARI KERANJANG ===== -->
+      <!-- ===== FITUR BARU: TAMBAH CEPAT BARANG DARI KERANJANG (PENCARIAN: NAMA + KATEGORI) ===== -->
       <div class="cart-quick-add">
         <h3><i class="fas fa-search-plus"></i> Tambah Cepat Barang ke Keranjang</h3>
-        <p>Ketik nama barang untuk menambah langsung tanpa bolak-balik ke halaman <strong>Toko</strong>. Barang yang sudah ada di keranjang akan <strong>otomatis digabung jumlahnya — tidak akan dobel</strong>. 🛒</p>
+        <p>Ketik <strong>nama barang</strong> atau <strong>kategori</strong> untuk menambah langsung tanpa bolak-balik ke halaman <strong>Toko</strong>. Barang yang sudah ada di keranjang akan <strong>otomatis digabung jumlahnya — tidak akan dobel</strong>. 🛒</p>
         <div class="quick-search-wrap" id="quick-search-wrap">
           <div class="search-input">
             <i class="fas fa-search"></i>
-            <input type="text" id="cart-quick-search" placeholder="Cari & tambah barang (nama / barcode / kategori)..." autocomplete="off">
+            <input type="text" id="cart-quick-search" placeholder="Cari nama barang atau kategori..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
             <i class="fas fa-times-circle hidden" id="cart-quick-clear" style="cursor:pointer;color:var(--muted);" title="Bersihkan pencarian"></i>
           </div>
           <div class="quick-search-results hidden" id="cart-quick-results"></div>
@@ -396,7 +403,7 @@
           <div class="pos-grid">
             <div>
               <div style="display:flex;gap:6px;margin-bottom:8px;">
-                <div class="search-input" style="flex:1;"><i class="fas fa-search"></i><input type="text" id="pos-search" placeholder="Cari nama/barcode"></div>
+                <div class="search-input" style="flex:1;"><i class="fas fa-search"></i><input type="text" id="pos-search" placeholder="Cari nama/barcode" autocomplete="off" spellcheck="false"></div>
                 <button class="btn-primary" id="btn-scan-pos"><i class="fas fa-barcode"></i> Scan</button>
               </div>
               <div class="pos-products" id="pos-product-list"></div>
@@ -467,7 +474,7 @@
 
             <div class="card">
               <h3><i class="fas fa-boxes"></i> Stok Barang</h3>
-              <div class="search-input" style="margin-bottom:10px;"><i class="fas fa-search"></i><input type="text" id="search-admin" placeholder="Cari barang / barcode / rak"></div>
+              <div class="search-input" style="margin-bottom:10px;"><i class="fas fa-search"></i><input type="text" id="search-admin" placeholder="Cari barang / barcode / rak" autocomplete="off" spellcheck="false"></div>
               <div class="table-responsive"><table class="admin-table"><thead><tr><th>Foto</th><th>Nama / Barcode</th><th>Rak</th><th>Stok</th><th>Harga / Modal</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="admin-product-table"></tbody></table></div>
             </div>
 
@@ -564,7 +571,33 @@
 
     const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
 
-    // ===== BLUETOOTH PRINTER STATE (dideklarasikan lebih awal agar cetak struk histori siap pakai) =====
+    // ===== OPTIMASI: LAZY LOAD SCRIPT EKSTERNAL (html5-qrcode & qrcodejs) =====
+    const _scriptCache = new Map();
+    function loadScriptOnce(src) {
+      if (_scriptCache.has(src)) return _scriptCache.get(src);
+      const p = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve(true);
+        s.onerror = () => { _scriptCache.delete(src); reject(new Error('Gagal memuat: ' + src)); };
+        document.head.appendChild(s);
+      });
+      _scriptCache.set(src, p);
+      return p;
+    }
+    async function ensureQRCodeLib() {
+      if (typeof QRCode !== 'undefined') return true;
+      try { await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); } catch (e) { return false; }
+      return typeof QRCode !== 'undefined';
+    }
+    async function ensureHtml5QrcodeLib() {
+      if (typeof Html5Qrcode !== 'undefined') return true;
+      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
+      return typeof Html5Qrcode !== 'undefined';
+    }
+
+    // ===== BLUETOOTH PRINTER STATE =====
     let btPrinterChar = null;
     let btStatusEl = document.getElementById('bt-status-label');
 
@@ -699,6 +732,25 @@
     let activeScanTarget = null;
     let encodedImage = "";
     let pendingToppingCallback = null;
+
+    // =========================================================================
+    // ====== OPTIMASI: CACHE INDEX PENCARIAN PRODUK (RINGAN & CEPAT) ==========
+    // =========================================================================
+    // Index dibangun sekali saja per perubahan produk. Pencarian cukup pakai
+    // indexOf pada string yang sudah lowercase → jauh lebih cepat dari filter
+    // berulang ke setiap properti produk di tiap ketikan.
+    let _searchIndexRef = null;
+    let _searchIndex = [];
+    function getProductSearchIndex() {
+      if (_searchIndexRef === products) return _searchIndex;
+      _searchIndex = products.map(p => ({
+        p,
+        key: ((p.name || '') + ' ' + (p.category || '')).toLowerCase()
+      }));
+      _searchIndexRef = products;
+      return _searchIndex;
+    }
+    function invalidateSearchIndex() { _searchIndexRef = null; }
 
     const DEFAULT_SHIPPING_CONFIG = {
       enabled: true,
@@ -1201,7 +1253,8 @@
 
     // ===== SAVE DATA =====
     const saveProducts = () => {
-      const doLocal = () => { localStorage.setItem('adidin_products', JSON.stringify(products)); renderProducts(); if (currentUser) { renderAdminProducts(); renderPosProducts(); } };
+      invalidateSearchIndex();
+      const doLocal = () => { localStorage.setItem('adidin_products', JSON.stringify(products)); renderProducts(); if (currentUser) { renderAdminProducts(); renderPosProducts(); } renderQuickSearchResults(); };
       if (firebaseReady) db.ref('products').set(products).then(doLocal).catch(err => { console.error("Gagal sinkron ke Firebase:", err); doLocal(); });
       else doLocal();
     };
@@ -1398,7 +1451,7 @@
         card.className = `product-card ${!isAvailable ? 'out-of-stock' : ''} ${!storeOpen ? 'store-closed' : ''}`;
         card.innerHTML = `
           <div class="product-img-box">
-            <img src="${p.img}" alt="${p.name}" loading="lazy">
+            <img src="${p.img}" alt="${p.name}" loading="lazy" decoding="async">
             ${p.rack ? `<span class="badge-rack"><i class="fas fa-th-large"></i> ${p.rack}</span>` : ''}
             ${!isAvailable ? '<span class="badge-out">Stok Habis</span>' : ''}
           </div>
@@ -1457,7 +1510,6 @@
     // ====== FITUR BARU: ANTI-DOBEL + TAMBAH CEPAT DARI KERANJANG ============
     // =========================================================================
 
-    // Cari index item di keranjang yang identik (produk + satuan + topping + harga digital)
     const findCartIndexByProduct = (productId, unitType, toppings, priceForDigital) => {
       const topKey = (toppings || []).map(t => t.name).sort().join('|');
       return cart.findIndex(item => {
@@ -1466,13 +1518,11 @@
         if (itemUnit !== unitType) return false;
         const itemTopKey = (item.toppings || []).map(t => t.name).sort().join('|');
         if (itemTopKey !== topKey) return false;
-        // Untuk produk digital, nominal berbeda = item terpisah (tidak digabung)
         if (unitType === 'digital' && Number(item.product.price) !== Number(priceForDigital)) return false;
         return true;
       });
     };
 
-    // Tambah ke keranjang PINTAR: kalau sudah ada → jumlah digabung (tidak dobel baris)
     const addToCartSmart = (product, qty, customPrice, toppings) => {
       toppings = toppings || [];
       const unitType = product.unitType || 'pcs';
@@ -1499,12 +1549,10 @@
       return true;
     };
 
-    // Proses tambah cepat sesuai tipe satuan / topping
     const quickAddProduct = (product) => {
       if (!product || !product.available || (product.unitType !== 'digital' && product.stock <= 0)) { alert("Stok habis!"); return; }
       const unitType = product.unitType || 'pcs';
 
-      // Produk digital → minta nominal
       if (unitType === 'digital') {
         const input = prompt(`Masukkan nominal (Rp) untuk "${product.name}":`, "50000");
         if (input === null) return;
@@ -1514,7 +1562,6 @@
         return;
       }
 
-      // Satuan volume (kg / liter) → minta jumlah
       if (isVolumeUnitType(unitType)) {
         const unitNoun = unitType === 'liter' ? 'liter' : 'kg';
         const input = prompt(`Berapa ${unitNoun} "${product.name}" yang ingin dibeli?`, "1");
@@ -1525,17 +1572,21 @@
         return;
       }
 
-      // Produk dengan topping → buka modal topping
       if (product.toppings && product.toppings.length > 0) {
         openTopping(product, (toppings) => addToCartSmart(product, 1, product.price, toppings || []));
         return;
       }
 
-      // Produk biasa (pcs/dus/pack/lusin/dll)
       addToCartSmart(product, 1, product.price, []);
     };
 
-    // Render hasil pencarian cepat di keranjang
+    // =========================================================================
+    // ====== PENCARIAN CEPAT KERANJANG — HANYA NAMA BARANG + KATEGORI =========
+    // =========================================================================
+    // Tidak memakai barcode sama sekali. Menggunakan cache index agar ringan
+    // dan responsif walau jumlah produk banyak.
+    const QUICK_SEARCH_LIMIT = 30;
+
     const renderQuickSearchResults = () => {
       const input = $('cart-quick-search');
       const resultsEl = $('cart-quick-results');
@@ -1546,21 +1597,34 @@
 
       if (clearBtn) clearBtn.classList.toggle('hidden', q.length === 0);
 
-      if (!q) { resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; return; }
+      // Tidak ada query → sembunyikan tanpa render apa pun (hemat)
+      if (!q) {
+        if (!resultsEl.classList.contains('hidden')) {
+          resultsEl.classList.add('hidden');
+          resultsEl.innerHTML = '';
+        }
+        return;
+      }
 
-      const matches = products.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        (p.barcode && p.barcode.toLowerCase().includes(q)) ||
-        (p.category && p.category.toLowerCase().includes(q))
-      ).slice(0, 40);
+      // Pakai cache index (dibangun sekali per perubahan produk)
+      const index = getProductSearchIndex();
+      const matches = [];
+      for (let i = 0; i < index.length; i++) {
+        if (index[i].key.indexOf(q) !== -1) {
+          matches.push(index[i].p);
+          if (matches.length >= QUICK_SEARCH_LIMIT) break;
+        }
+      }
 
       if (matches.length === 0) {
-        resultsEl.innerHTML = '<div class="quick-search-empty">Barang tidak ditemukan 😕<br><small>Coba kata kunci lain ya.</small></div>';
+        resultsEl.innerHTML = '<div class="quick-search-empty">Barang tidak ditemukan 😕<br><small>Coba kata kunci nama atau kategori lain ya.</small></div>';
         resultsEl.classList.remove('hidden');
         return;
       }
 
-      resultsEl.innerHTML = matches.map(p => {
+      let html = '';
+      for (let i = 0; i < matches.length; i++) {
+        const p = matches[i];
         const isDigital = p.unitType === 'digital';
         const isAvailable = p.available && (p.stock > 0 || isDigital);
         const inCartQty = cart.filter(it => String(it.product.id) === String(p.id)).reduce((s, it) => s + (parseFloat(it.qty) || 1), 0);
@@ -1570,8 +1634,8 @@
           ? `<span class="quick-search-badge ok"><i class="fas fa-check-circle"></i> Sudah di keranjang: ${inCartQty}</span>`
           : `<span class="quick-search-badge"><i class="fas fa-plus-circle"></i> Klik untuk tambah</span>`;
         const stockWarn = !isAvailable ? ' • <span style="color:var(--danger);font-weight:800;">STOK HABIS</span>' : '';
-        return `<div class="quick-search-item" data-qpid="${p.id}">
-          <img src="${p.img}" alt="" loading="lazy">
+        html += `<div class="quick-search-item" data-qpid="${p.id}">
+          <img src="${p.img}" alt="" loading="lazy" decoding="async">
           <div class="quick-search-info">
             <h5>${p.name}</h5>
             <div class="qprice">Rp ${(p.price||0).toLocaleString('id-ID')} <span style="font-weight:400;font-size:10px;color:var(--muted);">/ ${unitLabel}</span></div>
@@ -1579,16 +1643,22 @@
             ${badgeExisting}
           </div>
         </div>`;
-      }).join('');
+      }
 
+      resultsEl.innerHTML = html;
       resultsEl.classList.remove('hidden');
 
-      resultsEl.querySelectorAll('.quick-search-item').forEach(el => {
-        el.addEventListener('click', () => {
-          const p = products.find(pp => String(pp.id) === String(el.getAttribute('data-qpid')));
+      // Event listener delegasi (lebih ringan dari memasang listener per item)
+      if (!resultsEl._delegated) {
+        resultsEl._delegated = true;
+        resultsEl.addEventListener('click', (ev) => {
+          const itemEl = ev.target.closest('.quick-search-item');
+          if (!itemEl) return;
+          const pid = itemEl.getAttribute('data-qpid');
+          const p = products.find(pp => String(pp.id) === String(pid));
           if (p) quickAddProduct(p);
         });
-      });
+      }
     };
 
     // =========================================================================
@@ -1612,7 +1682,6 @@
         qty = 1;
       }
       const finish = (toppings) => {
-        // ★ Pakai addToCartSmart → otomatis anti-dobel (jumlah digabung bila barang sudah ada)
         addToCartSmart(prod, qty, customPrice, toppings || []);
       };
       if (prod.toppings && prod.toppings.length > 0) openTopping(prod, finish);
@@ -1652,7 +1721,7 @@
         const row = document.createElement('div');
         row.className = 'cart-item';
         row.innerHTML = `
-          <img src="${item.product.img || ''}" alt="">
+          <img src="${item.product.img || ''}" alt="" loading="lazy" decoding="async">
           <div class="cart-item-details">
             <h4>${item.product.name}</h4>
             ${topingText}
@@ -1712,7 +1781,7 @@
         card.className = 'pos-item-card';
         card.onclick = () => addPos(p);
         const stockTxt = p.unitType === 'digital' ? '∞' : `${p.stock} ${getUnitPretty(p.unitType)}`;
-        card.innerHTML = `<img src="${p.img}" alt=""><h5>${p.name}</h5><p>Rp ${p.price.toLocaleString('id-ID')}</p><div style="font-size:9px;color:var(--muted);">Stok: ${stockTxt} | Rak: ${p.rack||'-'}</div>${(p.toppings&&p.toppings.length) ? '<div style="font-size:9px;color:var(--primary);">Toping tersedia</div>' : ''}`;
+        card.innerHTML = `<img src="${p.img}" alt="" loading="lazy" decoding="async"><h5>${p.name}</h5><p>Rp ${p.price.toLocaleString('id-ID')}</p><div style="font-size:9px;color:var(--muted);">Stok: ${stockTxt} | Rak: ${p.rack||'-'}</div>${(p.toppings&&p.toppings.length) ? '<div style="font-size:9px;color:var(--primary);">Toping tersedia</div>' : ''}`;
         frag.appendChild(card);
       });
       container.appendChild(frag);
@@ -1774,9 +1843,16 @@
       $('pos-change-pay').innerText = `Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}`;
     };
 
-    const openScanner = (target) => {
-      if (typeof Html5Qrcode === 'undefined') { alert("Library scanner belum dimuat. Periksa koneksi internet."); return; }
+    // ===== SCANNER (lazy load library) =====
+    const openScanner = async (target) => {
       activeScanTarget = target;
+      try {
+        const ok = await ensureHtml5QrcodeLib();
+        if (!ok) throw new Error('library tidak tersedia');
+      } catch (e) {
+        alert("Gagal memuat library scanner. Periksa koneksi internet lalu coba lagi.");
+        return;
+      }
       $('scanner-modal').classList.remove('hidden');
       if (!html5QrCodeScanner) html5QrCodeScanner = new Html5Qrcode("qr-reader");
       html5QrCodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } }, onScan).catch(err => alert("Gagal kamera: " + err));
@@ -1853,7 +1929,6 @@
       'completed': { label: '● Selesai', cls: 'selesai' }
     };
 
-    // ★ renderHistory — tombol Cetak Struk tampil untuk SEMUA order (Online Shop & POS Kasir)
     const renderHistory = (list) => {
       const tbody = $('admin-history-table'); tbody.innerHTML = '';
       if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:15px;">Belum ada transaksi.</td></tr>'; return; }
@@ -1866,7 +1941,6 @@
         const tr = document.createElement('tr');
         if (completed) tr.className = 'row-order-completed';
 
-        // tombol cetak untuk semua sumber (Online Shop & POS Kasir)
         const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
         const srcLabel = order.source || 'Online Shop';
         const waktu = order.timestamp || '-';
@@ -1972,7 +2046,7 @@
         const unit = p.unitType === 'digital' ? 'Digital' : getUnitPretty(p.unitType);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><img src="${p.img}" alt=""></td>
+          <td><img src="${p.img}" alt="" loading="lazy" decoding="async"></td>
           <td><strong>${p.name}</strong><br><small style="color:var(--muted);">${p.barcode ? 'BC: ' + p.barcode : 'Tanpa BC'}</small></td>
           <td><span style="background:#fff7ed;padding:2px 6px;border-radius:999px;">${p.rack||'Rak Utama'}</span></td>
           <td><strong>${p.unitType === 'digital' ? '∞' : p.stock}</strong> ${unit}</td>
@@ -2071,9 +2145,9 @@
     }
 
     async function generateReceiptQR(text = STORE_URL, size = 200) {
+      if (!(await ensureQRCodeLib())) return '';
       return new Promise((resolve) => {
         try {
-          if (typeof QRCode === 'undefined') return resolve('');
           const tempDiv = document.createElement('div');
           tempDiv.style.cssText = "position:fixed;left:-9999px;top:0;width:"+size+"px;height:"+size+"px;";
           document.body.appendChild(tempDiv);
@@ -2126,13 +2200,11 @@
       setTimeout(tryPrint, 300);
     });
 
-    // ★ Ambil data item order dengan toleransi data lama / kosong
     const extractOrderItems = (order) => {
       if (order.itemsList && Array.isArray(order.itemsList) && order.itemsList.length > 0) return order.itemsList;
       return [];
     };
 
-    // ★ CETAK STRUK VIA BLUETOOTH THERMAL (untuk Online Shop & POS Kasir)
     const cetakStrukOrderBluetooth = async (order) => {
       if (!btPrinterChar) {
         const ok = await connectBluetooth();
@@ -2222,13 +2294,10 @@
       return true;
     };
 
-    // ★ cetakStrukOrder — OTOMATIS cetak untuk SEMUA order (Online Shop & POS Kasir).
-    // Jika printer Bluetooth tersambung → cetak thermal. Jika tidak → cetak via browser.
     const cetakStrukOrder = async (orderId) => {
       const order = historyList.find(o => o.id === orderId);
       if (!order) { alert("Pesanan tidak ditemukan!"); return; }
 
-      // 1) Prioritas: printer Bluetooth thermal (jika sudah terhubung)
       if (btPrinterChar) {
         try {
           await cetakStrukOrderBluetooth(order);
@@ -2239,7 +2308,6 @@
         }
       }
 
-      // 2) Fallback / default: cetak struk lewat browser
       const items = extractOrderItems(order);
       let itemsHtml = "";
 
@@ -2503,7 +2571,7 @@
     $('bell-dropdown').addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
-    // ===== FITUR BARU: EVENT LISTENER PENCARIAN CEPAT DI KERANJANG =====
+    // ===== OPTIMASI: EVENT LISTENER PENCARIAN CEPAT DI KERANJANG (debounce) =====
     (function initCartQuickSearch() {
       const input = $('cart-quick-search');
       const resultsEl = $('cart-quick-results');
@@ -2511,7 +2579,6 @@
       const wrap = $('quick-search-wrap');
       if (!input || !resultsEl) return;
 
-      // Cegah dropdown tertutup saat klik di area pencarian
       if (wrap) {
         wrap.addEventListener('click', (e) => e.stopPropagation());
         wrap.addEventListener('mousedown', (e) => e.stopPropagation());
@@ -2520,9 +2587,21 @@
       let debounceTid = null;
       input.addEventListener('input', () => {
         if (debounceTid) clearTimeout(debounceTid);
-        debounceTid = setTimeout(() => renderQuickSearchResults(), 120);
+        debounceTid = setTimeout(() => renderQuickSearchResults(), 100);
       });
       input.addEventListener('focus', () => { if ((input.value || '').trim()) renderQuickSearchResults(); });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          input.value = '';
+          resultsEl.classList.add('hidden');
+          resultsEl.innerHTML = '';
+          if (clearBtn) clearBtn.classList.add('hidden');
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          const first = resultsEl.querySelector('.quick-search-item');
+          if (first) first.click();
+        }
+      });
 
       if (clearBtn) clearBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -2533,12 +2612,11 @@
         input.focus();
       });
 
-      // Klik di luar → tutup dropdown
       document.addEventListener('click', () => {
         if (resultsEl) resultsEl.classList.add('hidden');
       });
     })();
-    // ===== END FITUR BARU =====
+    // ===== END OPTIMASI =====
 
     $('wa-broadcast-form').addEventListener('submit', e => {
       e.preventDefault();
@@ -2598,6 +2676,7 @@
       } else {
         products.push({ id: Date.now().toString(), barcode, name, unitType, price, costPrice, stock, rack, category, desc, img: encodedImage || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400", available: isAvailable, toppings });
       }
+      invalidateSearchIndex();
       saveProducts(); resetProductForm();
       alert("Produk disimpan! ✅");
     });
@@ -2624,6 +2703,7 @@
           const data = snap.val();
           if (data) { products = Array.isArray(data) ? data : Object.values(data); localStorage.setItem('adidin_products', JSON.stringify(products)); }
           else { products = []; localStorage.setItem('adidin_products', JSON.stringify(products)); }
+          invalidateSearchIndex();
           renderProducts();
           if (currentUser) { renderAdminProducts(); renderPosProducts(); }
           renderQuickSearchResults();
@@ -2815,10 +2895,26 @@
       switchPage('buyer');
     });
 
-    $('search-buyer').addEventListener('input', renderProducts);
+    // ===== OPTIMASI: DEBOUNCE PADA PENCARIAN UTAMA =====
+    let _buyerSearchTid = null;
+    $('search-buyer').addEventListener('input', () => {
+      if (_buyerSearchTid) clearTimeout(_buyerSearchTid);
+      _buyerSearchTid = setTimeout(renderProducts, 120);
+    });
     $('category-filter').addEventListener('change', renderProducts);
-    $('search-admin').addEventListener('input', renderAdminProducts);
-    $('pos-search').addEventListener('input', renderPosProducts);
+
+    let _adminSearchTid = null;
+    $('search-admin').addEventListener('input', () => {
+      if (_adminSearchTid) clearTimeout(_adminSearchTid);
+      _adminSearchTid = setTimeout(renderAdminProducts, 120);
+    });
+
+    let _posSearchTid = null;
+    $('pos-search').addEventListener('input', () => {
+      if (_posSearchTid) clearTimeout(_posSearchTid);
+      _posSearchTid = setTimeout(renderPosProducts, 120);
+    });
+
     $('pos-cash-input').addEventListener('input', calcPosChange);
 
     $('btn-use-my-location-store').addEventListener('click', () => {
