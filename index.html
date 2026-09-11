@@ -107,6 +107,26 @@
     .cart-item img{width:55px;height:55px;object-fit:cover;border-radius:8px}
     .cart-item-details{flex:1}
     .cart-qty-controls{display:flex;align-items:center;gap:6px;margin-top:4px}
+    /* ==== FITUR BARU: TAMBAH CEPAT BARANG DARI KERANJANG ==== */
+    .cart-quick-add{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:var(--shadow)}
+    .cart-quick-add h3{font-size:15px;color:var(--primary);margin-bottom:4px}
+    .cart-quick-add > p{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4}
+    .quick-search-wrap{position:relative}
+    .quick-search-wrap .search-input{background:#fff7ed}
+    .quick-search-results{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:2px solid var(--border);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.18);max-height:340px;overflow-y:auto;z-index:900;animation:bellAppear .15s ease-out}
+    .quick-search-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px dashed #fed7aa;cursor:pointer;transition:background .15s}
+    .quick-search-item:last-child{border-bottom:none}
+    .quick-search-item:hover{background:#fff7ed}
+    .quick-search-item img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0}
+    .quick-search-info{flex:1;min-width:0}
+    .quick-search-info h5{font-size:13px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .quick-search-info .qprice{font-size:12px;color:var(--primary);font-weight:800}
+    .quick-search-info .qcat{font-size:10px;color:var(--muted)}
+    .quick-search-badge{display:inline-block;margin-top:3px;font-size:9px;background:#ffedd5;color:#c2410c;padding:2px 7px;border-radius:999px;font-weight:800}
+    .quick-search-badge.ok{background:#dcfce7;color:#15803d}
+    .quick-search-empty{padding:18px;text-align:center;font-size:12px;color:var(--muted)}
+    .quick-search-hint{padding:12px;text-align:center;font-size:11px;color:var(--muted);background:#fff7ed}
+    /* ==== END FITUR BARU ==== */
     .checkout-wrapper{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
     .order-summary{background:#fff7ed;padding:10px;border-radius:8px;font-size:12px;margin-bottom:15px;border:1px solid #fed7aa}
     .summary-line{display:flex;justify-content:space-between;margin-bottom:5px}
@@ -225,6 +245,21 @@
       <h2 class="section-title">Keranjang Belanja Online</h2>
 
       <div id="closed-store-notice" class="store-status-banner closed hidden"><i class="fas fa-store-slash"></i><span>Toko sedang <strong>TUTUP</strong>. Anda tetap dapat memesan — wajib menentukan tanggal & jam pengiriman/pengambilan.</span></div>
+
+      <!-- ===== FITUR BARU: TAMBAH CEPAT BARANG DARI KERANJANG ===== -->
+      <div class="cart-quick-add">
+        <h3><i class="fas fa-search-plus"></i> Tambah Cepat Barang ke Keranjang</h3>
+        <p>Ketik nama barang untuk menambah langsung tanpa bolak-balik ke halaman <strong>Toko</strong>. Barang yang sudah ada di keranjang akan <strong>otomatis digabung jumlahnya — tidak akan dobel</strong>. 🛒</p>
+        <div class="quick-search-wrap" id="quick-search-wrap">
+          <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" id="cart-quick-search" placeholder="Cari & tambah barang (nama / barcode / kategori)..." autocomplete="off">
+            <i class="fas fa-times-circle hidden" id="cart-quick-clear" style="cursor:pointer;color:var(--muted);" title="Bersihkan pencarian"></i>
+          </div>
+          <div class="quick-search-results hidden" id="cart-quick-results"></div>
+        </div>
+      </div>
+      <!-- ===== END FITUR BARU ===== -->
 
       <div class="cart-container">
         <div>
@@ -1418,6 +1453,148 @@
       if (sub) sub.innerHTML = `Harga untuk ${qty} ${unitLabel} (Rp ${pricePerUnit.toLocaleString('id-ID')}/${unitLabel.toLowerCase()})`;
     };
 
+    // =========================================================================
+    // ====== FITUR BARU: ANTI-DOBEL + TAMBAH CEPAT DARI KERANJANG ============
+    // =========================================================================
+
+    // Cari index item di keranjang yang identik (produk + satuan + topping + harga digital)
+    const findCartIndexByProduct = (productId, unitType, toppings, priceForDigital) => {
+      const topKey = (toppings || []).map(t => t.name).sort().join('|');
+      return cart.findIndex(item => {
+        if (String(item.product.id) !== String(productId)) return false;
+        const itemUnit = item.unitChosen || item.product.unitType || 'pcs';
+        if (itemUnit !== unitType) return false;
+        const itemTopKey = (item.toppings || []).map(t => t.name).sort().join('|');
+        if (itemTopKey !== topKey) return false;
+        // Untuk produk digital, nominal berbeda = item terpisah (tidak digabung)
+        if (unitType === 'digital' && Number(item.product.price) !== Number(priceForDigital)) return false;
+        return true;
+      });
+    };
+
+    // Tambah ke keranjang PINTAR: kalau sudah ada → jumlah digabung (tidak dobel baris)
+    const addToCartSmart = (product, qty, customPrice, toppings) => {
+      toppings = toppings || [];
+      const unitType = product.unitType || 'pcs';
+      const isUnlimited = unitType === 'digital';
+      const existingIdx = findCartIndexByProduct(product.id, unitType, toppings, customPrice);
+
+      if (existingIdx !== -1) {
+        const currentQty = parseFloat(cart[existingIdx].qty) || 1;
+        let newQty = parseFloat((currentQty + qty).toFixed(2));
+        if (!isUnlimited && newQty > product.stock) {
+          newQty = product.stock;
+          alert(`"${product.name}" sudah ada di keranjang.\nStok hanya ${product.stock} — jumlah digabung & dibatasi menjadi ${newQty} ${getUnitPretty(unitType)}.`);
+        } else {
+          alert(`"${product.name}" sudah ada di keranjang.\nJumlah otomatis digabung menjadi ${newQty} ${getUnitPretty(unitType)} — TIDAK dobel ✅`);
+        }
+        cart[existingIdx].qty = newQty;
+      } else {
+        if (!isUnlimited && qty > product.stock) { alert(`Stok "${product.name}" hanya ${product.stock}.`); return false; }
+        cart.push({ uniqueKey:'item_' + Date.now() + '_' + Math.random(), product: { ...product, price: customPrice }, qty, unitChosen: unitType, toppings });
+        alert(`"${product.name}" ditambahkan ke keranjang! 🛒`);
+      }
+
+      saveCart(); renderCart(); renderQuickSearchResults();
+      return true;
+    };
+
+    // Proses tambah cepat sesuai tipe satuan / topping
+    const quickAddProduct = (product) => {
+      if (!product || !product.available || (product.unitType !== 'digital' && product.stock <= 0)) { alert("Stok habis!"); return; }
+      const unitType = product.unitType || 'pcs';
+
+      // Produk digital → minta nominal
+      if (unitType === 'digital') {
+        const input = prompt(`Masukkan nominal (Rp) untuk "${product.name}":`, "50000");
+        if (input === null) return;
+        const nominal = parseInt(String(input).replace(/\D/g, '')) || 0;
+        if (nominal <= 0) { alert("Nominal tidak valid!"); return; }
+        addToCartSmart(product, 1, nominal, []);
+        return;
+      }
+
+      // Satuan volume (kg / liter) → minta jumlah
+      if (isVolumeUnitType(unitType)) {
+        const unitNoun = unitType === 'liter' ? 'liter' : 'kg';
+        const input = prompt(`Berapa ${unitNoun} "${product.name}" yang ingin dibeli?`, "1");
+        if (input === null) return;
+        const qty = parseFloat(String(input).replace(',', '.'));
+        if (!qty || qty <= 0) { alert("Jumlah tidak valid!"); return; }
+        addToCartSmart(product, qty, product.price, []);
+        return;
+      }
+
+      // Produk dengan topping → buka modal topping
+      if (product.toppings && product.toppings.length > 0) {
+        openTopping(product, (toppings) => addToCartSmart(product, 1, product.price, toppings || []));
+        return;
+      }
+
+      // Produk biasa (pcs/dus/pack/lusin/dll)
+      addToCartSmart(product, 1, product.price, []);
+    };
+
+    // Render hasil pencarian cepat di keranjang
+    const renderQuickSearchResults = () => {
+      const input = $('cart-quick-search');
+      const resultsEl = $('cart-quick-results');
+      const clearBtn = $('cart-quick-clear');
+      if (!input || !resultsEl) return;
+
+      const q = (input.value || '').trim().toLowerCase();
+
+      if (clearBtn) clearBtn.classList.toggle('hidden', q.length === 0);
+
+      if (!q) { resultsEl.classList.add('hidden'); resultsEl.innerHTML = ''; return; }
+
+      const matches = products.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q))
+      ).slice(0, 40);
+
+      if (matches.length === 0) {
+        resultsEl.innerHTML = '<div class="quick-search-empty">Barang tidak ditemukan 😕<br><small>Coba kata kunci lain ya.</small></div>';
+        resultsEl.classList.remove('hidden');
+        return;
+      }
+
+      resultsEl.innerHTML = matches.map(p => {
+        const isDigital = p.unitType === 'digital';
+        const isAvailable = p.available && (p.stock > 0 || isDigital);
+        const inCartQty = cart.filter(it => String(it.product.id) === String(p.id)).reduce((s, it) => s + (parseFloat(it.qty) || 1), 0);
+        const unitLabel = isDigital ? 'nominal bebas' : getUnitPretty(p.unitType).toLowerCase();
+        const stockTxt = isDigital ? '∞' : p.stock;
+        const badgeExisting = inCartQty > 0
+          ? `<span class="quick-search-badge ok"><i class="fas fa-check-circle"></i> Sudah di keranjang: ${inCartQty}</span>`
+          : `<span class="quick-search-badge"><i class="fas fa-plus-circle"></i> Klik untuk tambah</span>`;
+        const stockWarn = !isAvailable ? ' • <span style="color:var(--danger);font-weight:800;">STOK HABIS</span>' : '';
+        return `<div class="quick-search-item" data-qpid="${p.id}">
+          <img src="${p.img}" alt="" loading="lazy">
+          <div class="quick-search-info">
+            <h5>${p.name}</h5>
+            <div class="qprice">Rp ${(p.price||0).toLocaleString('id-ID')} <span style="font-weight:400;font-size:10px;color:var(--muted);">/ ${unitLabel}</span></div>
+            <div class="qcat">${p.category || '-'} • Stok: ${stockTxt}${stockWarn}</div>
+            ${badgeExisting}
+          </div>
+        </div>`;
+      }).join('');
+
+      resultsEl.classList.remove('hidden');
+
+      resultsEl.querySelectorAll('.quick-search-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const p = products.find(pp => String(pp.id) === String(el.getAttribute('data-qpid')));
+          if (p) quickAddProduct(p);
+        });
+      });
+    };
+
+    // =========================================================================
+    // ====== END FITUR BARU ==================================================
+    // =========================================================================
+
     const buyProduct = (id) => {
       const prod = products.find(p => p.id == id);
       if (!prod || !prod.available || (prod.unitType !== 'digital' && prod.stock <= 0)) { alert("Stok habis!"); return; }
@@ -1435,8 +1612,8 @@
         qty = 1;
       }
       const finish = (toppings) => {
-        cart.push({ uniqueKey:'item_' + Date.now() + '_' + Math.random(), product:{ ...prod, price: customPrice }, qty, unitChosen: prod.unitType, toppings: toppings || [] });
-        saveCart(); renderCart(); alert("Produk masuk keranjang! 🛒");
+        // ★ Pakai addToCartSmart → otomatis anti-dobel (jumlah digabung bila barang sudah ada)
+        addToCartSmart(prod, qty, customPrice, toppings || []);
       };
       if (prod.toppings && prod.toppings.length > 0) openTopping(prod, finish);
       else finish([]);
@@ -1451,10 +1628,11 @@
       const closedNotice = $('closed-store-notice');
       if (closedNotice) closedNotice.classList.toggle('hidden', storeOpen);
       if (cart.length === 0) {
-        list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong.</p>';
+        list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong. Gunakan kolom pencarian di atas untuk menambah barang ⬆️</p>';
         if (clearBtn) clearBtn.classList.add('hidden');
         $('summary-subtotal').innerText = "Rp 0";
         updateShippingDisplay();
+        renderQuickSearchResults();
         return;
       }
       clearBtn.classList.remove('hidden');
@@ -1495,6 +1673,7 @@
       list.querySelectorAll('.btn-danger[data-idx]').forEach(btn => btn.addEventListener('click', e => { cart.splice(parseInt(e.target.closest('button').getAttribute('data-idx')), 1); saveCart(); renderCart(); }));
       $('summary-subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
       updateShippingDisplay();
+      renderQuickSearchResults();
     };
 
     const changeQty = (idx, delta) => {
@@ -2324,6 +2503,43 @@
     $('bell-dropdown').addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
+    // ===== FITUR BARU: EVENT LISTENER PENCARIAN CEPAT DI KERANJANG =====
+    (function initCartQuickSearch() {
+      const input = $('cart-quick-search');
+      const resultsEl = $('cart-quick-results');
+      const clearBtn = $('cart-quick-clear');
+      const wrap = $('quick-search-wrap');
+      if (!input || !resultsEl) return;
+
+      // Cegah dropdown tertutup saat klik di area pencarian
+      if (wrap) {
+        wrap.addEventListener('click', (e) => e.stopPropagation());
+        wrap.addEventListener('mousedown', (e) => e.stopPropagation());
+      }
+
+      let debounceTid = null;
+      input.addEventListener('input', () => {
+        if (debounceTid) clearTimeout(debounceTid);
+        debounceTid = setTimeout(() => renderQuickSearchResults(), 120);
+      });
+      input.addEventListener('focus', () => { if ((input.value || '').trim()) renderQuickSearchResults(); });
+
+      if (clearBtn) clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        input.value = '';
+        resultsEl.classList.add('hidden');
+        resultsEl.innerHTML = '';
+        clearBtn.classList.add('hidden');
+        input.focus();
+      });
+
+      // Klik di luar → tutup dropdown
+      document.addEventListener('click', () => {
+        if (resultsEl) resultsEl.classList.add('hidden');
+      });
+    })();
+    // ===== END FITUR BARU =====
+
     $('wa-broadcast-form').addEventListener('submit', e => {
       e.preventDefault();
       const text = $('broadcast-text').value;
@@ -2410,6 +2626,7 @@
           else { products = []; localStorage.setItem('adidin_products', JSON.stringify(products)); }
           renderProducts();
           if (currentUser) { renderAdminProducts(); renderPosProducts(); }
+          renderQuickSearchResults();
         });
         db.ref('users').on('value', snap => {
           const data = snap.val();
