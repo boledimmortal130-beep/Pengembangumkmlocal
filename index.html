@@ -20,7 +20,6 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-  <!-- ===== PERUBAHAN RINGAN: html5-qrcode & qrcodejs TIDAK dimuat di awal (lazy load saat dibutuhkan) ===== -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -114,7 +113,6 @@
     .cart-item img{width:55px;height:55px;object-fit:cover;border-radius:8px}
     .cart-item-details{flex:1}
     .cart-qty-controls{display:flex;align-items:center;gap:6px;margin-top:4px}
-    /* ==== FITUR BARU: TAMBAH CEPAT BARANG DARI KERANJANG ==== */
     .cart-quick-add{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:var(--shadow)}
     .cart-quick-add h3{font-size:15px;color:var(--primary);margin-bottom:4px}
     .cart-quick-add > p{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4}
@@ -133,7 +131,6 @@
     .quick-search-badge.ok{background:#dcfce7;color:#15803d}
     .quick-search-empty{padding:18px;text-align:center;font-size:12px;color:var(--muted)}
     .quick-search-hint{padding:12px;text-align:center;font-size:11px;color:var(--muted);background:#fff7ed}
-    /* ==== END FITUR BARU ==== */
     .checkout-wrapper{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
     .order-summary{background:#fff7ed;padding:10px;border-radius:8px;font-size:12px;margin-bottom:15px;border:1px solid #fed7aa}
     .summary-line{display:flex;justify-content:space-between;margin-bottom:5px}
@@ -159,6 +156,23 @@
     .admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
     .admin-table th{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:var(--header-text);font-weight:700;white-space:nowrap}
     .admin-table td img{width:32px;height:32px;object-fit:cover;border-radius:6px}
+    /* ===== FITUR BARU: BARIS PRIORITAS STOK ===== */
+    .admin-table tr.row-out{background:#fef2f2;}
+    .admin-table tr.row-out:hover{background:#fee2e2;}
+    .admin-table tr.row-low{background:#fffbeb;}
+    .admin-table tr.row-low:hover{background:#fef3c7;}
+    .stock-alert-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;letter-spacing:.2px}
+    .stock-alert-badge.danger{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+    .stock-alert-badge.warn{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+    .stock-warning-banner{background:#fff7ed;border:2px solid #fdba74;color:#c2410c;padding:10px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;font-weight:600;line-height:1.4}
+    .stock-warning-banner i{font-size:15px;margin-top:1px}
+    .stock-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:stretch}
+    .stock-toolbar .search-input{flex:1;min-width:170px}
+    .low-threshold-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;background:#fff7ed;border:1px dashed #fdba74;border-radius:8px;padding:8px 10px}
+    .low-threshold-row label{font-size:11px;font-weight:800;color:var(--muted)}
+    .low-threshold-row input{width:74px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;text-align:center;color:var(--text);background:#fff}
+    .low-threshold-row small{font-size:10px;color:var(--muted);line-height:1.3}
+    /* ===== END FITUR BARU ===== */
     .badge-stock{padding:2px 6px;font-size:9px;border-radius:999px;font-weight:700;white-space:nowrap}
     .badge-stock.in{background:#dcfce7;color:#16a34a}
     .badge-stock.out{background:#fee2e2;color:#dc2626}
@@ -253,7 +267,6 @@
 
       <div id="closed-store-notice" class="store-status-banner closed hidden"><i class="fas fa-store-slash"></i><span>Toko sedang <strong>TUTUP</strong>. Anda tetap dapat memesan — wajib menentukan tanggal & jam pengiriman/pengambilan.</span></div>
 
-      <!-- ===== FITUR BARU: TAMBAH CEPAT BARANG DARI KERANJANG (PENCARIAN: NAMA + KATEGORI) ===== -->
       <div class="cart-quick-add">
         <h3><i class="fas fa-search-plus"></i> Tambah Cepat Barang ke Keranjang</h3>
         <p>Ketik <strong>nama barang</strong> atau <strong>kategori</strong> untuk menambah langsung tanpa bolak-balik ke halaman <strong>Toko</strong>. Barang yang sudah ada di keranjang akan <strong>otomatis digabung jumlahnya — tidak akan dobel</strong>. 🛒</p>
@@ -266,7 +279,6 @@
           <div class="quick-search-results hidden" id="cart-quick-results"></div>
         </div>
       </div>
-      <!-- ===== END FITUR BARU ===== -->
 
       <div class="cart-container">
         <div>
@@ -472,11 +484,37 @@
               <div class="table-responsive"><table class="admin-table"><thead><tr><th>Waktu</th><th>Pembeli / Kasir</th><th>Detail</th><th>Ongkir (Rp)</th><th>Total</th><th>Laba</th><th>Aksi</th></tr></thead><tbody id="admin-history-table"></tbody></table></div>
             </div>
 
+            <!-- ============ KARTU STOK BARANG (SUDAH DIPERBARUI) ============ -->
             <div class="card">
               <h3><i class="fas fa-boxes"></i> Stok Barang</h3>
-              <div class="search-input" style="margin-bottom:10px;"><i class="fas fa-search"></i><input type="text" id="search-admin" placeholder="Cari barang / barcode / rak" autocomplete="off" spellcheck="false"></div>
-              <div class="table-responsive"><table class="admin-table"><thead><tr><th>Foto</th><th>Nama / Barcode</th><th>Rak</th><th>Stok</th><th>Harga / Modal</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="admin-product-table"></tbody></table></div>
+
+              <!-- Toolbar: pencarian + tombol scan barcode -->
+              <div class="stock-toolbar">
+                <div class="search-input">
+                  <i class="fas fa-search"></i>
+                  <input type="text" id="search-admin" placeholder="Cari barang / barcode / rak" autocomplete="off" spellcheck="false">
+                </div>
+                <button class="btn-primary" id="btn-scan-stock" type="button"><i class="fas fa-barcode"></i> Scan</button>
+              </div>
+
+              <!-- Pengaturan batas stok menipis -->
+              <div class="low-threshold-row">
+                <label for="low-stock-threshold"><i class="fas fa-bell"></i> Batas Stok Menipis:</label>
+                <input type="number" id="low-stock-threshold" min="1" value="5">
+                <small>Barang dengan stok ≤ batas ini otomatis <strong>naik ke atas</strong> & diberi tanda ⚠️. Stok habis selalu di paling atas.</small>
+              </div>
+
+              <!-- Banner ringkasan peringatan stok -->
+              <div id="low-stock-alert" class="stock-warning-banner hidden"></div>
+
+              <div class="table-responsive">
+                <table class="admin-table">
+                  <thead><tr><th>Foto</th><th>Nama / Barcode</th><th>Rak</th><th>Stok</th><th>Harga / Modal</th><th>Status</th><th>Aksi</th></tr></thead>
+                  <tbody id="admin-product-table"></tbody>
+                </table>
+              </div>
             </div>
+            <!-- ============ END KARTU STOK BARANG ============ -->
 
             <div class="card admin-only-feature">
               <h3><i class="fas fa-truck"></i> Pengaturan Ongkir & Lokasi Toko</h3>
@@ -571,7 +609,7 @@
 
     const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
 
-    // ===== OPTIMASI: LAZY LOAD SCRIPT EKSTERNAL (html5-qrcode & qrcodejs) =====
+    // ===== LAZY LOAD SCRIPT EKSTERNAL =====
     const _scriptCache = new Map();
     function loadScriptOnce(src) {
       if (_scriptCache.has(src)) return _scriptCache.get(src);
@@ -622,7 +660,7 @@
 
     function isVolumeUnitType(unitType) { return unitType === 'kg' || unitType === 'liter'; }
 
-    // ===== OPTIMASI MAPS: LAZY LOAD + CACHE =====
+    // ===== MAPS LAZY LOAD =====
     let leafletReady = null;
     const geocodeCache = new Map();
     const reverseGeocodeCache = new Map();
@@ -734,11 +772,13 @@
     let pendingToppingCallback = null;
 
     // =========================================================================
-    // ====== OPTIMASI: CACHE INDEX PENCARIAN PRODUK (RINGAN & CEPAT) ==========
+    // ====== FITUR BARU: BATAS STOK MENIPIS (PERSISTEN) =======================
     // =========================================================================
-    // Index dibangun sekali saja per perubahan produk. Pencarian cukup pakai
-    // indexOf pada string yang sudah lowercase → jauh lebih cepat dari filter
-    // berulang ke setiap properti produk di tiap ketikan.
+    let lowStockThreshold = parseInt(localStorage.getItem('adidin_low_stock_threshold'));
+    if (!lowStockThreshold || lowStockThreshold < 1) lowStockThreshold = 5;
+    const getLowStockThreshold = () => lowStockThreshold;
+
+    // ===== CACHE INDEX PENCARIAN PRODUK =====
     let _searchIndexRef = null;
     let _searchIndex = [];
     function getProductSearchIndex() {
@@ -779,7 +819,7 @@
 
     const getActiveAnnouncements = () => broadcastHistory.filter(b => b.enabled !== false);
 
-    // ===== REVERSE / FORWARD GEOCODE DENGAN CACHE =====
+    // ===== REVERSE / FORWARD GEOCODE =====
     const reverseGeocodeWithFallback = async (lat, lng) => {
       const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
       if (reverseGeocodeCache.has(key)) return reverseGeocodeCache.get(key);
@@ -1199,8 +1239,6 @@
       }
     };
 
-    const askLocationAuto = () => locateCustomerCurrent({ force: false });
-
     // ===== ADMIN MAP =====
     const initAdminMap = async (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
       const el = $('admin-map');
@@ -1385,7 +1423,7 @@
     };
     const closeTopping = () => { $('topping-modal').classList.add('hidden'); pendingToppingCallback = null; };
 
-    // ===== RENDER PRODUK =====
+    // ===== RENDER PRODUK (PEMBELI) =====
     const renderProducts = () => {
       const container = $('product-list');
       if (!container) return;
@@ -1506,10 +1544,7 @@
       if (sub) sub.innerHTML = `Harga untuk ${qty} ${unitLabel} (Rp ${pricePerUnit.toLocaleString('id-ID')}/${unitLabel.toLowerCase()})`;
     };
 
-    // =========================================================================
-    // ====== FITUR BARU: ANTI-DOBEL + TAMBAH CEPAT DARI KERANJANG ============
-    // =========================================================================
-
+    // ===== ANTI-DOBEL + TAMBAH CEPAT =====
     const findCartIndexByProduct = (productId, unitType, toppings, priceForDigital) => {
       const topKey = (toppings || []).map(t => t.name).sort().join('|');
       return cart.findIndex(item => {
@@ -1580,11 +1615,7 @@
       addToCartSmart(product, 1, product.price, []);
     };
 
-    // =========================================================================
-    // ====== PENCARIAN CEPAT KERANJANG — HANYA NAMA BARANG + KATEGORI =========
-    // =========================================================================
-    // Tidak memakai barcode sama sekali. Menggunakan cache index agar ringan
-    // dan responsif walau jumlah produk banyak.
+    // ===== PENCARIAN CEPAT KERANJANG =====
     const QUICK_SEARCH_LIMIT = 30;
 
     const renderQuickSearchResults = () => {
@@ -1597,7 +1628,6 @@
 
       if (clearBtn) clearBtn.classList.toggle('hidden', q.length === 0);
 
-      // Tidak ada query → sembunyikan tanpa render apa pun (hemat)
       if (!q) {
         if (!resultsEl.classList.contains('hidden')) {
           resultsEl.classList.add('hidden');
@@ -1606,7 +1636,6 @@
         return;
       }
 
-      // Pakai cache index (dibangun sekali per perubahan produk)
       const index = getProductSearchIndex();
       const matches = [];
       for (let i = 0; i < index.length; i++) {
@@ -1648,7 +1677,6 @@
       resultsEl.innerHTML = html;
       resultsEl.classList.remove('hidden');
 
-      // Event listener delegasi (lebih ringan dari memasang listener per item)
       if (!resultsEl._delegated) {
         resultsEl._delegated = true;
         resultsEl.addEventListener('click', (ev) => {
@@ -1660,10 +1688,6 @@
         });
       }
     };
-
-    // =========================================================================
-    // ====== END FITUR BARU ==================================================
-    // =========================================================================
 
     const buyProduct = (id) => {
       const prod = products.find(p => p.id == id);
@@ -1843,7 +1867,7 @@
       $('pos-change-pay').innerText = `Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}`;
     };
 
-    // ===== SCANNER (lazy load library) =====
+    // ===== SCANNER =====
     const openScanner = async (target) => {
       activeScanTarget = target;
       try {
@@ -1870,6 +1894,24 @@
       } else if (activeScanTarget === 'admin-form') {
         $('prod-barcode').value = text;
         alert(`Barcode: ${text}`);
+      } else if (activeScanTarget === 'admin-stock-search') {
+        // ===== FITUR BARU: HASIL SCAN LANGSUNG MEMFILTER TABEL STOK =====
+        const searchInput = $('search-admin');
+        if (searchInput) searchInput.value = text;
+        if (currentUser) renderAdminProducts();
+        const found = products.find(p => p.barcode === text || String(p.id) === String(text));
+        if (found) {
+          const isDigital = found.unitType === 'digital';
+          const statusStok = isDigital ? 'Digital (stok ∞)' : `Stok: ${found.stock} ${getUnitPretty(found.unitType)}`;
+          let tambahan = '';
+          if (!isDigital) {
+            if (!found.available || found.stock <= 0) tambahan = '\n\n⚠️ STATUS: STOK HABIS!';
+            else if (found.stock <= getLowStockThreshold()) tambahan = '\n\n⚠️ STATUS: STOK MENIPIS!';
+          }
+          alert(`✅ Barang ditemukan:\n${found.name}\n${statusStok}${tambahan}`);
+        } else {
+          alert(`Barcode "${text}" sudah dimasukkan ke kolom pencarian stok.\nBarang dengan barcode tersebut tidak ditemukan di daftar.`);
+        }
       }
     };
 
@@ -2034,24 +2076,92 @@
       handleUnitType();
     };
 
+    // =========================================================================
+    // ====== RENDER TABEL STOK BARANG (SUDAH DIPERBARUI) ======================
+    // =========================================================================
+    // Urutan tampil:
+    //   1) STOK HABIS  (prioritas paling atas, baris merah)
+    //   2) STOK MENIPIS (≤ batas, baris kuning, otomatis naik ke atas)
+    //   3) STOK AMAN
+    // Dalam grup yang sama diurutkan dari stok paling sedikit ke paling banyak,
+    // sehingga yang paling mendesak selalu terlihat lebih dulu.
+    // =========================================================================
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table');
-      const search = $('search-admin').value.toLowerCase();
+      if (!tbody) return;
+      const searchInput = $('search-admin');
+      const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
       tbody.innerHTML = '';
-      const filtered = products.filter(p => p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.toLowerCase().includes(search)) || (p.rack && p.rack.toLowerCase().includes(search)));
-      if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Tidak ditemukan.</td></tr>'; return; }
+
+      const threshold = getLowStockThreshold();
+
+      const filtered = products.filter(p =>
+        p.name.toLowerCase().includes(search) ||
+        (p.barcode && p.barcode.toLowerCase().includes(search)) ||
+        (p.rack && p.rack.toLowerCase().includes(search))
+      );
+
+      // Rank prioritas: 0 = habis, 1 = menipis, 2 = aman, 3 = digital (selalu aman)
+      const stockRank = (p) => {
+        if (p.unitType === 'digital') return 3;
+        if (!p.available || p.stock <= 0) return 0;
+        if (p.stock <= threshold) return 1;
+        return 2;
+      };
+
+      filtered.sort((a, b) => {
+        const ra = stockRank(a), rb = stockRank(b);
+        if (ra !== rb) return ra - rb;
+        const sa = a.unitType === 'digital' ? Number.MAX_SAFE_INTEGER : (a.stock || 0);
+        const sb = b.unitType === 'digital' ? Number.MAX_SAFE_INTEGER : (b.stock || 0);
+        return sa - sb;
+      });
+
+      // Banner ringkasan peringatan stok
+      const alertEl = $('low-stock-alert');
+      if (alertEl) {
+        const outCount = products.filter(p => p.unitType !== 'digital' && (!p.available || p.stock <= 0)).length;
+        const lowCount = products.filter(p => p.unitType !== 'digital' && p.available && p.stock > 0 && p.stock <= threshold).length;
+        if (outCount > 0 || lowCount > 0) {
+          alertEl.classList.remove('hidden');
+          alertEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>${outCount > 0 ? `<strong>${outCount} barang STOK HABIS</strong>. ` : ''}${lowCount > 0 ? `<strong>${lowCount} barang stok menipis</strong> (≤ ${threshold}). ` : ''}Ditampilkan di urutan paling atas.</span>`;
+        } else {
+          alertEl.classList.add('hidden');
+          alertEl.innerHTML = '';
+        }
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:15px;color:var(--muted);">Tidak ditemukan.</td></tr>';
+        return;
+      }
+
       const isKasir = currentUser && currentUser.role === 'kasir';
       const frag = document.createDocumentFragment();
+
       filtered.forEach(p => {
-        const unit = p.unitType === 'digital' ? 'Digital' : getUnitPretty(p.unitType);
+        const isDigital = p.unitType === 'digital';
+        const rank = stockRank(p);
+        const unit = isDigital ? 'Digital' : getUnitPretty(p.unitType);
+        const isAvail = p.available && (p.stock > 0 || isDigital);
+
+        let alertBadge = '';
+        if (!isDigital) {
+          if (rank === 0) alertBadge = '<div class="stock-alert-badge danger"><i class="fas fa-exclamation-circle"></i> STOK HABIS</div>';
+          else if (rank === 1) alertBadge = `<div class="stock-alert-badge warn"><i class="fas fa-exclamation-triangle"></i> STOK MENIPIS (${p.stock})</div>`;
+        }
+
         const tr = document.createElement('tr');
+        if (!isDigital && rank === 0) tr.className = 'row-out';
+        else if (!isDigital && rank === 1) tr.className = 'row-low';
+
         tr.innerHTML = `
           <td><img src="${p.img}" alt="" loading="lazy" decoding="async"></td>
-          <td><strong>${p.name}</strong><br><small style="color:var(--muted);">${p.barcode ? 'BC: ' + p.barcode : 'Tanpa BC'}</small></td>
+          <td><strong>${p.name}</strong>${alertBadge}<br><small style="color:var(--muted);">${p.barcode ? 'BC: ' + p.barcode : 'Tanpa BC'}</small></td>
           <td><span style="background:#fff7ed;padding:2px 6px;border-radius:999px;">${p.rack||'Rak Utama'}</span></td>
-          <td><strong>${p.unitType === 'digital' ? '∞' : p.stock}</strong> ${unit}</td>
+          <td><strong>${isDigital ? '∞' : p.stock}</strong> ${unit}</td>
           <td>Jual: Rp ${(p.price||0).toLocaleString('id-ID')}<br><small style="color:var(--muted);">HPP: Rp ${(p.costPrice||0).toLocaleString('id-ID')}</small></td>
-          <td><span class="badge-stock ${(p.available && (p.stock > 0 || p.unitType === 'digital')) ? 'in' : 'out'}">${(p.available && (p.stock > 0 || p.unitType === 'digital')) ? 'Tersedia' : 'Kosong'}</span></td>
+          <td><span class="badge-stock ${isAvail ? 'in' : 'out'}">${isAvail ? 'Tersedia' : 'Kosong'}</span></td>
           <td><div class="btn-actions-group" style="min-width:120px;">
             ${!isKasir ? `<button class="btn-secondary" data-edit="${p.id}">Edit</button>` : ''}
             <button class="${p.available ? 'btn-danger' : 'btn-success'}" data-toggle="${p.id}" data-status="${p.available}">${p.available ? 'Set Kosong' : 'Set Ada'}</button>
@@ -2059,6 +2169,7 @@
           </div></td>`;
         frag.appendChild(tr);
       });
+
       tbody.appendChild(frag);
       tbody.querySelectorAll('button').forEach(btn => btn.addEventListener('click', e => {
         const b = e.target.closest('button');
@@ -2518,7 +2629,6 @@
           const qrDataUrl = await generateReceiptQR();
           const receiptHtml = `
             <div class="text-header">PENGEMBANG UMKM LOCAL</div>
-
             <div class="text-header-sub">✨ go jag ga jig group ✨</div>
             <div class="shop-address">Jl. Syekh Datul Kahfi DS. Gamel, Cirebon</div>
             <div class="contact-wa">WA Admin: ${waToko}</div>
@@ -2555,9 +2665,14 @@
       renderPosCart();
     });
 
+    // ===== TOMBOL SCANNER =====
     $('btn-scan-pos').addEventListener('click', () => openScanner('pos'));
     $('btn-scan-admin').addEventListener('click', () => openScanner('admin-form'));
+    // ===== FITUR BARU: SCAN BARCODE DI TABEL STOK =====
+    const btnScanStock = $('btn-scan-stock');
+    if (btnScanStock) btnScanStock.addEventListener('click', () => openScanner('admin-stock-search'));
     $('btn-close-scanner').addEventListener('click', closeScanner);
+
     $('btn-topping-confirm').addEventListener('click', () => {
       const selected = [];
       document.querySelectorAll('#topping-list input:checked').forEach(i => selected.push({ name: i.getAttribute('data-name'), price: parseInt(i.getAttribute('data-price')) || 0 }));
@@ -2571,7 +2686,7 @@
     $('bell-dropdown').addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', () => $('bell-dropdown').classList.add('hidden'));
 
-    // ===== OPTIMASI: EVENT LISTENER PENCARIAN CEPAT DI KERANJANG (debounce) =====
+    // ===== PENCARIAN CEPAT KERANJANG =====
     (function initCartQuickSearch() {
       const input = $('cart-quick-search');
       const resultsEl = $('cart-quick-results');
@@ -2616,7 +2731,6 @@
         if (resultsEl) resultsEl.classList.add('hidden');
       });
     })();
-    // ===== END OPTIMASI =====
 
     $('wa-broadcast-form').addEventListener('submit', e => {
       e.preventDefault();
@@ -2895,7 +3009,7 @@
       switchPage('buyer');
     });
 
-    // ===== OPTIMASI: DEBOUNCE PADA PENCARIAN UTAMA =====
+    // ===== PENCARIAN UTAMA (DEBOUNCE) =====
     let _buyerSearchTid = null;
     $('search-buyer').addEventListener('input', () => {
       if (_buyerSearchTid) clearTimeout(_buyerSearchTid);
@@ -2908,6 +3022,30 @@
       if (_adminSearchTid) clearTimeout(_adminSearchTid);
       _adminSearchTid = setTimeout(renderAdminProducts, 120);
     });
+
+    // ===== FITUR BARU: INPUT BATAS STOK MENIPIS =====
+    (function initLowStockThresholdInput() {
+      const inp = $('low-stock-threshold');
+      if (!inp) return;
+      inp.value = lowStockThreshold;
+      inp.addEventListener('change', () => {
+        let val = parseInt(inp.value);
+        if (!val || val < 1) val = 5;
+        lowStockThreshold = val;
+        inp.value = val;
+        localStorage.setItem('adidin_low_stock_threshold', String(val));
+        if (currentUser) renderAdminProducts();
+      });
+      inp.addEventListener('input', () => {
+        // update live tanpa harus kehilangan fokus; tombol kecil
+        const val = parseInt(inp.value);
+        if (val && val >= 1) {
+          lowStockThreshold = val;
+          localStorage.setItem('adidin_low_stock_threshold', String(val));
+          if (currentUser) renderAdminProducts();
+        }
+      });
+    })();
 
     let _posSearchTid = null;
     $('pos-search').addEventListener('input', () => {
