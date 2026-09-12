@@ -2,7 +2,8 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
   <title>Pengembang UMKM Lokal — Toko Online & POS Kasir</title>
 
   <link rel="manifest" href='data:application/manifest+json,{"name":"Pengembang UMKM Lokal","short_name":"UMKM","start_url":".","display":"standalone","background_color":"%23fff7ed","theme_color":"%23e11d48"}'>
@@ -11,7 +12,6 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <!-- ===== OPTIMASI KONEKSI ===== -->
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://unpkg.com">
@@ -31,7 +31,12 @@
       --wa:#25d366;--header-start:#e11d48;--header-end:#f97316;--header-text:#fff;
       --btn-text:#fff;--card-bg:#fff;--radius:8px;--shadow:0 4px 10px rgba(225,29,72,.12)
     }
-    body{background:var(--bg);color:var(--text);line-height:1.5;-webkit-tap-highlight-color:transparent}
+
+    /* ===== PERFORMA & RESPONSIF DASAR ===== */
+    html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+    body{background:var(--bg);color:var(--text);line-height:1.5;-webkit-tap-highlight-color:transparent;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+    button,.nav-link,.product-card,.pos-item-card{touch-action:manipulation}
+
     .container{width:94%;max-width:1200px;margin:0 auto}
     .hidden{display:none!important}
     .text-center{text-align:center}
@@ -96,10 +101,14 @@
     #admin-shuffle-status{font-size:11px;font-weight:700;margin-top:8px;min-height:15px;color:var(--success);line-height:1.4}
 
     /* ===== PERFORMA: render lebih ringan saat list panjang ===== */
-    .product-card,.cart-item,.pos-item-card{content-visibility:auto;contain-intrinsic-size:auto 220px}
+    .product-card,.cart-item,.pos-item-card{
+      content-visibility:auto;
+      contain-intrinsic-size:auto 220px;
+      contain:layout style paint;
+    }
 
     .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-    .product-card{background:var(--card-bg);border:2px solid #fed7aa;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);transition:.2s}
+    .product-card{background:var(--card-bg);border:2px solid #fed7aa;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);transition:transform .18s,border-color .18s}
     .product-card:hover{transform:translateY(-3px);border-color:var(--warning)}
     .product-card.store-closed,.product-card.out-of-stock{opacity:.6}
     .product-img-box{height:120px;background:#fff7ed;position:relative}
@@ -126,7 +135,7 @@
     @media(min-width:480px){.cart-item{flex-direction:row;align-items:center}}
     .cart-item img{width:55px;height:55px;object-fit:cover;border-radius:8px}
     .cart-item-details{flex:1}
-    .cart-qty-controls{display:flex;align-items:center;gap:6px;margin-top:4px}
+    .cart-qty-controls{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
     .cart-quick-add{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:var(--shadow)}
     .cart-quick-add h3{font-size:15px;color:var(--primary);margin-bottom:4px}
     .cart-quick-add > p{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4}
@@ -154,7 +163,7 @@
     .auth-box h2{text-align:center;margin-bottom:12px;color:var(--primary)}
     .auth-switch{text-align:center;font-size:11px;margin-top:10px}
     .auth-switch span{color:var(--primary);font-weight:700;cursor:pointer}
-    .admin-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:15px;border-bottom:2px solid var(--border);padding-bottom:10px}
+    .admin-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:15px;border-bottom:2px solid var(--border);padding-bottom:10px;gap:8px}
     .admin-grid{display:grid;grid-template-columns:1fr;gap:15px}
     @media(min-width:992px){.admin-grid{grid-template-columns:1fr 1.8fr}}
     .card{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
@@ -224,6 +233,22 @@
     #admin-map{height:300px}
     .leaflet-container{width:100%;height:100%;font-family:inherit;z-index:1}
     @media(max-width:480px){#map-picker{height:220px}#admin-map{height:200px}}
+
+    /* ===== RESPONSIF MOBILE LEBIH BAIK ===== */
+    @media(max-width:480px){
+      header{padding:9px 0}
+      .logo h1{font-size:17px}
+      .logo p{font-size:10px}
+      .nav-link{padding:7px 10px;font-size:13px}
+      .notification-bell .fa-bell{font-size:16px}
+      .section-title{font-size:16px}
+      button{padding:9px 12px;font-size:12px}
+      .search-input,.filter-select{padding:9px 12px}
+      .search-input input,.filter-select select{font-size:13px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+    }
   </style>
 </head>
 <body>
@@ -313,7 +338,7 @@
             <h3 style="border:none;padding-bottom:0;"><i class="fas fa-map-marker-alt"></i> Lokasi Pengiriman (WAJIB)</h3>
             <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">
               ⚠️ <strong>Alamat tujuan WAJIB diketik manual dan lengkap</strong> di kolom "Alamat Lengkap" bagian Data Pengiriman di bawah.<br>
-              🗺️ Peta di bawah <strong>otomatis aktif dan lokasi akurat langsung muncul saat Anda menekan tombol "Gunakan Lokasi Saya"</strong>, untuk menghitung ongkir.
+              🗺️ Peta di bawah <strong>otomatis aktif & lokasi langsung muncul saat Anda membuka Keranjang</strong>, untuk menghitung ongkir. Bisa juga tekan "Gunakan Lokasi Saya" untuk refresh.
             </p>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
               <button type="button" class="btn-secondary" id="btn-use-my-location" style="flex:1;">
@@ -399,7 +424,7 @@
         <div class="card admin-only-feature" id="shuffle-card">
           <h3><i class="fas fa-random"></i> Acak Urutan Produk (Khusus Admin)</h3>
           <p class="admin-shuffle-note">
-            Fitur <strong>“Acak Urutan”</strong> kini dipindahkan dari halaman pembeli ke <strong>Portal Admin</strong>.
+            Fitur <strong>“Acak Urutan”</strong> berada di <strong>Portal Admin</strong>.
             Hanya <strong>Admin Utama</strong> yang dapat menekan tombol ini.<br>
             Setiap kali ditekan, urutan tampilan produk di halaman <strong>Toko</strong> akan diacak ulang.
             Barang yang <strong>stoknya habis selalu diletakkan paling bawah</strong>.
@@ -670,7 +695,6 @@
     };
 
     // ===== CACHE DOM (PERFORMA) =====
-    // Mengembalikan elemen dari cache bila masih terhubung; kalau tidak, query ulang.
     const _domCache = new Map();
     const $ = (id) => {
       const cached = _domCache.get(id);
@@ -680,7 +704,27 @@
       return el;
     };
 
-    // ===== DAFTAR SATUAN (TERMASUK BOX & BOTOL) =====
+    // ============================================================
+    // ===== PERFORMA: BATCHER RENDER (SATU rAF PER KELOMPOK) =====
+    // ============================================================
+    let _pendingRenderFlag = 0;
+    let _renderScheduled = false;
+
+    function scheduleRenderBatch() {
+      if (_renderScheduled) return;
+      _renderScheduled = true;
+      requestAnimationFrame(() => {
+        _renderScheduled = false;
+        try { renderProducts(); } catch (e) {}
+        try { renderQuickSearchResults(); } catch (e) {}
+        if (currentUser) {
+          try { renderAdminProducts(); } catch (e) {}
+          try { renderPosProducts(); } catch (e) {}
+        }
+      });
+    }
+
+    // ===== DAFTAR SATUAN =====
     function getUnitPretty(unitType) {
       const map = {
         pcs: 'Pcs', kg: 'Kg', liter: 'Liter', lusin: 'Lusin', pack: 'Pack',
@@ -822,11 +866,16 @@
     if (!lowStockThreshold || lowStockThreshold < 1) lowStockThreshold = 5;
     const getLowStockThreshold = () => lowStockThreshold;
 
-    // ===== CACHE INDEX PENCARIAN PRODUK =====
+    // ============================================================
+    // ===== PERFORMA: CACHE INDEX PENCARIAN + MAP ID PRODUK =====
+    // ============================================================
     let _searchIndexRef = null;
     let _searchIndex = [];
+    let _productMapRef = null;
+    let _productMap = new Map();
+
     function getProductSearchIndex() {
-      if (_searchIndexRef === products) return _searchIndex;
+      if (_searchIndexRef === products && _searchIndex.length === products.length) return _searchIndex;
       _searchIndex = products.map(p => ({
         p,
         key: ((p.name || '') + ' ' + (p.category || '')).toLowerCase()
@@ -834,7 +883,28 @@
       _searchIndexRef = products;
       return _searchIndex;
     }
-    function invalidateSearchIndex() { _searchIndexRef = null; }
+
+    // Lookup O(1) pengganti products.find(p => p.id == id)
+    function getProductMap() {
+      if (_productMapRef === products && _productMap.size === products.length) return _productMap;
+      const m = new Map();
+      for (let i = 0; i < products.length; i++) m.set(String(products[i].id), products[i]);
+      _productMap = m;
+      _productMapRef = products;
+      return _productMap;
+    }
+    function getProductById(id) { return getProductMap().get(String(id)); }
+
+    function invalidateSearchIndex() {
+      _searchIndexRef = null;
+      _productMapRef = null;
+    }
+
+    // ============================================================
+    // ===== PERFORMA: CACHE CART SUBTOTAL (hindari parse innerText)
+    // ============================================================
+    let _cartSubtotalCache = 0;
+    let _cartItemCountCache = 0;
 
     // ===== URUTAN PRODUK ACAK (RANDOM) — DIKONTROL ADMIN =====
     let _productRandomMap = new Map();
@@ -1114,16 +1184,16 @@
 
     const updateShippingDisplay = () => {
       if (!$('summary-shipping')) return;
-      const subtotalEl = $('summary-subtotal');
-      const subtotal = parseInt(subtotalEl.innerText.replace(/\D/g,'')) || 0;
+      // ===== PERFORMA: pakai cache subtotal & jumlah item =====
+      const subtotal = _cartSubtotalCache;
       const shippingSpan = $('summary-shipping');
       const totalSpan = $('summary-total');
       const noteEl = $('summary-ongkir-note');
       const distInfo = $('map-distance-info');
       const extraRow = $('summary-extra-row');
       const extraSpan = $('summary-extra');
-      let itemCount = 0;
-      cart.forEach(item => { itemCount += item.qty || 1; });
+      const itemCount = _cartItemCountCache;
+
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
       let shippingFee = 0;
 
@@ -1317,7 +1387,6 @@
     const locateCustomerCurrent = async ({ force = false } = {}) => {
       if (locatingNow) return !!(userLocation && userLocation.lat);
 
-      // ===== FIX: kalau sudah ada lokasi & tidak dipaksa ulang, pastikan peta muncul =====
       if (!force && userLocation && userLocation.lat) {
         const mapEl = $("map-picker");
         if (!mapPicker || (mapEl && mapEl.style.display === 'none')) {
@@ -1353,14 +1422,59 @@
         return true;
       } catch (err) {
         console.warn("Gagal ambil lokasi:", err);
-        if (mapStatusEl) mapStatusEl.innerHTML = "⚠️ Tidak dapat mengakses lokasi. Aktifkan GPS di perangkat Anda, lalu klik tombol \"Gunakan Lokasi Saya\" lagi.";
-        // Jangan beri alert menggangu saat auto-load di keranjang (hanya alert saat user explicit klik)
+        if (mapStatusEl) mapStatusEl.innerHTML = "⚠️ Tidak dapat mengakses lokasi otomatis. Aktifkan GPS di perangkat, lalu klik tombol \"Gunakan Lokasi Saya\".";
         if (force) alert("Lokasi dibutuhkan agar ongkir bisa dihitung otomatis.\n\nAktifkan GPS di perangkat Anda lalu klik tombol \"Gunakan Lokasi Saya\" lagi.");
         return false;
       } finally {
         locatingNow = false;
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya'; }
         updateShippingDisplay();
+      }
+    };
+
+    // ============================================================
+    // ===== AUTO-AKTIVASI LOKASI SAAT MASUK KERANJANG ===========
+    // ============================================================
+    let _lastAutoLocateTs = 0;
+    const AUTO_LOCATE_THROTTLE_MS = 4000;
+
+    const autoActivateCartLocation = async () => {
+      const mapEl = $('map-picker');
+      const mapStatusEl = $('map-status');
+
+      // Pastikan kontainer peta terbuka lebih awal agar terasa instan
+      if (mapEl && mapEl.style.display === 'none') mapEl.style.display = 'block';
+
+      // Kalau sudah ada lokasi, langsung tampilkan tanpa minta GPS ulang
+      if (userLocation && userLocation.lat) {
+        try {
+          await initMapPicker(userLocation.lat, userLocation.lng);
+          if (mapMarker) mapMarker.setLatLng([userLocation.lat, userLocation.lng]);
+        } catch (e) {}
+        startLivePositionWatch();
+        return;
+      }
+
+      // Cegah spam request GPS saat user bolak-balik halaman
+      if (locatingNow) return;
+      const now = Date.now();
+      if (now - _lastAutoLocateTs < AUTO_LOCATE_THROTTLE_MS) return;
+      _lastAutoLocateTs = now;
+
+      if (mapStatusEl) mapStatusEl.innerHTML = "📡 Mengaktifkan peta & mengambil lokasi otomatis…";
+
+      // Trigger lokasi (tanpa alert jika gagal karena ini otomatis)
+      const ok = await locateCustomerCurrent({ force: false });
+
+      if (ok && mapPicker) {
+        scheduleInvalidate(mapPicker);
+        try {
+          mapPicker.setView(
+            [userLocation.lat, userLocation.lng],
+            Math.max(mapPicker.getZoom() || 16, 16)
+          );
+        } catch (e) {}
+        startLivePositionWatch();
       }
     };
 
@@ -1497,19 +1611,8 @@
         $('cart-dashboard').classList.add('active');
         $('btn-cart-view').classList.add('active');
         renderCart();
-        // ===== FIX: Lokasi otomatis nyala saat di keranjang (lebih cepat) =====
-        requestAnimationFrame(() => {
-          locateCustomerCurrent({ force: false }).then(() => {
-            startLivePositionWatch();
-            if (mapPicker) {
-              scheduleInvalidate(mapPicker);
-              mapPicker.setView(
-                [userLocation ? userLocation.lat : shippingConfig.storeLat, userLocation ? userLocation.lng : shippingConfig.storeLng],
-                Math.max(mapPicker.getZoom() || 16, 16)
-              );
-            }
-          });
-        });
+        // ===== PERUBAHAN: Auto-aktifkan peta & GPS saat buka keranjang =====
+        requestAnimationFrame(() => autoActivateCartLocation());
       } else {
         $('admin-section').classList.add('active');
         $('btn-admin-nav').classList.add('active');
@@ -1665,7 +1768,7 @@
         const input = $('input-qty-' + target.getAttribute('data-id'));
         if (input) {
           input.value = target.getAttribute('data-val');
-          const prod = products.find(p => p.id == target.getAttribute('data-id'));
+          const prod = getProductById(target.getAttribute('data-id'));
           if (prod) calcWeight(target.getAttribute('data-id'), prod.price, input.getAttribute('data-unit') || 'Kg');
         }
       }));
@@ -1728,6 +1831,10 @@
       }
 
       saveCart(); renderCart(); renderQuickSearchResults();
+      // ===== PERFORMA: jika keranjang baris pertama kali & user di halaman cart, aktifkan lokasi =====
+      if (cart.length === 1 && $('cart-dashboard').classList.contains('active') && !userLocation) {
+        requestAnimationFrame(() => autoActivateCartLocation());
+      }
       return true;
     };
 
@@ -1830,14 +1937,14 @@
           const itemEl = ev.target.closest('.quick-search-item');
           if (!itemEl) return;
           const pid = itemEl.getAttribute('data-qpid');
-          const p = products.find(pp => String(pp.id) === String(pid));
+          const p = getProductById(pid);
           if (p) quickAddProduct(p);
         });
       }
     };
 
     const buyProduct = (id) => {
-      const prod = products.find(p => p.id == id);
+      const prod = getProductById(id);
       if (!prod || !prod.available || (prod.unitType !== 'digital' && prod.stock <= 0)) { alert("Stok habis!"); return; }
       let qty = 1;
       let customPrice = prod.price;
@@ -1868,6 +1975,8 @@
       const closedNotice = $('closed-store-notice');
       if (closedNotice) closedNotice.classList.toggle('hidden', storeOpen);
       if (cart.length === 0) {
+        _cartSubtotalCache = 0;
+        _cartItemCountCache = 0;
         list.innerHTML = '<p style="text-align:center;padding:25px;color:var(--muted);">Keranjang kosong. Gunakan kolom pencarian di atas untuk menambah barang ⬆️</p>';
         if (clearBtn) clearBtn.classList.add('hidden');
         $('summary-subtotal').innerText = "Rp 0";
@@ -1877,6 +1986,7 @@
       }
       clearBtn.classList.remove('hidden');
       let subtotal = 0;
+      let itemCount = 0;
       const frag = document.createDocumentFragment();
       cart.forEach((item, idx) => {
         const unit = item.unitChosen || item.product.unitType || 'pcs';
@@ -1887,6 +1997,7 @@
         const topingCost = toppings.reduce((s,t) => s + (t.price||0), 0) * (item.qty || 1);
         const total = Math.round((item.product.price || 0) * (item.qty || 1)) + Math.round(topingCost);
         subtotal += total;
+        itemCount += (parseFloat(item.qty) || 1);
         const qtyLabel = formatQtyLabel(item.qty, unit);
         const topingText = toppings.length ? `<div style="font-size:10px;color:var(--primary);margin-bottom:2px;">Toping: ${toppings.map(t=>t.name).join(', ')}</div>` : '';
         const row = document.createElement('div');
@@ -1912,6 +2023,11 @@
       list.querySelectorAll('.qty-plus').forEach(btn => btn.addEventListener('click', e => changeQty(parseInt(e.target.getAttribute('data-idx')), parseFloat(e.target.getAttribute('data-step')))));
       list.querySelectorAll('.btn-danger[data-idx]').forEach(btn => btn.addEventListener('click', e => { cart.splice(parseInt(e.target.closest('button').getAttribute('data-idx')), 1); saveCart(); renderCart(); }));
       $('summary-subtotal').innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+
+      // ===== PERFORMA: simpan ke cache agar updateShippingDisplay tidak perlu parse innerText =====
+      _cartSubtotalCache = subtotal;
+      _cartItemCountCache = itemCount;
+
       updateShippingDisplay();
       renderQuickSearchResults();
     };
@@ -2132,7 +2248,6 @@
 
         const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
 
-        // ===== TOMBOL CETAK DAFTAR BARANG (KHUSUS ONLINE SHOP) =====
         const isOnlineOrder = (order.source || 'Online Shop') !== 'POS Kasir';
         const printItemsBtn = isOnlineOrder
           ? `<button class="btn-primary" style="background:#7c3aed" data-print-items="${order.id}" title="Cetak daftar nama barang & jumlah saja (tanpa harga, tanpa alamat, tanpa nama toko)"><i class="fas fa-list-ul"></i> Cetak Daftar Barang</button>`
@@ -2195,8 +2310,8 @@
         newStatus = 'selesai';
         if (order.orderStatus !== 'selesai' && order.itemsList) {
           order.itemsList.forEach(i => {
-            const idx = products.findIndex(p => p.id === i.productId);
-            if (idx !== -1 && products[idx].unitType !== 'digital') { products[idx].stock = Math.max(0, products[idx].stock - i.qty); products[idx].available = products[idx].stock > 0; }
+            const prod = getProductById(i.productId);
+            if (prod && prod.unitType !== 'digital') { prod.stock = Math.max(0, prod.stock - i.qty); prod.available = prod.stock > 0; }
           });
           saveProducts();
         }
@@ -2322,13 +2437,13 @@
         const b = e.target.closest('button');
         const edit = b.getAttribute('data-edit'), toggle = b.getAttribute('data-toggle'), del = b.getAttribute('data-del');
         if (edit) editProduct(edit);
-        else if (toggle) { const prod = products.find(p => p.id == toggle); if (prod) { prod.available = b.getAttribute('data-status') === 'true' ? false : true; saveProducts(); } }
+        else if (toggle) { const prod = getProductById(toggle); if (prod) { prod.available = b.getAttribute('data-status') === 'true' ? false : true; saveProducts(); } }
         else if (del) { if (confirm("Hapus produk?")) { products = products.filter(p => p.id != del); saveProducts(); } }
       }));
     };
 
     const editProduct = (id) => {
-      const p = products.find(prod => prod.id == id);
+      const p = getProductById(id);
       if (!p) return;
       $('product-id').value = p.id;
       $('prod-barcode').value = p.barcode || "";
@@ -2463,9 +2578,9 @@
       return [];
     };
 
-    // =========================================================================
-    // ===== CETAK DAFTAR BARANG (ONLINE SHOP) — GANTI "—" MENJADI "=>" =======
-    // =========================================================================
+    // ============================================================
+    // ===== CETAK DAFTAR BARANG (ONLINE SHOP) ===================
+    // ============================================================
     const unitLabelForSimpleList = (unit) => {
       if (!unit) return 'Pcs';
       const u = String(unit).toLowerCase().trim();
@@ -2518,12 +2633,10 @@
       const list = getSimpleItemList(order);
       if (!list.length) { alert("Pesanan ini tidak memiliki rincian barang yang bisa dicetak."); return; }
 
-      // ===== PERUBAHAN: gunakan "=>" sebagai pemisah (bukan em-dash / ôçö) =====
       const bodyLines = list.map((it, i) => {
         return `${i + 1}. ${it.name} => ${formatQtySimple(it.qty)} ${unitLabelForSimpleList(it.unit)}`;
       }).join('\n');
 
-      // ---- Opsi 1: Printer Bluetooth ----
       if (btPrinterChar) {
         try {
           await sendRaw(escposInit());
@@ -2546,8 +2659,6 @@
         }
       }
 
-      // ---- Opsi 2: Cetak lewat browser ----
-      // (tanpa nama toko, tanpa alamat, tanpa harga; pemisah "=>")
       const receiptHtml = `
         <div class="section-title">=> DAFTAR BARANG PESANAN <=</div>
         <table class="info-table">
@@ -2562,7 +2673,6 @@
 
       await printDynamicReceipt(receiptHtml);
     };
-    // ===== END CETAK DAFTAR BARANG =====
 
     const cetakStrukOrderBluetooth = async (order) => {
       if (!btPrinterChar) {
@@ -2850,7 +2960,7 @@
       });
       const cash = parseInt($('pos-cash-input').value) || 0;
       if (cash < total) return alert("Uang tunai kurang!");
-      posCart.forEach(i => { if (i.product.unitType !== 'digital') { const idx = products.findIndex(p => p.id === i.product.id); if (idx !== -1) { products[idx].stock = Math.max(0, products[idx].stock - i.qty); products[idx].available = products[idx].stock > 0; } } });
+      posCart.forEach(i => { if (i.product.unitType !== 'digital') { const prod = getProductById(i.product.id); if (prod) { prod.stock = Math.max(0, prod.stock - i.qty); prod.available = prod.stock > 0; } } });
       saveProducts();
       const now = new Date();
       const order = {
@@ -3032,8 +3142,10 @@
       });
       const isAvailable = unitType === 'digital' || stock > 0;
       if (id) {
-        const idx = products.findIndex(p => p.id == id);
-        if (idx !== -1) products[idx] = { ...products[idx], barcode, name, unitType, price, costPrice, stock, rack, category, desc, available: isAvailable, toppings, img: encodedImage || products[idx].img };
+        const existing = getProductById(id);
+        if (existing) {
+          Object.assign(existing, { barcode, name, unitType, price, costPrice, stock, rack, category, desc, available: isAvailable, toppings, img: encodedImage || existing.img });
+        }
       } else {
         products.push({ id: Date.now().toString(), barcode, name, unitType, price, costPrice, stock, rack, category, desc, img: encodedImage || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400", available: isAvailable, toppings });
       }
@@ -3049,31 +3161,35 @@
         db = firebase.database();
         firebaseReady = true;
         console.log("✅ Firebase connected");
+
         db.ref('.info/connected').on('value', snap => {
           const el = $('realtime-status');
           if (snap.val()) { el.textContent = "● ONLINE"; el.className = "realtime-status online"; }
           else { el.textContent = "● OFFLINE"; el.className = "realtime-status offline"; }
         });
+
         db.ref('store_status').on('value', snap => {
           if (snap.exists()) storeOpen = snap.val() === true;
           else { storeOpen = true; db.ref('store_status').set(true); }
           localStorage.setItem('adidin_store_open', storeOpen);
-          renderStoreStatus(); renderProducts(); renderCart();
+          renderStoreStatus(); scheduleRenderBatch();
         });
+
+        // ===== PERFORMA: batch render via satu rAF =====
         db.ref('products').on('value', snap => {
           const data = snap.val();
           if (data) { products = Array.isArray(data) ? data : Object.values(data); localStorage.setItem('adidin_products', JSON.stringify(products)); }
           else { products = []; localStorage.setItem('adidin_products', JSON.stringify(products)); }
           invalidateSearchIndex();
-          renderProducts();
-          if (currentUser) { renderAdminProducts(); renderPosProducts(); }
-          renderQuickSearchResults();
+          scheduleRenderBatch();
         });
+
         db.ref('users').on('value', snap => {
           const data = snap.val();
           if (data) { adminUsers = Array.isArray(data) ? data : Object.values(data); localStorage.setItem('adidin_users', JSON.stringify(adminUsers)); }
           if (currentUser) renderAdminUsers();
         });
+
         db.ref('history').on('value', snap => {
           const data = snap.val();
           const hasData = data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0);
@@ -3081,12 +3197,14 @@
           localStorage.setItem('adidin_history', JSON.stringify(historyList));
           renderHistory(historyList); calcFinance(historyList);
         });
+
         db.ref('broadcast_history').on('value', snap => {
           const data = snap.val();
           if (data) { broadcastHistory = Object.values(data); localStorage.setItem('adidin_broadcast_history', JSON.stringify(broadcastHistory)); }
           renderAnnouncement();
           if (currentUser) renderBroadcastHistory(broadcastHistory);
         });
+
         db.ref('shipping_config').on('value', snap => {
           const data = snap.val();
           if (data) {
@@ -3096,12 +3214,14 @@
             applyShippingForm(); renderCart();
           }
         });
+
         db.ref('theme_promo').on('value', snap => {
           const data = snap.val();
           if (data) { themeConfig = { ...DEFAULT_THEME, ...data }; localStorage.setItem('adidin_theme_promo', JSON.stringify(themeConfig)); }
           else { db.ref('theme_promo').set(themeConfig); }
           applyTheme();
         });
+
         seedInitialData();
       } catch(e) {
         console.error("❌ Firebase gagal terhubung:", e);
