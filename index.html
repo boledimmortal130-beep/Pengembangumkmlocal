@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <!-- ===== OPTIMASI KONEKSI: PRECONNECT & DNS-PREFETCH ===== -->
+  <!-- ===== OPTIMASI KONEKSI ===== -->
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://unpkg.com">
@@ -84,7 +84,6 @@
     @media(min-width:768px){.search-filter-box{flex-direction:row;gap:12px}}
     .search-input,.filter-select{display:flex;align-items:center;background:#fff7ed;padding:8px 12px;border-radius:8px;flex:1;border:1px solid #fed7aa}
     .search-input input,.filter-select select{border:none;background:transparent;width:100%;margin-left:8px;outline:none;font-size:13px;color:var(--text)}
-    /* ===== TOMBOL ACAK URUTAN PRODUK (SEKARANG KHUSUS ADMIN) ===== */
     .shuffle-btn-products{display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,var(--header-start),var(--header-end));color:#fff;border:none;border-radius:8px;padding:11px 16px;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 3px 10px rgba(225,29,72,.25);letter-spacing:.2px;width:100%}
     @media(min-width:768px){.shuffle-btn-products{width:auto}}
     .shuffle-btn-products:hover{opacity:.93}
@@ -95,7 +94,10 @@
     .admin-shuffle-note{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
     .admin-shuffle-note strong{color:var(--primary)}
     #admin-shuffle-status{font-size:11px;font-weight:700;margin-top:8px;min-height:15px;color:var(--success);line-height:1.4}
-    /* ===== END TOMBOL ACAK URUTAN PRODUK ===== */
+
+    /* ===== PERFORMA: render lebih ringan saat list panjang ===== */
+    .product-card,.cart-item,.pos-item-card{content-visibility:auto;contain-intrinsic-size:auto 220px}
+
     .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
     .product-card{background:var(--card-bg);border:2px solid #fed7aa;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);transition:.2s}
     .product-card:hover{transform:translateY(-3px);border-color:var(--warning)}
@@ -168,7 +170,6 @@
     .admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
     .admin-table th{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:var(--header-text);font-weight:700;white-space:nowrap}
     .admin-table td img{width:32px;height:32px;object-fit:cover;border-radius:6px}
-    /* ===== BARIS PRIORITAS STOK ===== */
     .admin-table tr.row-out{background:#fef2f2;}
     .admin-table tr.row-out:hover{background:#fee2e2;}
     .admin-table tr.row-low{background:#fffbeb;}
@@ -395,9 +396,6 @@
           <button class="btn-status-toko btn-danger" id="btn-toggle-store-status">🔴 Toko Sedang TUTUP — Klik untuk Buka</button>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- ===== FITUR PINDAHAN: TOMBOL ACAK URUTAN (KHUSUS ADMIN) ==== -->
-        <!-- ============================================================ -->
         <div class="card admin-only-feature" id="shuffle-card">
           <h3><i class="fas fa-random"></i> Acak Urutan Produk (Khusus Admin)</h3>
           <p class="admin-shuffle-note">
@@ -411,7 +409,6 @@
           </button>
           <p id="admin-shuffle-status"></p>
         </div>
-        <!-- ===== END FITUR PINDAHAN ===== -->
 
         <div class="card">
           <h3><i class="fas fa-sync-alt"></i> Sinkronisasi Data Firebase</h3>
@@ -513,11 +510,9 @@
               <div class="table-responsive"><table class="admin-table"><thead><tr><th>Waktu</th><th>Pembeli / Kasir</th><th>Detail</th><th>Ongkir (Rp)</th><th>Total</th><th>Laba</th><th>Aksi</th></tr></thead><tbody id="admin-history-table"></tbody></table></div>
             </div>
 
-            <!-- ============ KARTU STOK BARANG ============ -->
             <div class="card">
               <h3><i class="fas fa-boxes"></i> Stok Barang</h3>
 
-              <!-- Toolbar: pencarian + tombol scan barcode -->
               <div class="stock-toolbar">
                 <div class="search-input">
                   <i class="fas fa-search"></i>
@@ -526,14 +521,12 @@
                 <button class="btn-primary" id="btn-scan-stock" type="button"><i class="fas fa-barcode"></i> Scan</button>
               </div>
 
-              <!-- Pengaturan batas stok menipis -->
               <div class="low-threshold-row">
                 <label for="low-stock-threshold"><i class="fas fa-bell"></i> Batas Stok Menipis:</label>
                 <input type="number" id="low-stock-threshold" min="1" value="5">
                 <small>Barang dengan stok ≤ batas ini otomatis <strong>naik ke atas</strong> & diberi tanda ⚠️. Stok habis selalu di paling atas.</small>
               </div>
 
-              <!-- Banner ringkasan peringatan stok -->
               <div id="low-stock-alert" class="stock-warning-banner hidden"></div>
 
               <div class="table-responsive">
@@ -543,7 +536,6 @@
                 </table>
               </div>
             </div>
-            <!-- ============ END KARTU STOK BARANG ============ -->
 
             <div class="card admin-only-feature">
               <h3><i class="fas fa-truck"></i> Pengaturan Ongkir & Lokasi Toko</h3>
@@ -675,7 +667,16 @@
       } catch { return fallback; }
     };
 
-    const $ = (id) => document.getElementById(id);
+    // ===== CACHE DOM (PERFORMA) =====
+    // Mengembalikan elemen dari cache bila masih terhubung; kalau tidak, query ulang.
+    const _domCache = new Map();
+    const $ = (id) => {
+      const cached = _domCache.get(id);
+      if (cached && cached.isConnected) return cached;
+      const el = document.getElementById(id);
+      if (el) _domCache.set(id, el);
+      return el;
+    };
 
     function getUnitPretty(unitType) {
       const map = { pcs: 'Pcs', kg: 'Kg', liter: 'Liter', lusin: 'Lusin', pack: 'Pack', bungkus: 'Bungkus', ball: 'Ball', slop: 'Slop', dus: 'Dus', renteng: 'Renteng', digital: 'Digital' };
@@ -689,7 +690,6 @@
 
     function isVolumeUnitType(unitType) { return unitType === 'kg' || unitType === 'liter'; }
 
-    // ===== UTIL TAMBAHAN: ESCAPE HTML (untuk cetak aman) =====
     function escapeHtmlText(str) {
       return String(str === undefined || str === null ? '' : str)
         .replace(/&/g, '&amp;')
@@ -810,9 +810,7 @@
     let encodedImage = "";
     let pendingToppingCallback = null;
 
-    // =========================================================================
-    // ====== BATAS STOK MENIPIS (PERSISTEN) ===================================
-    // =========================================================================
+    // ===== BATAS STOK MENIPIS =====
     let lowStockThreshold = parseInt(localStorage.getItem('adidin_low_stock_threshold'));
     if (!lowStockThreshold || lowStockThreshold < 1) lowStockThreshold = 5;
     const getLowStockThreshold = () => lowStockThreshold;
@@ -831,22 +829,10 @@
     }
     function invalidateSearchIndex() { _searchIndexRef = null; }
 
-    // =========================================================================
-    // ====== URUTAN PRODUK ACAK (RANDOM) — DIKONTROL OLEH ADMIN ===============
-    // =========================================================================
-    // Cara kerja:
-    //  1) Setiap produk diberi "bobot acak" (0 – 1).
-    //  2) Produk diurutkan berdasarkan bobot tersebut → urutan selalu berbeda.
-    //  3) Bobot dipertahankan selama halaman dibuka, jadi urutan TIDAK berubah
-    //     saat pembeli mengetik di kolom pencarian / ganti kategori.
-    //  4) Pengacakan hanya bisa dilakukan lewat TOMBOL DI PORTAL ADMIN
-    //     (khusus role ADMIN UTAMA). Pembeli tidak punya tombol acak lagi.
-    //  5) Barang stok habis SELALU diletakkan di bawah.
-    // =========================================================================
-    let _productRandomMap = new Map();   // id produk -> bobot acak
+    // ===== URUTAN PRODUK ACAK (RANDOM) — DIKONTROL ADMIN =====
+    let _productRandomMap = new Map();
     let _lastProductShuffleAt = 0;
 
-    // Acak ulang seluruh bobot produk
     function reshuffleProducts() {
       const newMap = new Map();
       products.forEach(p => newMap.set(String(p.id), Math.random()));
@@ -854,7 +840,6 @@
       _lastProductShuffleAt = Date.now();
     }
 
-    // Sinkronkan bobot: buang produk yang dihapus, beri bobot acak untuk produk baru
     function syncProductRandomMap() {
       const ids = new Set();
       products.forEach(p => ids.add(String(p.id)));
@@ -867,14 +852,12 @@
       });
     }
 
-    // Ambil bobot acak sebuah produk (buat baru bila belum ada)
     function getProductRandomWeight(id) {
       const key = String(id);
       if (!_productRandomMap.has(key)) _productRandomMap.set(key, Math.random());
       return _productRandomMap.get(key);
     }
 
-    // ====== KONTROL TOMBOL ACAK — KHUSUS ADMIN ======
     const canShuffleProducts = () => !!(currentUser && currentUser.role === 'admin');
 
     function setAdminShuffleStatus(text, ok = true) {
@@ -891,14 +874,12 @@
       setTimeout(() => btn.classList.remove('spin'), 650);
     }
 
-    // Fungsi inti pengacakan urutan (render ulang halaman Toko)
     function shuffleProductOrder({ animate = false } = {}) {
       reshuffleProducts();
       renderProducts();
       if (animate) animateAdminShuffleButton();
     }
 
-    // HANYA boleh dipanggil dari tombol di Portal Admin
     function adminShuffleProducts() {
       if (!currentUser) {
         alert("Akses ditolak! Silakan login sebagai Admin/Kasir terlebih dahulu.");
@@ -1328,7 +1309,16 @@
 
     const locateCustomerCurrent = async ({ force = false } = {}) => {
       if (locatingNow) return !!(userLocation && userLocation.lat);
-      if (!force && userLocation && userLocation.lat) return true;
+
+      // ===== FIX: kalau sudah ada lokasi & tidak dipaksa ulang, pastikan peta muncul =====
+      if (!force && userLocation && userLocation.lat) {
+        const mapEl = $("map-picker");
+        if (!mapPicker || (mapEl && mapEl.style.display === 'none')) {
+          await initMapPicker(userLocation.lat, userLocation.lng);
+          if (mapMarker) mapMarker.setLatLng([userLocation.lat, userLocation.lng]);
+        }
+        return true;
+      }
 
       const btn = $("btn-use-my-location");
       const mapStatusEl = $("map-status");
@@ -1357,7 +1347,8 @@
       } catch (err) {
         console.warn("Gagal ambil lokasi:", err);
         if (mapStatusEl) mapStatusEl.innerHTML = "⚠️ Tidak dapat mengakses lokasi. Aktifkan GPS di perangkat Anda, lalu klik tombol \"Gunakan Lokasi Saya\" lagi.";
-        alert("Lokasi dibutuhkan agar ongkir bisa dihitung otomatis.\n\nAktifkan GPS di perangkat Anda lalu klik tombol \"Gunakan Lokasi Saya\" lagi.");
+        // Jangan beri alert menggangu saat auto-load di keranjang (hanya alert saat user explicit klik)
+        if (force) alert("Lokasi dibutuhkan agar ongkir bisa dihitung otomatis.\n\nAktifkan GPS di perangkat Anda lalu klik tombol \"Gunakan Lokasi Saya\" lagi.");
         return false;
       } finally {
         locatingNow = false;
@@ -1494,21 +1485,24 @@
         $('buyer-dashboard').classList.add('active');
         $('btn-home').classList.add('active');
         stopLivePositionWatch();
-        // Catatan: urutan produk TIDAK lagi diacak otomatis di sini.
-        // Pengacakan hanya dikendalikan oleh Admin dari Portal Admin.
         renderProducts();
       } else if (name === 'cart') {
         $('cart-dashboard').classList.add('active');
         $('btn-cart-view').classList.add('active');
         renderCart();
-        setTimeout(async () => {
-          await locateCustomerCurrent({ force: false });
-          startLivePositionWatch();
-          if (mapPicker) {
-            scheduleInvalidate(mapPicker);
-            mapPicker.setView([userLocation ? userLocation.lat : -6.693932, userLocation ? userLocation.lng : 108.509458], Math.max((mapPicker.getZoom() || 16), 16));
-          }
-        }, 300);
+        // ===== FIX: Lokasi otomatis nyala saat di keranjang (lebih cepat) =====
+        requestAnimationFrame(() => {
+          locateCustomerCurrent({ force: false }).then(() => {
+            startLivePositionWatch();
+            if (mapPicker) {
+              scheduleInvalidate(mapPicker);
+              mapPicker.setView(
+                [userLocation ? userLocation.lat : shippingConfig.storeLat, userLocation ? userLocation.lng : shippingConfig.storeLng],
+                Math.max(mapPicker.getZoom() || 16, 16)
+              );
+            }
+          });
+        });
       } else {
         $('admin-section').classList.add('active');
         $('btn-admin-nav').classList.add('active');
@@ -1573,7 +1567,6 @@
         (p.name.toLowerCase().includes(search) || (p.barcode && p.barcode.toLowerCase().includes(search))) &&
         (filterCat === 'all' || p.category === filterCat)
       );
-      // ===== Urutan ACAK (dikendalikan admin), barang tersedia selalu di atas =====
       syncProductRandomMap();
       filtered.sort((a, b) => {
         const aAvail = (a.stock > 0 && a.available) ? 1 : 0;
@@ -1922,7 +1915,6 @@
         document.querySelectorAll('.admin-only-feature').forEach(el => el.classList.toggle('hidden', currentUser.role !== 'admin'));
         applyShippingForm(); ensureAdminMapVisible(); renderStoreStatus();
         renderAdminUsers(); renderAdminProducts(); renderPosProducts(); renderHistory(historyList); renderBroadcastHistory(broadcastHistory); applyTheme();
-        // Bersihkan status acak bila bukan admin
         if (!canShuffleProducts()) setAdminShuffleStatus('');
       } else {
         $('admin-dashboard').classList.add('hidden');
@@ -2033,7 +2025,6 @@
         $('prod-barcode').value = text;
         alert(`Barcode: ${text}`);
       } else if (activeScanTarget === 'admin-stock-search') {
-        // Hasil scan langsung memfilter tabel stok
         const searchInput = $('search-admin');
         if (searchInput) searchInput.value = text;
         if (currentUser) renderAdminProducts();
@@ -2124,8 +2115,6 @@
         const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
 
         // ===== TOMBOL CETAK DAFTAR BARANG (KHUSUS ONLINE SHOP) =====
-        // Diletakkan DI ATAS tombol "Cetak Struk".
-        // Hanya mencetak NAMA BARANG + QTY (SATUAN) — tanpa harga, tanpa alamat, tanpa nama toko.
         const isOnlineOrder = (order.source || 'Online Shop') !== 'POS Kasir';
         const printItemsBtn = isOnlineOrder
           ? `<button class="btn-primary" style="background:#7c3aed" data-print-items="${order.id}" title="Cetak daftar nama barang & jumlah saja (tanpa harga, tanpa alamat, tanpa nama toko)"><i class="fas fa-list-ul"></i> Cetak Daftar Barang</button>`
@@ -2227,16 +2216,7 @@
       handleUnitType();
     };
 
-    // =========================================================================
-    // ====== RENDER TABEL STOK BARANG =========================================
-    // =========================================================================
-    // Urutan tampil:
-    //   1) STOK HABIS  (prioritas paling atas, baris merah)
-    //   2) STOK MENIPIS (≤ batas, baris kuning, otomatis naik ke atas)
-    //   3) STOK AMAN
-    // Dalam grup yang sama diurutkan dari stok paling sedikit ke paling banyak,
-    // sehingga yang paling mendesak selalu terlihat lebih dulu.
-    // =========================================================================
+    // ===== RENDER TABEL STOK BARANG =====
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table');
       if (!tbody) return;
@@ -2252,7 +2232,6 @@
         (p.rack && p.rack.toLowerCase().includes(search))
       );
 
-      // Rank prioritas: 0 = habis, 1 = menipis, 2 = aman, 3 = digital (selalu aman)
       const stockRank = (p) => {
         if (p.unitType === 'digital') return 3;
         if (!p.available || p.stock <= 0) return 0;
@@ -2268,7 +2247,6 @@
         return sa - sb;
       });
 
-      // Banner ringkasan peringatan stok
       const alertEl = $('low-stock-alert');
       if (alertEl) {
         const outCount = products.filter(p => p.unitType !== 'digital' && (!p.available || p.stock <= 0)).length;
@@ -2468,28 +2446,17 @@
     };
 
     // =========================================================================
-    // ====== FITUR BARU: CETAK DAFTAR BARANG (KHUSUS ONLINE SHOP) =============
+    // ===== CETAK DAFTAR BARANG (ONLINE SHOP) — GANTI "—" MENJADI "=>" =======
     // =========================================================================
-    // Struk ini HANYA memuat:
-    //   1) NAMA BARANG
-    //   2) QTY (SATUAN)
-    // TIDAK ADA: harga, alamat, nama pembeli, dan nama toko.
-    // Berguna untuk daftar ambil / packing barang pesanan online.
-    // Tetap mendukung cetak lewat Printer Bluetooth (jika tersambung)
-    // maupun cetak lewat browser / printer biasa.
-    // =========================================================================
-
-    // Ubah kode satuan menjadi label rapi (pcs -> Pcs, digital -> Transaksi, dll)
     const unitLabelForSimpleList = (unit) => {
       if (!unit) return 'Pcs';
       const u = String(unit).toLowerCase().trim();
       if (u === 'digital') return 'Transaksi';
       const known = { pcs:'Pcs', kg:'Kg', liter:'Liter', lusin:'Lusin', pack:'Pack', bungkus:'Bungkus', ball:'Ball', slop:'Slop', dus:'Dus', renteng:'Renteng' };
       if (known[u]) return known[u];
-      return String(unit); // sudah berupa label cantik (hasil parsing itemsSummary)
+      return String(unit);
     };
 
-    // Format angka qty: 2 -> "2", 0.5 -> "0.5", 1.50 -> "1.5"
     const formatQtySimple = (q) => {
       const num = parseFloat(q);
       if (!num || isNaN(num)) return '1';
@@ -2497,7 +2464,6 @@
       return String(num.toFixed(2)).replace(/0+$/, '').replace(/\.$/, '');
     };
 
-    // Ambil rincian barang dari itemsList; jika kosong, coba baca dari itemsSummary
     const parseItemsFromSummary = (summary) => {
       const out = [];
       if (!summary) return out;
@@ -2534,12 +2500,12 @@
       const list = getSimpleItemList(order);
       if (!list.length) { alert("Pesanan ini tidak memiliki rincian barang yang bisa dicetak."); return; }
 
-      // Susun baris: "1. Nama Barang — 2 Kg"
+      // ===== PERUBAHAN: gunakan "=>" sebagai pemisah (bukan em-dash / ôçö) =====
       const bodyLines = list.map((it, i) => {
-        return `${i + 1}. ${it.name} — ${formatQtySimple(it.qty)} ${unitLabelForSimpleList(it.unit)}`;
+        return `${i + 1}. ${it.name} => ${formatQtySimple(it.qty)} ${unitLabelForSimpleList(it.unit)}`;
       }).join('\n');
 
-      // ---- Opsi 1: Printer Bluetooth (jika tersambung / disetujui) ----
+      // ---- Opsi 1: Printer Bluetooth ----
       if (btPrinterChar) {
         try {
           await sendRaw(escposInit());
@@ -2562,10 +2528,10 @@
         }
       }
 
-      // ---- Opsi 2: Cetak lewat browser / printer biasa ----
-      // (tanpa nama toko, tanpa alamat, tanpa harga)
+      // ---- Opsi 2: Cetak lewat browser ----
+      // (tanpa nama toko, tanpa alamat, tanpa harga; pemisah "=>")
       const receiptHtml = `
-        <div class="section-title">— DAFTAR BARANG PESANAN —</div>
+        <div class="section-title">=> DAFTAR BARANG PESANAN <=</div>
         <table class="info-table">
           <tr><td>No. Pesanan</td><td>:</td><td>${escapeHtmlText(order.id || '-')}</td></tr>
           <tr><td>Waktu</td><td>:</td><td>${escapeHtmlText(order.timestamp || '-')}</td></tr>
@@ -2574,11 +2540,11 @@
         <pre class="receipt-items">${escapeHtmlText(bodyLines)}</pre>
         <hr>
         <div>Jumlah Item: ${list.length}</div>
-        <div class="text-center" style="margin-top:6px;">— Selesai —</div>`;
+        <div class="text-center" style="margin-top:6px;">=> Selesai <=</div>`;
 
       await printDynamicReceipt(receiptHtml);
     };
-    // ===== END FITUR BARU: CETAK DAFTAR BARANG =====
+    // ===== END CETAK DAFTAR BARANG =====
 
     const cetakStrukOrderBluetooth = async (order) => {
       if (!btPrinterChar) {
@@ -2932,7 +2898,6 @@
     // ===== TOMBOL SCANNER =====
     $('btn-scan-pos').addEventListener('click', () => openScanner('pos'));
     $('btn-scan-admin').addEventListener('click', () => openScanner('admin-form'));
-    // Scan barcode di tabel stok
     const btnScanStock = $('btn-scan-stock');
     if (btnScanStock) btnScanStock.addEventListener('click', () => openScanner('admin-stock-search'));
     $('btn-close-scanner').addEventListener('click', closeScanner);
@@ -2966,7 +2931,7 @@
       let debounceTid = null;
       input.addEventListener('input', () => {
         if (debounceTid) clearTimeout(debounceTid);
-        debounceTid = setTimeout(() => renderQuickSearchResults(), 100);
+        debounceTid = setTimeout(() => renderQuickSearchResults(), 90);
       });
       input.addEventListener('focus', () => { if ((input.value || '').trim()) renderQuickSearchResults(); });
       input.addEventListener('keydown', (e) => {
@@ -3139,7 +3104,6 @@
     $('btn-toggle-store-status').addEventListener('click', toggleStore);
     $('btn-clear-cart').addEventListener('click', () => { if (confirm("Kosongkan keranjang?")) { cart = []; saveCart(); renderCart(); } });
 
-    // ===== TOMBOL ACAK URUTAN PRODUK — KHUSUS DI PORTAL ADMIN =====
     (function initAdminShuffleButton() {
       const btn = $('btn-admin-shuffle-products');
       if (!btn) return;
@@ -3285,14 +3249,14 @@
     let _buyerSearchTid = null;
     $('search-buyer').addEventListener('input', () => {
       if (_buyerSearchTid) clearTimeout(_buyerSearchTid);
-      _buyerSearchTid = setTimeout(renderProducts, 120);
+      _buyerSearchTid = setTimeout(renderProducts, 90);
     });
     $('category-filter').addEventListener('change', renderProducts);
 
     let _adminSearchTid = null;
     $('search-admin').addEventListener('input', () => {
       if (_adminSearchTid) clearTimeout(_adminSearchTid);
-      _adminSearchTid = setTimeout(renderAdminProducts, 120);
+      _adminSearchTid = setTimeout(renderAdminProducts, 90);
     });
 
     // ===== INPUT BATAS STOK MENIPIS =====
@@ -3321,7 +3285,7 @@
     let _posSearchTid = null;
     $('pos-search').addEventListener('input', () => {
       if (_posSearchTid) clearTimeout(_posSearchTid);
-      _posSearchTid = setTimeout(renderPosProducts, 120);
+      _posSearchTid = setTimeout(renderPosProducts, 90);
     });
 
     $('pos-cash-input').addEventListener('input', calcPosChange);
@@ -3407,10 +3371,10 @@
     saveCart();
     calcFinance(historyList);
     checkSession();
-    reshuffleProducts();     // urutan awal produk diacak sekali saat halaman dimuat
+    reshuffleProducts();
     switchPage('buyer');
 
-    window.onerror = function(msg, src, line) { console.error("ERROR:", msg, "-", src, "line:", line); };
+    window.onerror = function(msg, src, line) { console.error("ERROR:", msg, "-", src, line); };
   </script>
 </body>
 </html>
