@@ -488,6 +488,8 @@
                   <option value="slop">Per Slop</option>
                   <option value="dus">Per Dus</option>
                   <option value="renteng">Per Renteng</option>
+                  <option value="box">Per Box</option>
+                  <option value="botol">Per Botol</option>
                   <option value="digital">Digital (Nominal)</option>
                 </select></div>
                 <div class="form-group" id="price-form-group"><label>Harga Jual (Rp)</label><input type="number" id="prod-price" required></div>
@@ -678,8 +680,13 @@
       return el;
     };
 
+    // ===== DAFTAR SATUAN (TERMASUK BOX & BOTOL) =====
     function getUnitPretty(unitType) {
-      const map = { pcs: 'Pcs', kg: 'Kg', liter: 'Liter', lusin: 'Lusin', pack: 'Pack', bungkus: 'Bungkus', ball: 'Ball', slop: 'Slop', dus: 'Dus', renteng: 'Renteng', digital: 'Digital' };
+      const map = {
+        pcs: 'Pcs', kg: 'Kg', liter: 'Liter', lusin: 'Lusin', pack: 'Pack',
+        bungkus: 'Bungkus', ball: 'Ball', slop: 'Slop', dus: 'Dus', renteng: 'Renteng',
+        box: 'Box', botol: 'Botol', digital: 'Digital'
+      };
       return map[unitType] || 'Pcs';
     }
 
@@ -1587,7 +1594,18 @@
         const volumeShort = isLiter ? 'L' : 'Kg';
         const volumeKey = isLiter ? 'liter' : 'kg';
         let satuan = '/pcs';
-        if (isKg) satuan = '/kg'; else if (isLiter) satuan = '/liter'; else if (p.unitType === 'dus') satuan = '/dus'; else if (p.unitType === 'renteng') satuan = '/renteng'; else if (p.unitType === 'lusin') satuan = '/lusin'; else if (p.unitType === 'pack') satuan = '/pack'; else if (p.unitType === 'bungkus') satuan = '/bungkus'; else if (p.unitType === 'ball') satuan = '/ball'; else if (p.unitType === 'slop') satuan = '/slop'; else if (isDigital) satuan = ' (Nominal Bebas)';
+        if (isKg) satuan = '/kg';
+        else if (isLiter) satuan = '/liter';
+        else if (p.unitType === 'dus') satuan = '/dus';
+        else if (p.unitType === 'renteng') satuan = '/renteng';
+        else if (p.unitType === 'lusin') satuan = '/lusin';
+        else if (p.unitType === 'pack') satuan = '/pack';
+        else if (p.unitType === 'bungkus') satuan = '/bungkus';
+        else if (p.unitType === 'ball') satuan = '/ball';
+        else if (p.unitType === 'slop') satuan = '/slop';
+        else if (p.unitType === 'box') satuan = '/box';
+        else if (p.unitType === 'botol') satuan = '/botol';
+        else if (isDigital) satuan = ' (Nominal Bebas)';
         let extraControl = '';
         let priceHtml = `<span>Rp ${(p.price||0).toLocaleString('id-ID')}${satuan}</span>`;
         if (isVolumeUnit && isAvailable) {
@@ -2452,7 +2470,7 @@
       if (!unit) return 'Pcs';
       const u = String(unit).toLowerCase().trim();
       if (u === 'digital') return 'Transaksi';
-      const known = { pcs:'Pcs', kg:'Kg', liter:'Liter', lusin:'Lusin', pack:'Pack', bungkus:'Bungkus', ball:'Ball', slop:'Slop', dus:'Dus', renteng:'Renteng' };
+      const known = { pcs:'Pcs', kg:'Kg', liter:'Liter', lusin:'Lusin', pack:'Pack', bungkus:'Bungkus', ball:'Ball', slop:'Slop', dus:'Dus', renteng:'Renteng', box:'Box', botol:'Botol' };
       if (known[u]) return known[u];
       return String(unit);
     };
