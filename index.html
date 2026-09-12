@@ -689,6 +689,16 @@
 
     function isVolumeUnitType(unitType) { return unitType === 'kg' || unitType === 'liter'; }
 
+    // ===== UTIL TAMBAHAN: ESCAPE HTML (untuk cetak aman) =====
+    function escapeHtmlText(str) {
+      return String(str === undefined || str === null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     // ===== MAPS LAZY LOAD =====
     let leafletReady = null;
     const geocodeCache = new Map();
@@ -2112,6 +2122,15 @@
         if (completed) tr.className = 'row-order-completed';
 
         const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
+
+        // ===== TOMBOL CETAK DAFTAR BARANG (KHUSUS ONLINE SHOP) =====
+        // Diletakkan DI ATAS tombol "Cetak Struk".
+        // Hanya mencetak NAMA BARANG + QTY (SATUAN) — tanpa harga, tanpa alamat, tanpa nama toko.
+        const isOnlineOrder = (order.source || 'Online Shop') !== 'POS Kasir';
+        const printItemsBtn = isOnlineOrder
+          ? `<button class="btn-primary" style="background:#7c3aed" data-print-items="${order.id}" title="Cetak daftar nama barang & jumlah saja (tanpa harga, tanpa alamat, tanpa nama toko)"><i class="fas fa-list-ul"></i> Cetak Daftar Barang</button>`
+          : '';
+
         const srcLabel = order.source || 'Online Shop';
         const waktu = order.timestamp || '-';
         const nama = order.buyerName || '-';
@@ -2128,6 +2147,7 @@
           <td><strong>Rp ${total.toLocaleString('id-ID')}</strong></td>
           <td style="color:var(--success);font-weight:700;">Rp ${profit.toLocaleString('id-ID')}</td>
           <td><div class="btn-actions-group">
+            ${printItemsBtn}
             ${printBtn}
             <button class="btn-primary" style="background:#0284c7" data-id="${order.id}" data-status="received">Diterima</button>
             <button class="btn-primary" style="background:#d97706" data-id="${order.id}" data-status="process">Diproses</button>
@@ -2143,7 +2163,10 @@
       }));
       tbody.querySelectorAll('.btn-actions-group button').forEach(btn => btn.addEventListener('click', e => {
         const b = e.target.closest('button');
-        const id = b.getAttribute('data-id'), del = b.getAttribute('data-del'), cetak = b.getAttribute('data-print');
+        const id = b.getAttribute('data-id'), del = b.getAttribute('data-del');
+        const cetak = b.getAttribute('data-print');
+        const cetakItems = b.getAttribute('data-print-items');
+        if (cetakItems) { cetakDaftarBarangOnline(cetakItems); return; }
         if (cetak) { cetakStrukOrder(cetak); return; }
         if (del) { if (!isAdmin) return alert("Hanya admin!"); historyList = historyList.filter(o => o.id !== del); saveHistory(); return; }
         if (id) sendStatusWa(id, b.getAttribute('data-status'));
@@ -2443,6 +2466,119 @@
       if (order.itemsList && Array.isArray(order.itemsList) && order.itemsList.length > 0) return order.itemsList;
       return [];
     };
+
+    // =========================================================================
+    // ====== FITUR BARU: CETAK DAFTAR BARANG (KHUSUS ONLINE SHOP) =============
+    // =========================================================================
+    // Struk ini HANYA memuat:
+    //   1) NAMA BARANG
+    //   2) QTY (SATUAN)
+    // TIDAK ADA: harga, alamat, nama pembeli, dan nama toko.
+    // Berguna untuk daftar ambil / packing barang pesanan online.
+    // Tetap mendukung cetak lewat Printer Bluetooth (jika tersambung)
+    // maupun cetak lewat browser / printer biasa.
+    // =========================================================================
+
+    // Ubah kode satuan menjadi label rapi (pcs -> Pcs, digital -> Transaksi, dll)
+    const unitLabelForSimpleList = (unit) => {
+      if (!unit) return 'Pcs';
+      const u = String(unit).toLowerCase().trim();
+      if (u === 'digital') return 'Transaksi';
+      const known = { pcs:'Pcs', kg:'Kg', liter:'Liter', lusin:'Lusin', pack:'Pack', bungkus:'Bungkus', ball:'Ball', slop:'Slop', dus:'Dus', renteng:'Renteng' };
+      if (known[u]) return known[u];
+      return String(unit); // sudah berupa label cantik (hasil parsing itemsSummary)
+    };
+
+    // Format angka qty: 2 -> "2", 0.5 -> "0.5", 1.50 -> "1.5"
+    const formatQtySimple = (q) => {
+      const num = parseFloat(q);
+      if (!num || isNaN(num)) return '1';
+      if (Number.isInteger(num)) return String(num);
+      return String(num.toFixed(2)).replace(/0+$/, '').replace(/\.$/, '');
+    };
+
+    // Ambil rincian barang dari itemsList; jika kosong, coba baca dari itemsSummary
+    const parseItemsFromSummary = (summary) => {
+      const out = [];
+      if (!summary) return out;
+      String(summary).split('\n').forEach(line => {
+        const m = line.match(/^\s*\d+\.\s*(.+?)\s*\[Rp\s*([\d.,]+)\s*[x×]\s*([\d.,]+)\s*([^\]]*)\]/i);
+        if (m) {
+          out.push({
+            productName: m[1].trim(),
+            qty: parseFloat(String(m[3]).replace(',', '.')) || 1,
+            unit: (m[4] || '').trim()
+          });
+        }
+      });
+      return out;
+    };
+
+    const getSimpleItemList = (order) => {
+      let items = extractOrderItems(order);
+      if (!items || items.length === 0) items = parseItemsFromSummary(order.itemsSummary);
+      return items.map(it => {
+        const unitRaw = it.unit || (it.product ? it.product.unitType : 'pcs') || 'pcs';
+        return {
+          name: it.productName || (it.product && it.product.name) || it.productId || 'Produk',
+          qty: it.qty || 1,
+          unit: unitRaw
+        };
+      });
+    };
+
+    const cetakDaftarBarangOnline = async (orderId) => {
+      const order = historyList.find(o => o.id === orderId);
+      if (!order) { alert("Pesanan tidak ditemukan!"); return; }
+
+      const list = getSimpleItemList(order);
+      if (!list.length) { alert("Pesanan ini tidak memiliki rincian barang yang bisa dicetak."); return; }
+
+      // Susun baris: "1. Nama Barang — 2 Kg"
+      const bodyLines = list.map((it, i) => {
+        return `${i + 1}. ${it.name} — ${formatQtySimple(it.qty)} ${unitLabelForSimpleList(it.unit)}`;
+      }).join('\n');
+
+      // ---- Opsi 1: Printer Bluetooth (jika tersambung / disetujui) ----
+      if (btPrinterChar) {
+        try {
+          await sendRaw(escposInit());
+          await btPrintLine('===============================','c');
+          await btPrintLine('DAFTAR BARANG PESANAN','c',true);
+          await btPrintLine('===============================','c');
+          await btPrintLine('No. Pesanan : ' + (order.id || '-'));
+          await btPrintLine('Waktu       : ' + (order.timestamp || '-'));
+          await btPrintLine('-------------------------------');
+          await btPrintLine(bodyLines);
+          await btPrintLine('-------------------------------');
+          await btPrintLine('Jumlah Item : ' + list.length);
+          await btPrintLine('===============================','c');
+          await btFeed(4);
+          setBtStatus('✅ Daftar barang terkirim');
+          return;
+        } catch (err) {
+          console.error("Cetak daftar barang via Bluetooth gagal:", err);
+          alert("Gagal cetak via Bluetooth: " + (err && err.message ? err.message : err) + "\n\nBeralih mencetak lewat browser.");
+        }
+      }
+
+      // ---- Opsi 2: Cetak lewat browser / printer biasa ----
+      // (tanpa nama toko, tanpa alamat, tanpa harga)
+      const receiptHtml = `
+        <div class="section-title">— DAFTAR BARANG PESANAN —</div>
+        <table class="info-table">
+          <tr><td>No. Pesanan</td><td>:</td><td>${escapeHtmlText(order.id || '-')}</td></tr>
+          <tr><td>Waktu</td><td>:</td><td>${escapeHtmlText(order.timestamp || '-')}</td></tr>
+        </table>
+        <hr>
+        <pre class="receipt-items">${escapeHtmlText(bodyLines)}</pre>
+        <hr>
+        <div>Jumlah Item: ${list.length}</div>
+        <div class="text-center" style="margin-top:6px;">— Selesai —</div>`;
+
+      await printDynamicReceipt(receiptHtml);
+    };
+    // ===== END FITUR BARU: CETAK DAFTAR BARANG =====
 
     const cetakStrukOrderBluetooth = async (order) => {
       if (!btPrinterChar) {
