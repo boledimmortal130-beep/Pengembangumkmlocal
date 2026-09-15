@@ -119,7 +119,6 @@
     .product-desc{font-size:11px;color:var(--muted);margin-bottom:5px}
     .product-price{font-size:15px;color:var(--primary);font-weight:800}
     .price-sub-calc{font-size:10px;color:var(--muted);font-style:italic;min-height:14px}
-    /* ===== BARU: Info konversi satuan + harga live ===== */
     .price-sub-calc.active-calc{
       color:var(--primary);
       font-style:normal;
@@ -751,9 +750,6 @@
     // ============================================================
     // ===== BARU: KONFIGURASI SATUAN HARGA OTOMATIS ==============
     // ============================================================
-    // Satuan berbasis berat / volume dengan sub-satuan otomatis.
-    // kg  <-> gram  (1 kg   = 1000 gram)
-    // liter <-> ml  (1 liter = 1000 ml)
     const VOLUME_UNIT_INFO = {
       kg: {
         family: 'weight', baseUnit: 'kg', subUnit: 'gram',
@@ -810,7 +806,6 @@
       }
     };
 
-    // ===== DAFTAR SATUAN =====
     function getUnitPretty(unitType) {
       const map = {
         pcs: 'Pcs', kg: 'Kg', gram: 'Gram', liter: 'Liter', mililiter: 'Mililiter (ml)',
@@ -823,13 +818,11 @@
     function isVolumeUnitType(unitType) { return unitType in VOLUME_UNIT_INFO; }
     function getVolumeUnitInfo(unitType) { return VOLUME_UNIT_INFO[unitType] || null; }
 
-    // ===== BARU: helper untuk step +/- di keranjang =====
     function getUnitStep(unitType) {
       const info = getVolumeUnitInfo(unitType);
       return info ? info.cartStep : 1;
     }
 
-    // ===== BARU: konversi & format qty untuk tampilan =====
     function convertUnitQty(qty, unitType) {
       const info = getVolumeUnitInfo(unitType);
       if (!info) return '';
@@ -857,7 +850,6 @@
       if (unitType === 'digital') return '1 Transaksi';
       const q = parseFloat(qty) || 0;
       const pretty = getUnitPretty(unitType);
-      // Satuan gram/ml cukup ditulis rapi tanpa konversi
       if (unitType === 'gram' || unitType === 'mililiter') {
         return `${Math.round(q).toLocaleString('id-ID')} ${pretty}`;
       }
@@ -1230,6 +1222,9 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
+    // ============================================================
+    // ===== ONGKIR TAMBAHAN BARANG (FLAT / PER-BARANG) ===========
+    // ============================================================
     const calculateExtraShippingFees = (itemCount) => {
       const totalQty = parseFloat(itemCount) || 0;
       let flat = 0;
@@ -1247,7 +1242,10 @@
       return { flat, perItem, total: flat + perItem };
     };
 
-    const calculateShippingFee = (subtotal, itemCount) => {
+    // ============================================================
+    // ===== ONGKOS KIRIM DASAR (BERDASARKAN JARAK SAJA) ==========
+    // ============================================================
+    const calculateDistanceFee = (subtotal) => {
       if (!shippingConfig.enabled || !subtotal || subtotal <= 0) return 0;
       if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
       if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
@@ -1256,9 +1254,14 @@
       let distanceFee;
       if (distance <= 1) distanceFee = shippingConfig.minFee || 0;
       else distanceFee = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
+      return Math.max(0, Math.round(distanceFee));
+    };
 
+    // ===== TOTAL ONGKIR = Ongkos Kirim Dasar + Ongkir Tambahan Barang =====
+    const calculateShippingFee = (subtotal, itemCount) => {
+      const distanceFee = calculateDistanceFee(subtotal);
       const extra = calculateExtraShippingFees(itemCount);
-      return Math.max(0, Math.round(distanceFee + extra.total));
+      return distanceFee + extra.total;
     };
 
     const getOngkirStatusInfo = (subtotal) => {
@@ -1299,6 +1302,9 @@
       updateSchedulePreview();
     }
 
+    // ============================================================
+    // ===== UPDATE TAMPILAN ONGKIR — TERPISAH ====================
+    // ============================================================
     const updateShippingDisplay = () => {
       if (!$('summary-shipping')) return;
       const subtotal = _cartSubtotalCache;
@@ -1311,22 +1317,29 @@
       const itemCount = _cartItemCountCache;
 
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
-      let shippingFee = 0;
 
-      const extraFees = (shippingConfig.enabled && isAuto) ? calculateExtraShippingFees(itemCount) : { total: 0 };
+      // ===== Hitung TERPISAH =====
+      let distanceFee = 0;
+      let extraFee = 0;
+      if (isEnabled && isAuto) {
+        distanceFee = calculateDistanceFee(subtotal);
+        extraFee = calculateExtraShippingFees(itemCount).total;
+      }
+      // Total ongkir = ongkos kirim dasar + ongkir tambahan barang (digabung HANYA di Total)
+      const totalOngkir = distanceFee + extraFee;
 
+      // ===== Baris "Ongkir Tambahan Barang" (terpisah) =====
       if (extraRow && extraSpan) {
-        if (isEnabled && isAuto && extraFees.total > 0) {
+        if (isEnabled && isAuto && extraFee > 0) {
           extraRow.classList.remove('hidden');
-          extraSpan.innerText = `Rp ${extraFees.total.toLocaleString('id-ID')}`;
+          extraSpan.innerText = `Rp ${extraFee.toLocaleString('id-ID')}`;
         } else {
           extraRow.classList.add('hidden');
           extraSpan.innerText = "Rp 0";
         }
       }
 
-      if (isAuto) shippingFee = calculateShippingFee(subtotal, itemCount);
-
+      // ===== Baris "Ongkos Kirim" (hanya ongkos kirim dasar, terpisah) =====
       if (!isEnabled) {
         shippingSpan.innerText = "Gratis / Tidak ada";
         totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
@@ -1335,17 +1348,19 @@
         totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
       } else if (!isAuto) {
         shippingSpan.innerText = "Dikonfirmasi Admin";
-        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
+        totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')} (+Ongkir)`;
       } else {
-        shippingSpan.innerText = `Rp ${shippingFee.toLocaleString('id-ID')}`;
-        totalSpan.innerText = `Rp ${(subtotal + shippingFee).toLocaleString('id-ID')}`;
+        shippingSpan.innerText = `Rp ${distanceFee.toLocaleString('id-ID')}`;
+        totalSpan.innerText = `Rp ${(subtotal + totalOngkir).toLocaleString('id-ID')}`;
       }
+
       if (noteEl) {
         if (isEnabled && !isFree && !isAuto && subtotal > 0) {
           noteEl.style.display = 'block';
           noteEl.innerText = "⚠️ Ongkir belum termasuk — admin akan menghitung ongkir setelah pesanan dikirim.";
         } else noteEl.style.display = 'none';
       }
+
       if (distInfo) {
         if (!isEnabled) distInfo.innerText = "🚚 Toko saat ini tidak membebankan ongkir.";
         else if (!subtotal) distInfo.innerText = "🛒 Tambahkan produk untuk menghitung ongkir.";
@@ -1354,8 +1369,8 @@
         else {
           const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
           let extraNote = "";
-          if (extraFees.total > 0) extraNote = ` | Ongkir Tambahan Barang: Rp ${extraFees.total.toLocaleString('id-ID')}`;
-          distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Estimasi Ongkir: Rp ${shippingFee.toLocaleString('id-ID')}${extraNote}`;
+          if (extraFee > 0) extraNote = ` | Ongkir Tambahan Barang: Rp ${extraFee.toLocaleString('id-ID')}`;
+          distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Ongkos Kirim Dasar: Rp ${distanceFee.toLocaleString('id-ID')}${extraNote} | Total Ongkir: Rp ${totalOngkir.toLocaleString('id-ID')}`;
         }
       }
     };
@@ -1764,9 +1779,6 @@
     };
     const closeTopping = () => { $('topping-modal').classList.add('hidden'); pendingToppingCallback = null; };
 
-    // ============================================================
-    // ===== BARU: Hint satuan pada form admin ====================
-    // ============================================================
     const handleUnitType = () => {
       const unit = $('prod-unit-type').value;
       const priceHint = $('price-unit-hint');
@@ -1790,7 +1802,7 @@
     };
 
     // ============================================================
-    // ===== RENDER PRODUK (PEMBELI) — SATUAN HARGA OTOMATIS =====
+    // ===== RENDER PRODUK (PEMBELI) ==============================
     // ============================================================
     const renderProducts = () => {
       const container = $('product-list');
@@ -1829,7 +1841,6 @@
         const isAvailable = p.available && (p.stock > 0 || isDigital);
         const canOrder = isAvailable;
 
-        // label satuan harga
         let satuan = '/pcs';
         if (p.unitType === 'kg') satuan = '/kg';
         else if (p.unitType === 'gram') satuan = '/gram';
@@ -1849,7 +1860,6 @@
         let extraControl = '';
         let priceHtml = `<span>Rp ${(p.price||0).toLocaleString('id-ID')}${satuan}</span>`;
 
-        // ===== SATUAN HARGA OTOMATIS (kg, gram, liter, mililiter) =====
         if (isVolumeUnit && isAvailable) {
           const presetsHtml = volInfo.presets.map(pr => {
             const isActive = pr.active && pr.val === volInfo.defaultInput;
@@ -1905,7 +1915,6 @@
       });
       container.appendChild(fragment);
 
-      // ===== EVENT BINDING =====
       container.querySelectorAll('.btn-buy').forEach(btn => btn.addEventListener('click', e => buyProduct(e.target.closest('button').getAttribute('data-id'))));
 
       container.querySelectorAll('.weight-presets button').forEach(btn => btn.addEventListener('click', e => {
@@ -1925,7 +1934,6 @@
         const pid = e.target.getAttribute('data-id');
         const price = parseFloat(e.target.getAttribute('data-price'));
         if (pid && price) calcWeight(pid, price);
-        // de-select preset jika nilai tidak match
         if (pid) {
           const wrap = e.target.closest('.weight-selector-box');
           if (wrap) {
@@ -1944,7 +1952,6 @@
         if (disp) disp.innerText = `Rp ${val.toLocaleString('id-ID')}`;
       }));
 
-      // Inisialisasi kalkulasi awal untuk semua volume unit yang tampil
       filtered.forEach(p => {
         if (isVolumeUnitType(p.unitType) && p.available) {
           const info = getVolumeUnitInfo(p.unitType);
@@ -1953,10 +1960,6 @@
       });
     };
 
-    // ============================================================
-    // ===== BARU: KALKULASI HARGA OTOMATIS SATUAN ================
-    // ============================================================
-    // Menampilkan: "Rp X × qty = Rp total (+ konversi satuan)"
     const calcWeight = (id, pricePerUnit, forcedQty) => {
       const input = $('input-qty-' + id);
       const priceBox = $('main-price-box-' + id);
@@ -1969,12 +1972,10 @@
       const unitType = prod ? prod.unitType : 'pcs';
       const volInfo = getVolumeUnitInfo(unitType);
 
-      // Update kotak harga utama
       priceBox.innerHTML = `<span>Rp ${total.toLocaleString('id-ID')}</span><span style="font-size:10px;color:var(--muted);font-weight:600;"> untuk ${formatQtyLabel(qty, unitType)}</span>`;
 
       if (!sub) return;
 
-      // Isi info rincian + konversi
       if (volInfo) {
         const prettyUnit = getUnitPretty(unitType);
         const conversion = convertUnitQty(qty, unitType);
@@ -2014,7 +2015,6 @@
       const isUnlimited = unitType === 'digital';
       const existingIdx = findCartIndexByProduct(product.id, unitType, toppings, customPrice);
 
-      // Label qty & satuan
       const qtyPretty = formatQtyLabel(qty, unitType);
 
       if (existingIdx !== -1) {
@@ -2054,7 +2054,6 @@
         return;
       }
 
-      // ===== BARU: satuan berat/volume (kg, gram, liter, mililiter) =====
       if (volInfo) {
         const unitLabel = unitType === 'kg' ? 'Kg' :
                           unitType === 'gram' ? 'gram' :
@@ -2160,7 +2159,6 @@
       const volInfo = getVolumeUnitInfo(prod.unitType);
 
       if (volInfo) {
-        // ===== Satuan berat/volume =====
         const inputQty = $('input-qty-' + id);
         qty = parseFloat(inputQty ? inputQty.value : volInfo.defaultInput) || 0;
         if (qty <= 0) {
@@ -2187,7 +2185,7 @@
     };
 
     // ============================================================
-    // ===== RENDER CART — dengan step satuan otomatis ===========
+    // ===== RENDER CART ==========================================
     // ============================================================
     const renderCart = () => {
       const list = $('cart-items-list');
@@ -2223,7 +2221,6 @@
         const qtyLabel = formatQtyLabel(item.qty, unit);
         const topingText = toppings.length ? `<div style="font-size:10px;color:var(--primary);margin-bottom:2px;">Toping: ${toppings.map(t=>t.name).join(', ')}</div>` : '';
 
-        // ===== BARU: konversi info di keranjang =====
         let conversionLine = '';
         if (volInfo) {
           const conversion = convertUnitQty(item.qty, unit);
@@ -2266,7 +2263,6 @@
       if (!cart[idx]) return;
       const unit = cart[idx].unitChosen || cart[idx].product.unitType || 'pcs';
       const volInfo = getVolumeUnitInfo(unit);
-      // Round sesuai satuan (2 desimal untuk kg/liter, integer untuk gram/ml, dll)
       let newQty;
       if (volInfo && (unit === 'kg' || unit === 'liter')) newQty = parseFloat(((cart[idx].qty || 1) + delta).toFixed(2));
       else if (volInfo) newQty = Math.max(0, Math.round((cart[idx].qty || 1) + delta));
@@ -2275,7 +2271,6 @@
       if (newQty <= 0) {
         cart.splice(idx, 1);
       } else {
-        // Cek stok
         const prod = getProductById(cart[idx].product.id);
         if (prod && unit !== 'digital' && newQty > prod.stock) {
           alert(`Stok hanya ${prod.stock} ${getUnitPretty(unit)}.`);
@@ -2324,7 +2319,6 @@
 
     const addPos = (product) => {
       const volInfo = getVolumeUnitInfo(product.unitType);
-      // ===== BARU: satuan berat/volume di POS =====
       if (volInfo) {
         const unitLabel = product.unitType === 'kg' ? 'Kg' :
                           product.unitType === 'gram' ? 'gram' :
@@ -2373,7 +2367,6 @@
         const topText = item.toppings.length ? `<br><small style="color:var(--muted);">Toping: ${item.toppings.map(t=>t.name).join(', ')}</small>` : '';
         const unit = item.product.unitType || 'pcs';
         const volInfo = getVolumeUnitInfo(unit);
-        // ===== BARU: tampilkan konversi di keranjang POS =====
         let convText = '';
         if (volInfo) convText = `<br><small style="color:#92400e;font-weight:700;">= ${convertUnitQty(item.qty, unit)}</small>`;
         const row = document.createElement('div');
@@ -2393,7 +2386,6 @@
       const item = posCart[idx];
       if (!item) return;
       const volInfo = getVolumeUnitInfo(item.product.unitType);
-      // STEP khusus untuk satuan berat/volume
       let step = delta;
       if (volInfo) step = delta * volInfo.cartStep;
 
@@ -2625,7 +2617,6 @@
       handleUnitType();
     };
 
-    // ===== RENDER TABEL STOK BARANG =====
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table');
       if (!tbody) return;
@@ -2690,7 +2681,6 @@
           else if (rank === 1) alertBadge = `<div class="stock-alert-badge warn"><i class="fas fa-exclamation-triangle"></i> STOK MENIPIS (${p.stock})</div>`;
         }
 
-        // Tampilkan info konversi untuk satuan berat/volume
         let stockDisplay = `${isDigital ? '∞' : p.stock} ${unit}`;
         if (volInfo && !isDigital) {
           const conv = convertUnitQty(p.stock, p.unitType);
@@ -3010,7 +3000,6 @@
           const productName = item.productName || item.productId || 'Produk';
           await btPrintLine(`${idx}. ${productName}`);
           await btPrintLine(`   Rp ${Number(price).toLocaleString('id-ID')} x ${qty} ${unitPretty}`);
-          // Tambahan konversi untuk satuan berat/volume
           if (isVolumeUnitType(unit)) {
             await btPrintLine(`   (${convertUnitQty(qty, unit)})`);
           }
@@ -3241,7 +3230,6 @@
         total += sub; totalHpp += hpp;
         const topDesc = i.toppings && i.toppings.length > 0 ? ` - Toping: ${i.toppings.map(t => `${t.name} +${(t.price||0).toLocaleString('id-ID')}`).join(', ')}` : '';
         const unitTxt = i.product.unitType === 'digital' ? 'Transaksi' : getUnitPretty(i.product.unitType || 'pcs');
-        // ===== BARU: sertakan info konversi di summary =====
         const convTxt = isVolumeUnitType(i.product.unitType) ? ` (= ${convertUnitQty(i.qty, i.product.unitType)})` : '';
         summary += `${idx+1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty} ${unitTxt}${topDesc}]${convTxt} = Rp ${sub.toLocaleString('id-ID')}\n`;
         items.push({ productId:i.product.id, productName:i.product.name, price:i.product.price, costPrice:i.product.costPrice||0, qty:i.qty, unit:i.product.unitType, toppings:i.toppings });
@@ -3557,6 +3545,9 @@
       updateShippingDisplay();
     });
 
+    // ============================================================
+    // ===== CHECKOUT FORM — ONGKIR TERPISAH DI PESAN WA ==========
+    // ============================================================
     $('checkout-form').addEventListener('submit', async function(e) {
       e.preventDefault();
 
@@ -3592,7 +3583,6 @@
         const unit = item.unitChosen || item.product.unitType || 'pcs';
         const satuan = unit === 'digital' ? 'Transaksi' : getUnitPretty(unit);
         const topingStr = toppings.length ? ` | Toping: ${toppings.map(t=>`${t.name} (+${(t.price||0).toLocaleString('id-ID')})`).join(', ')}` : '';
-        // ===== BARU: tampilkan info konversi di pesan WA =====
         const convStr = isVolumeUnitType(unit) ? ` (= ${convertUnitQty(item.qty, unit)})` : '';
         itemsMsg += `${i+1}. ${item.product.name} [Rp ${item.product.price.toLocaleString('id-ID')} x ${item.qty} ${satuan}${topingStr}]${convStr} -> Rp ${cost.toLocaleString('id-ID')}\n`;
         itemsArr.push({ productId:item.product.id, productName:item.product.name, price:item.product.price, costPrice:item.product.costPrice||0, qty:item.qty, unit:unit, toppings });
@@ -3600,12 +3590,25 @@
 
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
       const itemTotalQty = cart.reduce((sum, it) => sum + (parseFloat(it.qty) || 1), 0);
-      const shippingFee = isAuto ? calculateShippingFee(subtotal, itemTotalQty) : 0;
+
+      // ===== Hitung TERPISAH =====
+      let distanceFeeOnly = 0;
+      let extraFeeOnly = 0;
+      if (isEnabled && isAuto) {
+        distanceFeeOnly = calculateDistanceFee(subtotal);
+        extraFeeOnly = calculateExtraShippingFees(itemTotalQty).total;
+      }
+      const shippingFee = distanceFeeOnly + extraFeeOnly;
+
       let ongkirLabel;
+      let ongkirExtraLabel = "";
       if (!isEnabled) ongkirLabel = "Tidak Ada";
       else if (isFree) ongkirLabel = "GRATIS 🎉";
       else if (!isAuto) ongkirLabel = "Dikonfirmasi Admin / Nego via WA";
-      else ongkirLabel = `Rp ${shippingFee.toLocaleString('id-ID')}`;
+      else {
+        ongkirLabel = `Rp ${distanceFeeOnly.toLocaleString('id-ID')}`;
+        if (extraFeeOnly > 0) ongkirExtraLabel = `\nOngkir Tambahan Barang: Rp ${extraFeeOnly.toLocaleString('id-ID')}`;
+      }
 
       const totalFinal = subtotal + shippingFee;
       const totalLabel = (isEnabled && !isFree && !isAuto)
@@ -3627,7 +3630,7 @@
       saveHistory();
       stopLivePositionWatch();
 
-      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkir: ${ongkirLabel}\nTOTAL: ${totalLabel}\n\n*Data Pengiriman:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
+      const msg = `*PESANAN BARU - TOKO UMKM LOKAL*\n===========================\n${itemsMsg}---------------------------\nSubtotal: Rp ${subtotal.toLocaleString('id-ID')}\nOngkos Kirim: ${ongkirLabel}${ongkirExtraLabel}\nTOTAL: ${totalLabel}\n\n*Data Pengiriman:*\nNama: ${name}\nWA: ${phone}\nAlamat/ID: ${address}\nWaktu: ${time}\nCatatan: ${note}\n\n*INFO:* Pembayaran wajib lunas. DILARANG HUTANG!`;
       window.open(`https://api.whatsapp.com/send?phone=${MAIN_WA_NUMBER}&text=${encodeURIComponent(msg)}`, '_blank');
       cart = [];
       saveCart();
