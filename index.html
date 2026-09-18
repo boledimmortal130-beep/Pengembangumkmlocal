@@ -278,7 +278,7 @@
     <div class="navbar container">
       <div class="logo">
         <h1>🏪 Pengembang UMKM Lokal</h1>
-        <h1 style="font-size:14px;color:#ffedd5;">✨ go jag ga jig group ✨</h1>
+        <h1 style="font-size:14px;color:#ffedd5;">✨ gradag jaya group ✨</h1>
         <p>Toko & Sistem POS Kasir</p>
         <div class="datetime-display" id="live-datetime">Memuat waktu...</div>
       </div>
@@ -657,7 +657,7 @@
 
   <div id="printable-receipt"></div>
 
-  <footer><div class="container text-center"><p>&copy; 2026 Pengembang UMKM Lokal — a'didin go jag ga jig group ✨</p></div></footer>
+  <footer><div class="container text-center"><p>&copy; 2026 Pengembang UMKM Lokal — a'didin gradag jaya group ✨</p></div></footer>
 
   <script>
     // ===== FIREBASE CONFIG =====
@@ -748,7 +748,7 @@
     }
 
     // ============================================================
-    // ===== BARU: KONFIGURASI SATUAN HARGA OTOMATIS ==============
+    // ===== KONFIGURASI SATUAN HARGA OTOMATIS ====================
     // ============================================================
     const VOLUME_UNIT_INFO = {
       kg: {
@@ -2963,7 +2963,7 @@
       await sendRaw(escposInit());
       await btPrintLine('================================','c');
       await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
-      await btPrintLine('go jag ga jig group','c');
+      await btPrintLine('gradag jaya group','c');
       await btPrintLine('Jl. Syekh Datul Kahfi DS. Gamel','c');
       await btPrintLine('WA Admin : ' + waToko,'c');
       await btPrintLine('================================','c');
@@ -3086,7 +3086,7 @@
 
       const receiptHtml = `
         <div class="text-header">PENGEMBANG UMKM LOCAL</div>
-        <div class="text-header-sub">✨ go jag ga jig group ✨</div>
+        <div class="text-header-sub">✨ gradag jaya group ✨</div>
         <div class="shop-address">Jl. Syekh Datul Kahfi DS. Gamel, Cirebon</div>
         <div class="contact-wa">WA Admin: ${waToko}</div>
         <hr>
@@ -3194,7 +3194,7 @@
       await sendRaw(escposInit());
       await btPrintLine('================================','c');
       await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
-      await btPrintLine('go jag ga jig group','c');
+      await btPrintLine('gradag jaya group','c');
       await btPrintLine('Jl. Syekh Datul Kahfi DS. Gamel','c');
       await btPrintLine('WA Admin : ' + waToko,'c');
       await btPrintLine('================================','c');
@@ -3263,7 +3263,7 @@
           const qrDataUrl = await generateReceiptQR();
           const receiptHtml = `
             <div class="text-header">PENGEMBANG UMKM LOCAL</div>
-            <div class="text-header-sub">✨ go jag ga jig group ✨</div>
+            <div class="text-header-sub">✨ gradag jaya group ✨</div>
             <div class="shop-address">Jl. Syekh Datul Kahfi DS. Gamel, Cirebon</div>
             <div class="contact-wa">WA Admin: ${waToko}</div>
             <hr>
