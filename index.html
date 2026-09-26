@@ -212,6 +212,7 @@
     .stock-warning-banner i{font-size:15px;margin-top:1px}
     .stock-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:stretch}
     .stock-toolbar .search-input{flex:1;min-width:170px}
+    .stock-toolbar button{white-space:nowrap}
     .low-threshold-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;background:#fff7ed;border:1px dashed #fdba74;border-radius:8px;padding:8px 10px}
     .low-threshold-row label{font-size:11px;font-weight:800;color:var(--muted)}
     .low-threshold-row input{width:74px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;text-align:center;color:var(--text);background:#fff}
@@ -278,7 +279,7 @@
     <div class="navbar container">
       <div class="logo">
         <h1>🏪 Pengembang UMKM Lokal</h1>
-        <h1 style="font-size:14px;color:#ffedd5;">✨ gradag jaya group ✨</h1>
+        <h1 style="font-size:14px;color:#ffedd5;">✨ toko online a'didin ✨</h1>
         <p>Toko & Sistem POS Kasir</p>
         <div class="datetime-display" id="live-datetime">Memuat waktu...</div>
       </div>
@@ -569,6 +570,9 @@
                   <input type="text" id="search-admin" placeholder="Cari barang / barcode / rak" autocomplete="off" spellcheck="false">
                 </div>
                 <button class="btn-primary" id="btn-scan-stock" type="button"><i class="fas fa-barcode"></i> Scan</button>
+                <button class="btn-primary" id="btn-export-pdf-stock" type="button" style="background:#dc2626;" title="Export seluruh tabel stok barang ke PDF">
+                  <i class="fas fa-file-pdf"></i> Export PDF
+                </button>
               </div>
 
               <div class="low-threshold-row">
@@ -657,7 +661,7 @@
 
   <div id="printable-receipt"></div>
 
-  <footer><div class="container text-center"><p>&copy; 2026 Pengembang UMKM Lokal — a'didin gradag jaya group ✨</p></div></footer>
+  <footer><div class="container text-center"><p>&copy; 2026 Pengembang UMKM Lokal — toko online a'didin ✨</p></div></footer>
 
   <script>
     // ===== FIREBASE CONFIG =====
@@ -704,6 +708,19 @@
       if (typeof Html5Qrcode !== 'undefined') return true;
       await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
       return typeof Html5Qrcode !== 'undefined';
+    }
+    // ===== LAZY LOAD jsPDF + AutoTable (untuk Export PDF) =====
+    async function ensureJsPDFLib() {
+      if (window.jspdf && window.jspdf.jsPDF) {
+        if (!window.jspdf.jsPDF.API.autoTable) {
+          await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+        }
+        return window.jspdf;
+      }
+      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+      if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('Gagal memuat pustaka PDF. Periksa koneksi internet.');
+      return window.jspdf;
     }
 
     // ===== BLUETOOTH PRINTER STATE =====
@@ -2617,6 +2634,9 @@
       handleUnitType();
     };
 
+    // ============================================================
+    // ===== RENDER TABEL STOK (AUTO-SORT: HABIS → MENIPIS → NORMAL)
+    // ============================================================
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table');
       if (!tbody) return;
@@ -2639,6 +2659,7 @@
         return 2;
       };
 
+      // Otomatis: stok habis di atas, lalu stok menipis, lalu normal, digital paling bawah
       filtered.sort((a, b) => {
         const ra = stockRank(a), rb = stockRank(b);
         if (ra !== rb) return ra - rb;
@@ -2715,6 +2736,153 @@
         else if (del) { if (confirm("Hapus produk?")) { products = products.filter(p => p.id != del); saveProducts(); } }
       }));
     };
+
+    // ============================================================
+    // ===== EXPORT PDF — SELURUH TABEL DATA BARANG ================
+    // ============================================================
+    async function exportStockToPDF() {
+      const btn = $('btn-export-pdf-stock');
+      const origInnerHTML = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membuat PDF...'; }
+
+      try {
+        if (!products || products.length === 0) {
+          alert("Belum ada data barang untuk di-export ke PDF.");
+          return;
+        }
+
+        await ensureJsPDFLib();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const threshold = getLowStockThreshold();
+        const now = new Date();
+        const tglCetak = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+        const jamCetak = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+
+        const pageW = doc.internal.pageSize.getWidth();
+
+        // ===== HEADER =====
+        doc.setFillColor(225, 29, 72);
+        doc.rect(0, 0, pageW, 20, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 9, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Pengembang UMKM Lokal — Laporan Stok Barang', pageW / 2, 15, { align: 'center' });
+
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(9);
+        doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 27);
+        doc.text(`Batas Stok Menipis: ${threshold}`, pageW - 14, 27, { align: 'right' });
+
+        // ===== HITUNG RINGKASAN =====
+        const totalItems = products.length;
+        const outItems = products.filter(p => p.unitType !== 'digital' && (!p.available || p.stock <= 0)).length;
+        const lowItems = products.filter(p => p.unitType !== 'digital' && p.available && p.stock > 0 && p.stock <= threshold).length;
+        const okItems = totalItems - outItems - lowItems;
+
+        doc.setFontSize(9);
+        doc.text(`Total: ${totalItems} item   |   Tersedia: ${okItems}   |   Menipis: ${lowItems}   |   Habis: ${outItems}`, 14, 33);
+
+        // ===== URUTKAN SAMA SEPERTI TABEL (HABIS → MENIPIS → NORMAL → DIGITAL) =====
+        const stockRank = (p) => {
+          if (p.unitType === 'digital') return 3;
+          if (!p.available || p.stock <= 0) return 0;
+          if (p.stock <= threshold) return 1;
+          return 2;
+        };
+        const sorted = [...products].sort((a, b) => {
+          const ra = stockRank(a), rb = stockRank(b);
+          if (ra !== rb) return ra - rb;
+          const sa = a.unitType === 'digital' ? Number.MAX_SAFE_INTEGER : (a.stock || 0);
+          const sb = b.unitType === 'digital' ? Number.MAX_SAFE_INTEGER : (b.stock || 0);
+          return sa - sb;
+        });
+
+        // ===== SUSUN BARIS TABEL =====
+        const rows = sorted.map((p, i) => {
+          const isDigital = p.unitType === 'digital';
+          const unit = isDigital ? 'Digital' : getUnitPretty(p.unitType);
+          const rank = stockRank(p);
+          let status = 'Tersedia';
+          if (isDigital) status = 'Digital';
+          else if (rank === 0) status = 'STOK HABIS';
+          else if (rank === 1) status = 'STOK MENIPIS';
+          const stockDisplay = isDigital ? '∞' : String(p.stock);
+          const conv = (!isDigital && isVolumeUnitType(p.unitType)) ? ` (${convertUnitQty(p.stock, p.unitType)})` : '';
+          return [
+            i + 1,
+            p.name || '-',
+            p.barcode || '-',
+            p.rack || 'Rak Utama',
+            p.category || '-',
+            unit,
+            stockDisplay + conv,
+            'Rp ' + (p.price || 0).toLocaleString('id-ID'),
+            'Rp ' + (p.costPrice || 0).toLocaleString('id-ID'),
+            status
+          ];
+        });
+
+        // ===== AUTO TABLE =====
+        doc.autoTable({
+          startY: 38,
+          head: [['No', 'Nama Barang', 'Barcode', 'Rak', 'Kategori', 'Satuan', 'Stok', 'Harga Jual', 'Harga Modal', 'Status']],
+          body: rows,
+          theme: 'grid',
+          styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
+          headStyles: { fillColor: [225, 29, 72], textColor: 255, fontStyle: 'bold', halign: 'center' },
+          bodyStyles: { textColor: [45, 25, 15] },
+          alternateRowStyles: { fillColor: [255, 247, 237] },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 55 },
+            2: { cellWidth: 32 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 25 },
+            5: { cellWidth: 22, halign: 'center' },
+            6: { cellWidth: 26, halign: 'center' },
+            7: { cellWidth: 28, halign: 'right' },
+            8: { cellWidth: 28, halign: 'right' },
+            9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' }
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 9) {
+              const v = String(data.cell.raw || '');
+              if (v.includes('HABIS')) { data.cell.styles.textColor = [220, 38, 38]; }
+              else if (v.includes('MENIPIS')) { data.cell.styles.textColor = [217, 119, 6]; }
+              else if (v === 'Tersedia') { data.cell.styles.textColor = [22, 163, 74]; }
+              else if (v === 'Digital') { data.cell.styles.textColor = [37, 99, 235]; }
+            }
+          }
+        });
+
+        // ===== FOOTER SETIAP HALAMAN =====
+        const pageCount = doc.internal.getNumberOfPages();
+        const pageH = doc.internal.pageSize.getHeight();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(110, 110, 110);
+          doc.text(`Halaman ${i} dari ${pageCount}`, pageW / 2, pageH - 6, { align: 'center' });
+          doc.text("Toko Online a'didin", 14, pageH - 6);
+          doc.text(`Dicetak ${jamCetak}`, pageW - 14, pageH - 6, { align: 'right' });
+        }
+
+        // ===== SIMPAN =====
+        const pad = (n) => String(n).padStart(2, '0');
+        const fileName = `Daftar-Stok-Barang_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
+        doc.save(fileName);
+      } catch (err) {
+        console.error('Export PDF gagal:', err);
+        alert('Gagal membuat PDF: ' + (err && err.message ? err.message : err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = origInnerHTML || '<i class="fas fa-file-pdf"></i> Export PDF'; }
+      }
+    }
 
     const editProduct = (id) => {
       const p = getProductById(id);
@@ -2963,7 +3131,7 @@
       await sendRaw(escposInit());
       await btPrintLine('================================','c');
       await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
-      await btPrintLine('gradag jaya group','c');
+      await btPrintLine("toko online a'didin",'c');
       await btPrintLine('Jl. Syekh Datul Kahfi DS. Gamel','c');
       await btPrintLine('WA Admin : ' + waToko,'c');
       await btPrintLine('================================','c');
@@ -3086,7 +3254,7 @@
 
       const receiptHtml = `
         <div class="text-header">PENGEMBANG UMKM LOCAL</div>
-        <div class="text-header-sub">✨ gradag jaya group ✨</div>
+        <div class="text-header-sub">✨ toko online a'didin ✨</div>
         <div class="shop-address">Jl. Syekh Datul Kahfi DS. Gamel, Cirebon</div>
         <div class="contact-wa">WA Admin: ${waToko}</div>
         <hr>
@@ -3194,7 +3362,7 @@
       await sendRaw(escposInit());
       await btPrintLine('================================','c');
       await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
-      await btPrintLine('gradag jaya group','c');
+      await btPrintLine("toko online a'didin",'c');
       await btPrintLine('Jl. Syekh Datul Kahfi DS. Gamel','c');
       await btPrintLine('WA Admin : ' + waToko,'c');
       await btPrintLine('================================','c');
@@ -3263,7 +3431,7 @@
           const qrDataUrl = await generateReceiptQR();
           const receiptHtml = `
             <div class="text-header">PENGEMBANG UMKM LOCAL</div>
-            <div class="text-header-sub">✨ gradag jaya group ✨</div>
+            <div class="text-header-sub">✨ toko online a'didin ✨</div>
             <div class="shop-address">Jl. Syekh Datul Kahfi DS. Gamel, Cirebon</div>
             <div class="contact-wa">WA Admin: ${waToko}</div>
             <hr>
@@ -3304,6 +3472,8 @@
     $('btn-scan-admin').addEventListener('click', () => openScanner('admin-form'));
     const btnScanStock = $('btn-scan-stock');
     if (btnScanStock) btnScanStock.addEventListener('click', () => openScanner('admin-stock-search'));
+    const btnExportPdf = $('btn-export-pdf-stock');
+    if (btnExportPdf) btnExportPdf.addEventListener('click', exportStockToPDF);
     $('btn-close-scanner').addEventListener('click', closeScanner);
 
     $('btn-topping-confirm').addEventListener('click', () => {
