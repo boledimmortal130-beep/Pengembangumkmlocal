@@ -208,6 +208,9 @@
     .stock-alert-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;letter-spacing:.2px}
     .stock-alert-badge.danger{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
     .stock-alert-badge.warn{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+    .expired-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;letter-spacing:.2px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+    .expired-badge.warn{background:#fef3c7;color:#b45309;border-color:#fde68a}
+    .expired-badge.ok{background:#dcfce7;color:#15803d;border-color:#86efac}
     .stock-warning-banner{background:#fff7ed;border:2px solid #fdba74;color:#c2410c;padding:10px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;font-weight:600;line-height:1.4}
     .stock-warning-banner i{font-size:15px;margin-top:1px}
     .stock-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:stretch}
@@ -232,6 +235,8 @@
     .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
     .stat-card{background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;padding:10px;text-align:center}
     .stat-card p{font-size:14px;font-weight:800;margin-top:3px;color:var(--primary)}
+    .stat-card.profit p{color:var(--success)}
+    .stat-card.loss p{color:var(--danger)}
     .scanner-modal,.topping-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;padding:15px}
     .scanner-box,.topping-box{background:#fff;border-radius:12px;padding:15px;width:100%;max-width:420px;text-align:center}
     .topping-box h4{margin-bottom:10px}
@@ -256,6 +261,13 @@
     #admin-map{height:300px}
     .leaflet-container{width:100%;height:100%;font-family:inherit;z-index:1}
     @media(max-width:480px){#map-picker{height:220px}#admin-map{height:200px}}
+
+    .history-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center;justify-content:space-between;}
+    .history-toolbar h3{margin:0;border:none;padding:0;flex:1;}
+    .history-toolbar button{white-space:nowrap;}
+
+    .calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+    @media(max-width:480px){.calc-inputs{grid-template-columns:1fr;}}
 
     @media(max-width:480px){
       header{padding:9px 0}
@@ -508,7 +520,7 @@
 
         <div class="card admin-only-feature">
           <h3><i class="fas fa-chart-line"></i> Laporan Keuangan / Laba Rugi</h3>
-          <div class="stats-grid"><div class="stat-card"><h6>Omset</h6><p id="stat-revenue">Rp 0</p></div><div class="stat-card"><h6>Modal (HPP)</h6><p id="stat-cost">Rp 0</p></div><div class="stat-card"><h6>Laba Bersih</h6><p id="stat-profit">Rp 0</p></div></div>
+          <div class="stats-grid"><div class="stat-card"><h6>Omset</h6><p id="stat-revenue">Rp 0</p></div><div class="stat-card"><h6>Modal (HPP)</h6><p id="stat-cost">Rp 0</p></div><div class="stat-card profit"><h6>Laba Bersih</h6><p id="stat-profit">Rp 0</p></div></div>
         </div>
 
         <div class="admin-grid">
@@ -546,6 +558,11 @@
                 <div class="form-group"><label>Stok</label><input type="number" id="prod-stock" value="100"><small id="stock-unit-hint" style="font-size:10px;color:var(--muted);"></small></div>
                 <div class="form-group"><label>Lokasi Rak</label><input type="text" id="prod-rack" value="Rak Utama"></div>
                 <div class="form-group"><label>Kategori</label><input type="text" id="prod-category" required></div>
+                <div class="form-group">
+                  <label><i class="fas fa-hourglass-half" style="color:var(--warning);"></i> Ekspayer (Tanggal Kedaluwarsa)</label>
+                  <input type="date" id="prod-expired">
+                  <small style="font-size:10px;color:var(--muted);">Opsional. Kosongkan jika produk tidak memiliki tanggal kedaluwarsa. Tidak ditampilkan di halaman toko pembeli.</small>
+                </div>
                 <div class="form-group"><label>Foto</label><input type="file" id="prod-image-file" accept="image/*"><img id="img-preview" class="hidden" style="max-width:100%;height:100px;object-fit:cover;margin-top:5px;" alt="pratinjau"></div>
                 <div class="form-group"><label>Deskripsi</label><textarea id="prod-desc" required></textarea></div>
                 <div class="form-group"><label>Topping / Varian</label><div id="toppings-container"></div><button type="button" class="btn-secondary" id="btn-add-topping" style="margin-top:5px;"><i class="fas fa-plus"></i> Tambah Topping</button></div>
@@ -556,9 +573,53 @@
           </div>
 
           <div>
-            <div class="card">
-              <h3><i class="fas fa-history"></i> Histori Pesanan</h3>
+            <div class="card" id="history-card">
+              <div class="history-toolbar">
+                <h3 style="color:var(--primary);"><i class="fas fa-history"></i> Histori Pesanan</h3>
+                <button class="btn-primary" id="btn-export-pdf-history" type="button" style="background:#dc2626;padding:8px 14px;" title="Export data seluruh penjualan ke PDF (hitam-putih)">
+                  <i class="fas fa-file-pdf"></i> Export PDF Penjualan
+                </button>
+              </div>
               <div class="table-responsive"><table class="admin-table"><thead><tr><th>Waktu</th><th>Pembeli / Kasir</th><th>Detail</th><th>Ongkir (Rp)</th><th>Total</th><th>Laba</th><th>Aksi</th></tr></thead><tbody id="admin-history-table"></tbody></table></div>
+            </div>
+
+            <div class="card admin-only-feature" id="sales-calculator-card">
+              <h3><i class="fas fa-calculator"></i> Kalkulator Penjualan, Setor, Modal & Kerugian</h3>
+              <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">
+                Total penjualan, HPP, dan laba kotor dihitung <strong>otomatis</strong> dari histori pesanan berstatus <em>Selesai</em>.
+                Isi <strong>Setor</strong> (uang yang disetorkan) dan <strong>Modal</strong> tambahan untuk menghitung <strong>laba bersih, sisa kas, dan kerugian</strong> otomatis.
+              </p>
+
+              <div class="stats-grid">
+                <div class="stat-card"><h6>Total Penjualan</h6><p id="calc-total-sales">Rp 0</p></div>
+                <div class="stat-card"><h6>Total HPP</h6><p id="calc-total-hpp">Rp 0</p></div>
+                <div class="stat-card profit"><h6>Laba Kotor</h6><p id="calc-gross-profit">Rp 0</p></div>
+              </div>
+
+              <div class="calc-inputs">
+                <div class="form-group" style="margin:0;">
+                  <label><i class="fas fa-hand-holding-usd"></i> Input Setor (Rp)</label>
+                  <input type="number" id="calc-setor" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;">
+                  <small style="font-size:10px;color:var(--muted);">Uang hasil penjualan yang disetorkan / ditarik dari kas.</small>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label><i class="fas fa-coins"></i> Input Modal Tambahan (Rp)</label>
+                  <input type="number" id="calc-modal" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;">
+                  <small style="font-size:10px;color:var(--muted);">Modal tambahan di luar HPP (misal: beli alat, ongkos, dll).</small>
+                </div>
+              </div>
+
+              <div class="stats-grid">
+                <div class="stat-card"><h6>Total Modal (HPP + Input)</h6><p id="calc-total-capital">Rp 0</p></div>
+                <div class="stat-card profit"><h6>Laba Bersih</h6><p id="calc-net-profit">Rp 0</p></div>
+                <div class="stat-card"><h6>Setelah Setor</h6><p id="calc-after-deposit">Rp 0</p></div>
+                <div class="stat-card" id="calc-status-card"><h6>Status Usaha</h6><p id="calc-status">-</p></div>
+                <div class="stat-card loss" id="calc-loss-card"><h6>Total Kerugian</h6><p id="calc-loss">Rp 0</p></div>
+              </div>
+
+              <button type="button" class="btn-secondary btn-block" id="btn-reset-calc" style="margin-top:5px;">
+                <i class="fas fa-undo"></i> Reset Input Setor & Modal
+              </button>
             </div>
 
             <div class="card">
@@ -570,7 +631,7 @@
                   <input type="text" id="search-admin" placeholder="Cari barang / barcode / rak" autocomplete="off" spellcheck="false">
                 </div>
                 <button class="btn-primary" id="btn-scan-stock" type="button"><i class="fas fa-barcode"></i> Scan</button>
-                <button class="btn-primary" id="btn-export-pdf-stock" type="button" style="background:#dc2626;" title="Export seluruh tabel stok barang ke PDF">
+                <button class="btn-primary" id="btn-export-pdf-stock" type="button" style="background:#dc2626;" title="Export seluruh tabel stok barang ke PDF (hitam-putih)">
                   <i class="fas fa-file-pdf"></i> Export PDF
                 </button>
               </div>
@@ -585,7 +646,7 @@
 
               <div class="table-responsive">
                 <table class="admin-table">
-                  <thead><tr><th>Foto</th><th>Nama / Barcode</th><th>Rak</th><th>Stok</th><th>Harga / Modal</th><th>Status</th><th>Aksi</th></tr></thead>
+                  <thead><tr><th>Foto</th><th>Nama / Barcode</th><th>Rak</th><th>Stok</th><th>Ekspayer</th><th>Harga / Modal</th><th>Status</th><th>Aksi</th></tr></thead>
                   <tbody id="admin-product-table"></tbody>
                 </table>
               </div>
@@ -709,7 +770,7 @@
       await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
       return typeof Html5Qrcode !== 'undefined';
     }
-    // ===== LAZY LOAD jsPDF + AutoTable (untuk Export PDF) =====
+    // ===== LAZY LOAD jsPDF + AutoTable =====
     async function ensureJsPDFLib() {
       if (window.jspdf && window.jspdf.jsPDF) {
         if (!window.jspdf.jsPDF.API.autoTable) {
@@ -745,7 +806,7 @@
     };
 
     // ============================================================
-    // ===== PERFORMA: BATCHER RENDER (SATU rAF PER KELOMPOK) =====
+    // ===== PERFORMA: BATCHER RENDER =====
     // ============================================================
     let _pendingRenderFlag = 0;
     let _renderScheduled = false;
@@ -886,6 +947,29 @@
         .replace(/'/g, '&#39;');
     }
 
+    // ===== HELPER EKSPAYER =====
+    function formatExpiredDate(isoStr) {
+      if (!isoStr) return '-';
+      try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return '-';
+        return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
+      } catch { return '-'; }
+    }
+
+    function getExpiredStatus(isoStr) {
+      if (!isoStr) return { level: 'none', text: '-', daysLeft: null };
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return { level: 'none', text: '-', daysLeft: null };
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      d.setHours(0,0,0,0);
+      const diffDays = Math.round((d.getTime() - today.getTime()) / (1000*60*60*24));
+      if (diffDays < 0) return { level: 'expired', text: 'KEDALUWARSA', daysLeft: diffDays };
+      if (diffDays <= 7) return { level: 'soon', text: `SEGERA EXP (${diffDays}h)`, daysLeft: diffDays };
+      return { level: 'ok', text: 'Aman', daysLeft: diffDays };
+    }
+
     // ===== MAPS LAZY LOAD =====
     let leafletReady = null;
     const geocodeCache = new Map();
@@ -980,7 +1064,7 @@
     $('btn-reset-theme').addEventListener('click', resetTheme);
 
     // ===== DATA STORE =====
-    let products = safeParse(localStorage.getItem('adidin_products'), [{ id:"1", barcode:"8998866200011", name:"Beras Pandan Wangi", unitType:"kg", price:15000, costPrice:13000, stock:50, rack:"Rak Utama", category:"Sembako", desc:"Beras pulen lokal super.", img:"https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400", available:true, toppings:[] }]);
+    let products = safeParse(localStorage.getItem('adidin_products'), [{ id:"1", barcode:"8998866200011", name:"Beras Pandan Wangi", unitType:"kg", price:15000, costPrice:13000, stock:50, rack:"Rak Utama", category:"Sembako", desc:"Beras pulen lokal super.", img:"https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400", available:true, toppings:[], expiredDate:"" }]);
     let adminUsers = safeParse(localStorage.getItem('adidin_users'), [
       { username:"admin", password:"123", whatsapp:"628991286742", role:"admin" },
       { username:"kasir", password:"123", whatsapp:"628991286742", role:"kasir" }
@@ -1274,7 +1358,6 @@
       return Math.max(0, Math.round(distanceFee));
     };
 
-    // ===== TOTAL ONGKIR = Ongkos Kirim Dasar + Ongkir Tambahan Barang =====
     const calculateShippingFee = (subtotal, itemCount) => {
       const distanceFee = calculateDistanceFee(subtotal);
       const extra = calculateExtraShippingFees(itemCount);
@@ -1320,7 +1403,7 @@
     }
 
     // ============================================================
-    // ===== UPDATE TAMPILAN ONGKIR — TERPISAH ====================
+    // ===== UPDATE TAMPILAN ONGKIR ===============================
     // ============================================================
     const updateShippingDisplay = () => {
       if (!$('summary-shipping')) return;
@@ -1335,17 +1418,14 @@
 
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
 
-      // ===== Hitung TERPISAH =====
       let distanceFee = 0;
       let extraFee = 0;
       if (isEnabled && isAuto) {
         distanceFee = calculateDistanceFee(subtotal);
         extraFee = calculateExtraShippingFees(itemCount).total;
       }
-      // Total ongkir = ongkos kirim dasar + ongkir tambahan barang (digabung HANYA di Total)
       const totalOngkir = distanceFee + extraFee;
 
-      // ===== Baris "Ongkir Tambahan Barang" (terpisah) =====
       if (extraRow && extraSpan) {
         if (isEnabled && isAuto && extraFee > 0) {
           extraRow.classList.remove('hidden');
@@ -1356,7 +1436,6 @@
         }
       }
 
-      // ===== Baris "Ongkos Kirim" (hanya ongkos kirim dasar, terpisah) =====
       if (!isEnabled) {
         shippingSpan.innerText = "Gratis / Tidak ada";
         totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`;
@@ -1686,7 +1765,7 @@
     const saveHistory = () => {
       localStorage.setItem('adidin_history', JSON.stringify(historyList));
       if (firebaseReady) db.ref('history').set(historyList);
-      renderHistory(historyList); calcFinance(historyList);
+      renderHistory(historyList); calcFinance(historyList); updateSalesCalculator();
     };
 
     const saveBroadcast = () => {
@@ -1759,6 +1838,7 @@
         stopLivePositionWatch();
         checkSession();
         ensureAdminMapVisible();
+        updateSalesCalculator();
       }
     };
 
@@ -2308,6 +2388,7 @@
         document.querySelectorAll('.admin-only-feature').forEach(el => el.classList.toggle('hidden', currentUser.role !== 'admin'));
         applyShippingForm(); ensureAdminMapVisible(); renderStoreStatus();
         renderAdminUsers(); renderAdminProducts(); renderPosProducts(); renderHistory(historyList); renderBroadcastHistory(broadcastHistory); applyTheme();
+        updateSalesCalculator();
         if (!canShuffleProducts()) setAdminShuffleStatus('');
       } else {
         $('admin-dashboard').classList.add('hidden');
@@ -2477,6 +2558,68 @@
       $('stat-profit').innerText = `Rp ${(revenue-cost).toLocaleString('id-ID')}`;
     };
 
+    // ============================================================
+    // ===== KALKULATOR PENJUALAN / SETOR / MODAL / KERUGIAN =====
+    // ============================================================
+    function updateSalesCalculator() {
+      const elSales = $('calc-total-sales');
+      if (!elSales) return;
+
+      let totalSales = 0;
+      let totalHpp = 0;
+      historyList.forEach(o => {
+        if (o.orderStatus === 'selesai' || o.orderStatus === 'completed') {
+          totalSales += (o.subtotal || 0);
+          totalHpp += (o.totalHpp || 0);
+        }
+      });
+
+      const grossProfit = totalSales - totalHpp;
+
+      const setor = parseInt($('calc-setor').value) || 0;
+      const modalTambahan = parseInt($('calc-modal').value) || 0;
+
+      const totalCapital = totalHpp + modalTambahan;
+      const netProfit = totalSales - totalCapital;
+      const afterDeposit = netProfit - setor;
+      const loss = netProfit < 0 ? Math.abs(netProfit) : 0;
+
+      $('calc-total-sales').innerText = `Rp ${totalSales.toLocaleString('id-ID')}`;
+      $('calc-total-hpp').innerText = `Rp ${totalHpp.toLocaleString('id-ID')}`;
+      $('calc-gross-profit').innerText = `Rp ${grossProfit.toLocaleString('id-ID')}`;
+      $('calc-total-capital').innerText = `Rp ${totalCapital.toLocaleString('id-ID')}`;
+      $('calc-net-profit').innerText = `Rp ${netProfit.toLocaleString('id-ID')}`;
+      $('calc-net-profit').style.color = netProfit < 0 ? 'var(--danger)' : 'var(--success)';
+      $('calc-after-deposit').innerText = `Rp ${afterDeposit.toLocaleString('id-ID')}`;
+      $('calc-after-deposit').style.color = afterDeposit < 0 ? 'var(--danger)' : 'var(--primary)';
+
+      const statusEl = $('calc-status');
+      if (netProfit > 0) { statusEl.innerText = '✅ LABA'; statusEl.style.color = 'var(--success)'; }
+      else if (netProfit < 0) { statusEl.innerText = '⚠️ RUGI'; statusEl.style.color = 'var(--danger)'; }
+      else { statusEl.innerText = '⚖️ IMPAS'; statusEl.style.color = 'var(--muted)'; }
+
+      $('calc-loss').innerText = `Rp ${loss.toLocaleString('id-ID')}`;
+
+      localStorage.setItem('adidin_calc_setor', String(setor));
+      localStorage.setItem('adidin_calc_modal', String(modalTambahan));
+    }
+
+    (function initSalesCalculatorInputs() {
+      const setorEl = $('calc-setor');
+      const modalEl = $('calc-modal');
+      if (!setorEl || !modalEl) return;
+      setorEl.value = localStorage.getItem('adidin_calc_setor') || '0';
+      modalEl.value = localStorage.getItem('adidin_calc_modal') || '0';
+      setorEl.addEventListener('input', updateSalesCalculator);
+      modalEl.addEventListener('input', updateSalesCalculator);
+      const resetBtn = $('btn-reset-calc');
+      if (resetBtn) resetBtn.addEventListener('click', () => {
+        setorEl.value = '0';
+        modalEl.value = '0';
+        updateSalesCalculator();
+      });
+    })();
+
     const renderAdminUsers = () => {
       const tbody = $('admin-users-table');
       tbody.innerHTML = '';
@@ -2527,7 +2670,7 @@
 
     const renderHistory = (list) => {
       const tbody = $('admin-history-table'); tbody.innerHTML = '';
-      if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:15px;">Belum ada transaksi.</td></tr>'; return; }
+      if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:15px;">Belum ada transaksi.</td></tr>'; updateSalesCalculator(); return; }
       const isAdmin = currentUser && currentUser.role === 'admin';
       list.forEach(order => {
         const cfg = statusCfg[order.orderStatus] || statusCfg['active'];
@@ -2584,6 +2727,7 @@
         if (del) { if (!isAdmin) return alert("Hanya admin!"); historyList = historyList.filter(o => o.id !== del); saveHistory(); return; }
         if (id) sendStatusWa(id, b.getAttribute('data-status'));
       }));
+      updateSalesCalculator();
     };
 
     const sendStatusWa = (id, status) => {
@@ -2631,11 +2775,12 @@
       $('form-product-title').innerHTML = '<i class="fas fa-plus-circle"></i> Tambah Barang';
       $('btn-submit-product').innerText = "Simpan";
       $('btn-cancel-edit').classList.add('hidden');
+      if ($('prod-expired')) $('prod-expired').value = '';
       handleUnitType();
     };
 
     // ============================================================
-    // ===== RENDER TABEL STOK (AUTO-SORT: HABIS → MENIPIS → NORMAL)
+    // ===== RENDER TABEL STOK ====================================
     // ============================================================
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table');
@@ -2659,7 +2804,6 @@
         return 2;
       };
 
-      // Otomatis: stok habis di atas, lalu stok menipis, lalu normal, digital paling bawah
       filtered.sort((a, b) => {
         const ra = stockRank(a), rb = stockRank(b);
         if (ra !== rb) return ra - rb;
@@ -2682,7 +2826,7 @@
       }
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:15px;color:var(--muted);">Tidak ditemukan.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:15px;color:var(--muted);">Tidak ditemukan.</td></tr>';
         return;
       }
 
@@ -2702,6 +2846,17 @@
           else if (rank === 1) alertBadge = `<div class="stock-alert-badge warn"><i class="fas fa-exclamation-triangle"></i> STOK MENIPIS (${p.stock})</div>`;
         }
 
+        // ===== EKSPAYER BADGE =====
+        const expStatus = getExpiredStatus(p.expiredDate);
+        let expBadge = '';
+        let expDisplay = '-';
+        if (p.expiredDate) {
+          expDisplay = formatExpiredDate(p.expiredDate);
+          if (expStatus.level === 'expired') expBadge = `<span class="expired-badge"><i class="fas fa-times-circle"></i> ${expStatus.text}</span>`;
+          else if (expStatus.level === 'soon') expBadge = `<span class="expired-badge warn"><i class="fas fa-clock"></i> ${expStatus.text}</span>`;
+          else expBadge = `<span class="expired-badge ok"><i class="fas fa-check-circle"></i> ${expStatus.text}</span>`;
+        }
+
         let stockDisplay = `${isDigital ? '∞' : p.stock} ${unit}`;
         if (volInfo && !isDigital) {
           const conv = convertUnitQty(p.stock, p.unitType);
@@ -2717,6 +2872,7 @@
           <td><strong>${p.name}</strong>${alertBadge}<br><small style="color:var(--muted);">${p.barcode ? 'BC: ' + p.barcode : 'Tanpa BC'}</small></td>
           <td><span style="background:#fff7ed;padding:2px 6px;border-radius:999px;">${p.rack||'Rak Utama'}</span></td>
           <td><strong>${stockDisplay}</strong></td>
+          <td>${expDisplay}${expBadge}</td>
           <td>Jual: Rp ${(p.price||0).toLocaleString('id-ID')}<br><small style="color:var(--muted);">HPP: Rp ${(p.costPrice||0).toLocaleString('id-ID')}</small></td>
           <td><span class="badge-stock ${isAvail ? 'in' : 'out'}">${isAvail ? 'Tersedia' : 'Kosong'}</span></td>
           <td><div class="btn-actions-group" style="min-width:120px;">
@@ -2738,7 +2894,7 @@
     };
 
     // ============================================================
-    // ===== EXPORT PDF — SELURUH TABEL DATA BARANG ================
+    // ===== EXPORT PDF STOK (HITAM PUTIH + TOTAL HARGA JUAL & MODAL)
     // ============================================================
     async function exportStockToPDF() {
       const btn = $('btn-export-pdf-stock');
@@ -2753,6 +2909,7 @@
 
         await ensureJsPDFLib();
         const { jsPDF } = window.jspdf;
+        // Landscape A4 - karena ada kolom Ekspayer
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const threshold = getLowStockThreshold();
@@ -2761,33 +2918,36 @@
         const jamCetak = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
 
         const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
 
-        // ===== HEADER =====
-        doc.setFillColor(225, 29, 72);
-        doc.rect(0, 0, pageW, 20, 'F');
-        doc.setTextColor(255, 255, 255);
+        // ===== HEADER HITAM PUTIH =====
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(255, 255, 255);
+        doc.setTextColor(0, 0, 0);
+        doc.rect(8, 8, pageW - 16, 18, 'S');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(15);
-        doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 9, { align: 'center' });
+        doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 15, { align: 'center' });
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.text('Pengembang UMKM Lokal — Laporan Stok Barang', pageW / 2, 15, { align: 'center' });
+        doc.text('Pengembang UMKM Lokal — Laporan Stok Barang & Nilai Persediaan', pageW / 2, 21, { align: 'center' });
 
-        doc.setTextColor(60, 60, 60);
+        doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
-        doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 27);
-        doc.text(`Batas Stok Menipis: ${threshold}`, pageW - 14, 27, { align: 'right' });
+        doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 31);
+        doc.text(`Batas Stok Menipis: ${threshold}`, pageW - 14, 31, { align: 'right' });
 
-        // ===== HITUNG RINGKASAN =====
+        // ===== RINGKASAN =====
         const totalItems = products.length;
         const outItems = products.filter(p => p.unitType !== 'digital' && (!p.available || p.stock <= 0)).length;
         const lowItems = products.filter(p => p.unitType !== 'digital' && p.available && p.stock > 0 && p.stock <= threshold).length;
         const okItems = totalItems - outItems - lowItems;
+        const expiredItems = products.filter(p => p.expiredDate && getExpiredStatus(p.expiredDate).level === 'expired').length;
 
         doc.setFontSize(9);
-        doc.text(`Total: ${totalItems} item   |   Tersedia: ${okItems}   |   Menipis: ${lowItems}   |   Habis: ${outItems}`, 14, 33);
+        doc.text(`Total: ${totalItems} item   |   Tersedia: ${okItems}   |   Menipis: ${lowItems}   |   Habis: ${outItems}   |   Kedaluwarsa: ${expiredItems}`, 14, 37);
 
-        // ===== URUTKAN SAMA SEPERTI TABEL (HABIS → MENIPIS → NORMAL → DIGITAL) =====
+        // ===== URUTKAN =====
         const stockRank = (p) => {
           if (p.unitType === 'digital') return 3;
           if (!p.available || p.stock <= 0) return 0;
@@ -2802,71 +2962,196 @@
           return sa - sb;
         });
 
-        // ===== SUSUN BARIS TABEL =====
+        // ===== SUSUN BARIS =====
         const rows = sorted.map((p, i) => {
           const isDigital = p.unitType === 'digital';
           const unit = isDigital ? 'Digital' : getUnitPretty(p.unitType);
           const rank = stockRank(p);
           let status = 'Tersedia';
           if (isDigital) status = 'Digital';
-          else if (rank === 0) status = 'STOK HABIS';
-          else if (rank === 1) status = 'STOK MENIPIS';
+          else if (rank === 0) status = '!! STOK HABIS !!';
+          else if (rank === 1) status = '! STOK MENIPIS !';
+
+          // Ekspayer
+          const expStatus = getExpiredStatus(p.expiredDate);
+          let expDisplay = '-';
+          if (p.expiredDate) {
+            expDisplay = formatExpiredDate(p.expiredDate);
+            if (expStatus.level === 'expired') expDisplay += ' [KEDALUWARSA]';
+            else if (expStatus.level === 'soon') expDisplay += ' [SEGERA]';
+          }
+
           const stockDisplay = isDigital ? '∞' : String(p.stock);
           const conv = (!isDigital && isVolumeUnitType(p.unitType)) ? ` (${convertUnitQty(p.stock, p.unitType)})` : '';
-          return [
-            i + 1,
-            p.name || '-',
-            p.barcode || '-',
-            p.rack || 'Rak Utama',
-            p.category || '-',
-            unit,
-            stockDisplay + conv,
-            'Rp ' + (p.price || 0).toLocaleString('id-ID'),
-            'Rp ' + (p.costPrice || 0).toLocaleString('id-ID'),
-            status
-          ];
+
+          // Harga & total harga
+          const priceVal = parseInt(p.price) || 0;
+          const costVal = parseInt(p.costPrice) || 0;
+          const stockVal = isDigital ? 0 : (parseInt(p.stock) || 0);
+          const totalSell = priceVal * stockVal;
+          const totalCost = costVal * stockVal;
+
+          return {
+            idx: i + 1,
+            name: p.name || '-',
+            barcode: p.barcode || '-',
+            rack: p.rack || 'Rak Utama',
+            category: p.category || '-',
+            unit: unit,
+            stock: stockDisplay + conv,
+            expired: expDisplay,
+            price: 'Rp ' + priceVal.toLocaleString('id-ID'),
+            cost: 'Rp ' + costVal.toLocaleString('id-ID'),
+            totalSell: 'Rp ' + totalSell.toLocaleString('id-ID'),
+            totalCost: 'Rp ' + totalCost.toLocaleString('id-ID'),
+            status: status,
+            totalSellRaw: totalSell,
+            totalCostRaw: totalCost,
+            isDigital
+          };
         });
 
-        // ===== AUTO TABLE =====
+        // ===== HITUNG TOTAL =====
+        let grandTotalSell = 0;
+        let grandTotalCost = 0;
+        let grandTotalStockQty = 0;
+        rows.forEach(r => {
+          if (!r.isDigital) {
+            grandTotalSell += r.totalSellRaw;
+            grandTotalCost += r.totalCostRaw;
+          }
+        });
+        const grandTotalProfit = grandTotalSell - grandTotalCost;
+
+        // ===== TABLE BODY =====
+        const body = rows.map(r => [
+          r.idx, r.name, r.barcode, r.rack, r.category, r.unit, r.stock, r.expired, r.price, r.cost, r.totalSell, r.totalCost, r.status
+        ]);
+
+        // ===== FOOT: TOTAL =====
+        const foot = [[
+          { content: 'TOTAL', colSpan: 10, styles: { halign: 'right', fontStyle: 'bold', textColor: [0,0,0], fillColor: [240,240,240] } },
+          { content: 'Rp ' + grandTotalSell.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', textColor: [0,0,0], fillColor: [240,240,240] } },
+          { content: 'Rp ' + grandTotalCost.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', textColor: [0,0,0], fillColor: [240,240,240] } },
+          { content: '', styles: { fillColor: [240,240,240] } }
+        ]];
+
         doc.autoTable({
-          startY: 38,
-          head: [['No', 'Nama Barang', 'Barcode', 'Rak', 'Kategori', 'Satuan', 'Stok', 'Harga Jual', 'Harga Modal', 'Status']],
-          body: rows,
+          startY: 42,
+          head: [[
+            'No', 'Nama Barang', 'Barcode', 'Rak', 'Kategori', 'Satuan',
+            'Stok', 'Ekspayer', 'Harga Jual', 'Harga Modal', 'Total Harga Jual', 'Total Harga Modal', 'Status'
+          ]],
+          body: body,
+          foot: foot,
           theme: 'grid',
-          styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak', valign: 'middle' },
-          headStyles: { fillColor: [225, 29, 72], textColor: 255, fontStyle: 'bold', halign: 'center' },
-          bodyStyles: { textColor: [45, 25, 15] },
-          alternateRowStyles: { fillColor: [255, 247, 237] },
+          styles: {
+            fontSize: 7.5,
+            cellPadding: 1.6,
+            overflow: 'linebreak',
+            valign: 'middle',
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+            lineColor: [0, 0, 0],
+            lineWidth: 0.15
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25,
+            fontSize: 7.5
+          },
+          footStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25
+          },
+          bodyStyles: {
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255]
+          },
+          alternateRowStyles: {
+            fillColor: [250, 250, 250]
+          },
           columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 55 },
-            2: { cellWidth: 32 },
-            3: { cellWidth: 25 },
-            4: { cellWidth: 25 },
-            5: { cellWidth: 22, halign: 'center' },
-            6: { cellWidth: 26, halign: 'center' },
-            7: { cellWidth: 28, halign: 'right' },
-            8: { cellWidth: 28, halign: 'right' },
-            9: { cellWidth: 24, halign: 'center', fontStyle: 'bold' }
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 45 },
+            2: { cellWidth: 24 },
+            3: { cellWidth: 20 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 15, halign: 'center' },
+            6: { cellWidth: 22, halign: 'center' },
+            7: { cellWidth: 28, halign: 'center' },
+            8: { cellWidth: 22, halign: 'right' },
+            9: { cellWidth: 22, halign: 'right' },
+            10: { cellWidth: 27, halign: 'right' },
+            11: { cellWidth: 27, halign: 'right' },
+            12: { cellWidth: 26, halign: 'center', fontStyle: 'bold' }
           },
           didParseCell: (data) => {
-            if (data.section === 'body' && data.column.index === 9) {
+            if (data.section === 'body' && data.column.index === 12) {
               const v = String(data.cell.raw || '');
-              if (v.includes('HABIS')) { data.cell.styles.textColor = [220, 38, 38]; }
-              else if (v.includes('MENIPIS')) { data.cell.styles.textColor = [217, 119, 6]; }
-              else if (v === 'Tersedia') { data.cell.styles.textColor = [22, 163, 74]; }
-              else if (v === 'Digital') { data.cell.styles.textColor = [37, 99, 235]; }
+              // Tetap hitam-putih: hanya bedakan dengan bold & tanda baca
+              if (v.includes('HABIS')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.textColor = [0,0,0]; data.cell.styles.fillColor = [220,220,220]; }
+              else if (v.includes('MENIPIS')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.textColor = [0,0,0]; data.cell.styles.fillColor = [240,240,240]; }
             }
+            // Ekspayer: kolom 7 - highlight kadaluwarsa/segera
+            if (data.section === 'body' && data.column.index === 7) {
+              const v = String(data.cell.raw || '');
+              if (v.includes('KEDALUWARSA')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [220,220,220]; }
+              else if (v.includes('SEGERA')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [240,240,240]; }
+            }
+          },
+          didDrawPage: (data) => {
+            // Draw a border on each page
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.3);
+            doc.rect(8, 8, pageW - 16, pageH - 16, 'S');
           }
+        });
+
+        // ===== RINGKASAN NILAI PERSEDIAAN =====
+        let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 8 : pageH - 40;
+
+        if (finalY > pageH - 30) {
+          doc.addPage();
+          finalY = 20;
+        }
+
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.3);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RINGKASAN NILAI PERSEDIAAN', 14, finalY);
+        finalY += 6;
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const summaryLines = [
+          `Total Nilai Harga Jual   : Rp ${grandTotalSell.toLocaleString('id-ID')}`,
+          `Total Nilai Harga Modal  : Rp ${grandTotalCost.toLocaleString('id-ID')}`,
+          `Potensi Laba             : Rp ${grandTotalProfit.toLocaleString('id-ID')}`,
+          `Barang Kedaluwarsa       : ${expiredItems} item`,
+          `Stok Menipis (≤ ${threshold})     : ${lowItems} item`,
+          `Stok Habis               : ${outItems} item`
+        ];
+        summaryLines.forEach(line => {
+          doc.text(line, 14, finalY);
+          finalY += 5;
         });
 
         // ===== FOOTER SETIAP HALAMAN =====
         const pageCount = doc.internal.getNumberOfPages();
-        const pageH = doc.internal.pageSize.getHeight();
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
           doc.setFontSize(8);
-          doc.setTextColor(110, 110, 110);
+          doc.setTextColor(0, 0, 0);
           doc.text(`Halaman ${i} dari ${pageCount}`, pageW / 2, pageH - 6, { align: 'center' });
           doc.text("Toko Online a'didin", 14, pageH - 6);
           doc.text(`Dicetak ${jamCetak}`, pageW - 14, pageH - 6, { align: 'right' });
@@ -2884,6 +3169,229 @@
       }
     }
 
+    // ============================================================
+    // ===== EXPORT PDF HISTORI PENJUALAN (HITAM PUTIH) ===========
+    // ============================================================
+    async function exportHistoryToPDF() {
+      const btn = $('btn-export-pdf-history');
+      const origInnerHTML = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membuat PDF...'; }
+
+      try {
+        if (!historyList || historyList.length === 0) {
+          alert("Belum ada data penjualan untuk di-export ke PDF.");
+          return;
+        }
+
+        await ensureJsPDFLib();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const now = new Date();
+        const tglCetak = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+        const jamCetak = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+
+        // ===== HEADER HITAM PUTIH =====
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(255, 255, 255);
+        doc.setTextColor(0, 0, 0);
+        doc.rect(8, 8, pageW - 16, 18, 'S');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 15, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Pengembang UMKM Lokal — Laporan Penjualan', pageW / 2, 21, { align: 'center' });
+
+        doc.setFontSize(9);
+        doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 31);
+        doc.text(`Total Transaksi: ${historyList.length}`, pageW - 14, 31, { align: 'right' });
+
+        // ===== KALKULASI TOTAL =====
+        let totalSales = 0, totalHpp = 0, totalOngkir = 0, totalLaba = 0;
+        let completedCount = 0;
+        historyList.forEach(o => {
+          const sub = o.subtotal || 0;
+          const hpp = o.totalHpp || 0;
+          const ongkir = parseInt(o.shippingFee) || 0;
+          totalSales += sub;
+          totalHpp += hpp;
+          totalOngkir += ongkir;
+          const isCompleted = (o.orderStatus === 'selesai' || o.orderStatus === 'completed');
+          if (isCompleted) {
+            completedCount++;
+            totalLaba += (sub - hpp);
+          }
+        });
+
+        const setorVal = parseInt($('calc-setor') ? $('calc-setor').value : 0) || 0;
+        const modalVal = parseInt($('calc-modal') ? $('calc-modal').value : 0) || 0;
+        const totalCapital = totalHpp + modalVal;
+        const netProfit = totalSales - totalCapital;
+        const afterDeposit = netProfit - setorVal;
+        const lossVal = netProfit < 0 ? Math.abs(netProfit) : 0;
+
+        // ===== RINGKASAN ATAS =====
+        doc.setDrawColor(0,0,0);
+        doc.setFillColor(250,250,250);
+        doc.rect(14, 35, pageW - 28, 22, 'FD');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RINGKASAN', 18, 41);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const colW = (pageW - 36) / 3;
+        let line1Y = 47, line2Y = 53;
+        doc.text(`Total Penjualan   : Rp ${totalSales.toLocaleString('id-ID')}`, 18, line1Y);
+        doc.text(`Total HPP         : Rp ${totalHpp.toLocaleString('id-ID')}`, 18, line2Y);
+        doc.text(`Laba Kotor        : Rp ${(totalSales - totalHpp).toLocaleString('id-ID')}`, 18 + colW, line1Y);
+        doc.text(`Total Ongkir      : Rp ${totalOngkir.toLocaleString('id-ID')}`, 18 + colW, line2Y);
+        doc.text(`Setor             : Rp ${setorVal.toLocaleString('id-ID')}`, 18 + colW*2, line1Y);
+        doc.text(`Modal Tambahan    : Rp ${modalVal.toLocaleString('id-ID')}`, 18 + colW*2, line2Y);
+
+        // ===== TABEL HISTORI =====
+        const rows = historyList.map((o, i) => {
+          const sub = o.subtotal || 0;
+          const hpp = o.totalHpp || 0;
+          const ongkir = parseInt(o.shippingFee) || 0;
+          const total = sub + ongkir;
+          const laba = sub - hpp;
+          const statusTxt = (statusCfg[o.orderStatus] ? statusCfg[o.orderStatus].label.replace('●', '').trim() : 'Pesanan Baru');
+          const items = (o.itemsSummary || '-').replace(/\n/g, ' | ').substring(0, 200);
+          return [
+            i + 1,
+            o.timestamp || '-',
+            o.source || 'Online Shop',
+            (o.buyerName || '-') + (o.buyerPhone && o.buyerPhone !== '-' ? ` / ${o.buyerPhone}` : ''),
+            statusTxt,
+            items,
+            'Rp ' + ongkir.toLocaleString('id-ID'),
+            'Rp ' + total.toLocaleString('id-ID'),
+            'Rp ' + laba.toLocaleString('id-ID'),
+            o.orderStatus || 'active'
+          ];
+        });
+
+        const foot = [[
+          { content: 'TOTAL', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: 'Rp ' + (totalSales + totalOngkir).toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: 'Rp ' + totalLaba.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: '', styles: { fillColor: [240,240,240] } }
+        ]];
+
+        doc.autoTable({
+          startY: 62,
+          head: [[ 'No', 'Waktu', 'Sumber', 'Pembeli / Kontak', 'Status', 'Detail Pesanan', 'Ongkir', 'Total', 'Laba', 'Kode Status' ]],
+          body: rows,
+          foot: foot,
+          theme: 'grid',
+          styles: {
+            fontSize: 7,
+            cellPadding: 1.5,
+            overflow: 'linebreak',
+            valign: 'top',
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+            lineColor: [0, 0, 0],
+            lineWidth: 0.15
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25,
+            fontSize: 7
+          },
+          footStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25
+          },
+          bodyStyles: { textColor: [0, 0, 0], fillColor: [255, 255, 255] },
+          alternateRowStyles: { fillColor: [250, 250, 250] },
+          columnStyles: {
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 20 },
+            3: { cellWidth: 35 },
+            4: { cellWidth: 22, halign: 'center' },
+            5: { cellWidth: 60 },
+            6: { cellWidth: 20, halign: 'right' },
+            7: { cellWidth: 25, halign: 'right' },
+            8: { cellWidth: 25, halign: 'right' },
+            9: { cellWidth: 20, halign: 'center' }
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 4) {
+              const v = String(data.cell.raw || '').toLowerCase();
+              if (v.includes('selesai')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [230,230,230]; }
+              else if (v.includes('diantar')) { data.cell.styles.fillColor = [240,240,240]; }
+            }
+          },
+          didDrawPage: () => {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.3);
+            doc.rect(8, 8, pageW - 16, pageH - 16, 'S');
+          }
+        });
+
+        // ===== RINGKASAN BAWAH =====
+        let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 8 : pageH - 60;
+        if (finalY > pageH - 50) {
+          doc.addPage();
+          finalY = 20;
+        }
+
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(250, 250, 250);
+        doc.rect(14, finalY, pageW - 28, 42, 'FD');
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('LAPORAN LABA / RUGI', 18, finalY + 6);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Total Penjualan (semua pesanan)    : Rp ${totalSales.toLocaleString('id-ID')}`, 18, finalY + 13);
+        doc.text(`Total Modal (HPP + Modal Tambahan) : Rp ${totalCapital.toLocaleString('id-ID')}`, 18, finalY + 19);
+        doc.text(`Total Setor                        : Rp ${setorVal.toLocaleString('id-ID')}`, 18, finalY + 25);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Laba / Rugi Bersih                 : Rp ${netProfit.toLocaleString('id-ID')} ${netProfit >= 0 ? '(LABA)' : '(RUGI)'}`, 18, finalY + 32);
+        doc.text(`Setelah Setor                      : Rp ${afterDeposit.toLocaleString('id-ID')}`, 18, finalY + 38);
+        doc.text(`Total Kerugian                     : Rp ${lossVal.toLocaleString('id-ID')}`, 18 + (pageW - 36) / 2, finalY + 38);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Pesanan Selesai                    : ${completedCount} transaksi`, 18 + (pageW - 36) / 2, finalY + 13);
+        doc.text(`Total Laba (Pesanan Selesai)       : Rp ${totalLaba.toLocaleString('id-ID')}`, 18 + (pageW - 36) / 2, finalY + 19);
+        doc.text(`Total Transaksi                    : ${historyList.length}`, 18 + (pageW - 36) / 2, finalY + 25);
+        doc.text(`Total Ongkir Terkumpul             : Rp ${totalOngkir.toLocaleString('id-ID')}`, 18 + (pageW - 36) / 2, finalY + 32);
+
+        // ===== FOOTER =====
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`Halaman ${i} dari ${pageCount}`, pageW / 2, pageH - 6, { align: 'center' });
+          doc.text("Toko Online a'didin", 14, pageH - 6);
+          doc.text(`Dicetak ${jamCetak}`, pageW - 14, pageH - 6, { align: 'right' });
+        }
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const fileName = `Laporan-Penjualan_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
+        doc.save(fileName);
+      } catch (err) {
+        console.error('Export PDF Histori gagal:', err);
+        alert('Gagal membuat PDF: ' + (err && err.message ? err.message : err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = origInnerHTML || '<i class="fas fa-file-pdf"></i> Export PDF Penjualan'; }
+      }
+    }
+
     const editProduct = (id) => {
       const p = getProductById(id);
       if (!p) return;
@@ -2897,6 +3405,7 @@
       $('prod-rack').value = p.rack || '';
       $('prod-category').value = p.category;
       $('prod-desc').value = p.desc;
+      if ($('prod-expired')) $('prod-expired').value = p.expiredDate || '';
       $('toppings-container').innerHTML = '';
       (p.toppings || []).forEach(t => addToppingRow(t.name, t.price || ''));
       handleUnitType();
@@ -3474,6 +3983,10 @@
     if (btnScanStock) btnScanStock.addEventListener('click', () => openScanner('admin-stock-search'));
     const btnExportPdf = $('btn-export-pdf-stock');
     if (btnExportPdf) btnExportPdf.addEventListener('click', exportStockToPDF);
+
+    const btnExportHist = $('btn-export-pdf-history');
+    if (btnExportHist) btnExportHist.addEventListener('click', exportHistoryToPDF);
+
     $('btn-close-scanner').addEventListener('click', closeScanner);
 
     $('btn-topping-confirm').addEventListener('click', () => {
@@ -3580,6 +4093,7 @@
       const price = parseInt($('prod-price').value) || 0, costPrice = parseInt($('prod-cost-price').value) || 0;
       const stock = parseInt($('prod-stock').value) || 0, rack = $('prod-rack').value.trim() || 'Rak Utama';
       const category = $('prod-category').value, desc = $('prod-desc').value;
+      const expiredDate = $('prod-expired') ? $('prod-expired').value : '';
       const toppings = [];
       document.querySelectorAll('#toppings-container .topping-row').forEach(r => {
         const nameT = r.querySelector('input:first-child').value.trim();
@@ -3590,10 +4104,10 @@
       if (id) {
         const existing = getProductById(id);
         if (existing) {
-          Object.assign(existing, { barcode, name, unitType, price, costPrice, stock, rack, category, desc, available: isAvailable, toppings, img: encodedImage || existing.img });
+          Object.assign(existing, { barcode, name, unitType, price, costPrice, stock, rack, category, desc, expiredDate, available: isAvailable, toppings, img: encodedImage || existing.img });
         }
       } else {
-        products.push({ id: Date.now().toString(), barcode, name, unitType, price, costPrice, stock, rack, category, desc, img: encodedImage || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400", available: isAvailable, toppings });
+        products.push({ id: Date.now().toString(), barcode, name, unitType, price, costPrice, stock, rack, category, desc, expiredDate, img: encodedImage || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400", available: isAvailable, toppings });
       }
       invalidateSearchIndex();
       saveProducts(); resetProductForm();
@@ -3640,7 +4154,7 @@
           const hasData = data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0);
           historyList = hasData ? (Array.isArray(data) ? data : Object.values(data)) : [];
           localStorage.setItem('adidin_history', JSON.stringify(historyList));
-          renderHistory(historyList); calcFinance(historyList);
+          renderHistory(historyList); calcFinance(historyList); updateSalesCalculator();
         });
 
         db.ref('broadcast_history').on('value', snap => {
@@ -3716,7 +4230,7 @@
     });
 
     // ============================================================
-    // ===== CHECKOUT FORM — ONGKIR TERPISAH DI PESAN WA ==========
+    // ===== CHECKOUT FORM ========================================
     // ============================================================
     $('checkout-form').addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -3761,7 +4275,6 @@
       const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
       const itemTotalQty = cart.reduce((sum, it) => sum + (parseFloat(it.qty) || 1), 0);
 
-      // ===== Hitung TERPISAH =====
       let distanceFeeOnly = 0;
       let extraFeeOnly = 0;
       if (isEnabled && isAuto) {
@@ -3835,6 +4348,7 @@
       alert(`Selamat datang ${found.role.toUpperCase()} ${found.username} 🎉`);
       checkSession();
       ensureAdminMapVisible();
+      updateSalesCalculator();
     });
 
     $('btn-logout').addEventListener('click', () => {
@@ -3970,6 +4484,7 @@
     renderAnnouncement();
     saveCart();
     calcFinance(historyList);
+    updateSalesCalculator();
     checkSession();
     reshuffleProducts();
     switchPage('buyer');
@@ -3978,4 +4493,4 @@
     window.onerror = function(msg, src, line) { console.error("ERROR:", msg, "-", src, line); };
   </script>
 </body>
-</html>
+  </html>
