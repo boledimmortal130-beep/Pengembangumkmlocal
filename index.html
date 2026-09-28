@@ -269,6 +269,13 @@
     .calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
     @media(max-width:480px){.calc-inputs{grid-template-columns:1fr;}}
 
+    .calc-action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+    .calc-action-bar button{flex:1;min-width:150px;padding:11px 14px;font-size:12px;}
+
+    .calc-history-wrap{margin-top:14px;border-top:2px dashed #fdba74;padding-top:12px;}
+    .calc-history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
+    .calc-history-header h4{font-size:13px;color:var(--primary);margin:0;}
+
     @media(max-width:480px){
       header{padding:9px 0}
       .logo h1{font-size:17px}
@@ -620,6 +627,45 @@
               <button type="button" class="btn-secondary btn-block" id="btn-reset-calc" style="margin-top:5px;">
                 <i class="fas fa-undo"></i> Reset Input Setor & Modal
               </button>
+
+              <!-- ===== TOMBOL SIMPAN & EXPORT PDF ===== -->
+              <div class="calc-action-bar">
+                <button type="button" class="btn-success" id="btn-save-calc">
+                  <i class="fas fa-save"></i> Simpan Data Kalkulasi
+                </button>
+                <button type="button" class="btn-danger" id="btn-export-pdf-calc" style="background:#dc2626;">
+                  <i class="fas fa-file-pdf"></i> Export PDF Tabel
+                </button>
+              </div>
+
+              <!-- ===== TABEL RIWAYAT SIMPAN KALKULASI ===== -->
+              <div class="calc-history-wrap" id="calc-history-wrap">
+                <div class="calc-history-header">
+                  <h4><i class="fas fa-database"></i> Riwayat Simpan Kalkulasi</h4>
+                  <button type="button" class="btn-danger" id="btn-clear-calc-history" style="padding:5px 10px;font-size:10px;">
+                    <i class="fas fa-trash"></i> Hapus Semua
+                  </button>
+                </div>
+                <div class="table-responsive">
+                  <table class="admin-table" style="min-width:720px;">
+                    <thead>
+                      <tr>
+                        <th>Waktu Simpan</th>
+                        <th>Penjualan</th>
+                        <th>HPP</th>
+                        <th>Modal +</th>
+                        <th>Setor</th>
+                        <th>Laba Bersih</th>
+                        <th>Setelah Setor</th>
+                        <th>Kerugian</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody id="calc-history-table"></tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <div class="card">
@@ -1070,6 +1116,8 @@
       { username:"kasir", password:"123", whatsapp:"628991286742", role:"kasir" }
     ]);
     let historyList = safeParse(localStorage.getItem('adidin_history'), []);
+    let calcHistoryList = safeParse(localStorage.getItem('adidin_calc_history'), []);
+    if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
     let broadcastHistory = safeParse(localStorage.getItem('adidin_broadcast_history'), []);
     let storeOpen = localStorage.getItem('adidin_store_open') !== 'false';
     let cart = safeParse(localStorage.getItem('adidin_cart'), []);
@@ -1789,6 +1837,7 @@
       db.ref('broadcast_history').once('value', snap => { if (snap.val() === null && broadcastHistory.length === 0) db.ref('broadcast_history').set([]); });
       db.ref('shipping_config').once('value', snap => { if (snap.val() === null) db.ref('shipping_config').set(shippingConfig); });
       db.ref('theme_promo').once('value', snap => { if (snap.val() === null) db.ref('theme_promo').set(themeConfig); });
+      db.ref('calc_history').once('value', snap => { if (snap.val() === null && calcHistoryList.length === 0) db.ref('calc_history').set([]); });
     };
 
     const saveStoreStatus = () => {
@@ -1839,6 +1888,7 @@
         checkSession();
         ensureAdminMapVisible();
         updateSalesCalculator();
+        renderCalcHistory();
       }
     };
 
@@ -2388,7 +2438,7 @@
         document.querySelectorAll('.admin-only-feature').forEach(el => el.classList.toggle('hidden', currentUser.role !== 'admin'));
         applyShippingForm(); ensureAdminMapVisible(); renderStoreStatus();
         renderAdminUsers(); renderAdminProducts(); renderPosProducts(); renderHistory(historyList); renderBroadcastHistory(broadcastHistory); applyTheme();
-        updateSalesCalculator();
+        updateSalesCalculator(); renderCalcHistory();
         if (!canShuffleProducts()) setAdminShuffleStatus('');
       } else {
         $('admin-dashboard').classList.add('hidden');
@@ -2619,6 +2669,328 @@
         updateSalesCalculator();
       });
     })();
+
+    // ============================================================
+    // ===== RIWAYAT SIMPAN KALKULASI (FITUR BARU) ================
+    // ============================================================
+    const saveCalcHistory = () => {
+      localStorage.setItem('adidin_calc_history', JSON.stringify(calcHistoryList));
+      if (firebaseReady) {
+        try { db.ref('calc_history').set(calcHistoryList); } catch (e) { console.warn(e); }
+      }
+      renderCalcHistory();
+    };
+
+    const renderCalcHistory = () => {
+      const tbody = $('calc-history-table');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (!calcHistoryList || calcHistoryList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:14px;font-style:italic;">Belum ada data tersimpan. Isi Setor / Modal lalu klik <strong>Simpan Data Kalkulasi</strong>.</td></tr>';
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      calcHistoryList.forEach((snap, idx) => {
+        const statusVal = snap.status || '-';
+        const statusColor = statusVal === 'LABA' ? 'var(--success)' : statusVal === 'RUGI' ? 'var(--danger)' : 'var(--muted)';
+        const netColor = (snap.netProfit || 0) < 0 ? 'var(--danger)' : 'var(--success)';
+        const afterColor = (snap.afterDeposit || 0) < 0 ? 'var(--danger)' : 'var(--primary)';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${snap.time || '-'}</strong><br><small style="color:var(--muted);font-size:9px;">oleh: ${snap.user || '-'}</small></td>
+          <td>Rp ${(snap.totalSales||0).toLocaleString('id-ID')}</td>
+          <td>Rp ${(snap.totalHpp||0).toLocaleString('id-ID')}</td>
+          <td>Rp ${(snap.modalTambahan||0).toLocaleString('id-ID')}</td>
+          <td>Rp ${(snap.setor||0).toLocaleString('id-ID')}</td>
+          <td style="color:${netColor};font-weight:700;">Rp ${(snap.netProfit||0).toLocaleString('id-ID')}</td>
+          <td style="color:${afterColor};font-weight:700;">Rp ${(snap.afterDeposit||0).toLocaleString('id-ID')}</td>
+          <td style="color:var(--danger);font-weight:700;">Rp ${(snap.loss||0).toLocaleString('id-ID')}</td>
+          <td><span style="color:${statusColor};font-weight:800;">${statusVal}</span></td>
+          <td><button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-calc-del="${idx}"><i class="fas fa-trash"></i> Hapus</button></td>
+        `;
+        frag.appendChild(tr);
+      });
+      tbody.appendChild(frag);
+
+      tbody.querySelectorAll('button[data-calc-del]').forEach(btn => btn.addEventListener('click', e => {
+        const i = parseInt(e.target.closest('button').getAttribute('data-calc-del'));
+        if (isNaN(i) || !calcHistoryList[i]) return;
+        if (confirm("Hapus data simpan kalkulasi ini?")) {
+          calcHistoryList.splice(i, 1);
+          saveCalcHistory();
+        }
+      }));
+    };
+
+    const saveCalcSnapshot = () => {
+      if (!currentUser) { alert("Silakan login sebagai Admin/Kasir terlebih dahulu."); return; }
+
+      // Hitung ulang dari sumber terpercaya (histori)
+      let totalSalesVal = 0;
+      let totalHppVal = 0;
+      historyList.forEach(o => {
+        if (o.orderStatus === 'selesai' || o.orderStatus === 'completed') {
+          totalSalesVal += (o.subtotal || 0);
+          totalHppVal += (o.totalHpp || 0);
+        }
+      });
+
+      const setor = parseInt($('calc-setor').value) || 0;
+      const modalTambahan = parseInt($('calc-modal').value) || 0;
+      const totalCapital = totalHppVal + modalTambahan;
+      const netProfit = totalSalesVal - totalCapital;
+      const afterDeposit = netProfit - setor;
+      const loss = netProfit < 0 ? Math.abs(netProfit) : 0;
+      const status = netProfit > 0 ? 'LABA' : netProfit < 0 ? 'RUGI' : 'IMPAS';
+
+      const now = new Date();
+      const snap = {
+        id: 'calc_' + Date.now(),
+        time: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`,
+        timestamp: now.getTime(),
+        user: (currentUser.username || '-') + ' (' + ((currentUser.role || '').toUpperCase()) + ')',
+        totalSales: totalSalesVal,
+        totalHpp: totalHppVal,
+        grossProfit: totalSalesVal - totalHppVal,
+        modalTambahan,
+        setor,
+        totalCapital,
+        netProfit,
+        afterDeposit,
+        loss,
+        status,
+        orderCount: historyList.filter(o => o.orderStatus === 'selesai' || o.orderStatus === 'completed').length
+      };
+
+      calcHistoryList.unshift(snap);
+      saveCalcHistory();
+      alert(`✅ Data kalkulasi berhasil disimpan!\n\nPenjualan: Rp ${totalSalesVal.toLocaleString('id-ID')}\nSetor: Rp ${setor.toLocaleString('id-ID')}\nModal +: Rp ${modalTambahan.toLocaleString('id-ID')}\nLaba Bersih: Rp ${netProfit.toLocaleString('id-ID')}\nStatus: ${status}`);
+    };
+
+    async function exportCalcToPDF() {
+      const btn = $('btn-export-pdf-calc');
+      const origInnerHTML = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Membuat PDF...'; }
+
+      try {
+        if (!calcHistoryList || calcHistoryList.length === 0) {
+          alert("Belum ada data kalkulasi tersimpan untuk di-export ke PDF.\n\nSilakan klik tombol \"Simpan Data Kalkulasi\" terlebih dahulu.");
+          return;
+        }
+
+        await ensureJsPDFLib();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+        const now = new Date();
+        const tglCetak = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+        const jamCetak = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+
+        // ===== HEADER HITAM PUTIH =====
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(255, 255, 255);
+        doc.setTextColor(0, 0, 0);
+        doc.rect(8, 8, pageW - 16, 18, 'S');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 15, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Pengembang UMKM Lokal — Laporan Kalkulasi Penjualan, Setor, Modal & Kerugian', pageW / 2, 21, { align: 'center' });
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 31);
+        doc.text(`Total Data Tersimpan: ${calcHistoryList.length}`, pageW - 14, 31, { align: 'right' });
+
+        // ===== RINGKASAN ATAS =====
+        let sumSales = 0, sumHpp = 0, sumSetor = 0, sumModal = 0, sumNet = 0, sumLoss = 0;
+        calcHistoryList.forEach(s => {
+          sumSales += s.totalSales || 0;
+          sumHpp += s.totalHpp || 0;
+          sumSetor += s.setor || 0;
+          sumModal += s.modalTambahan || 0;
+          sumNet += s.netProfit || 0;
+          sumLoss += s.loss || 0;
+        });
+
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(250, 250, 250);
+        doc.rect(14, 35, pageW - 28, 20, 'FD');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RINGKASAN TOTAL', 18, 41);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        const colW = (pageW - 36) / 3;
+        doc.text(`Total Penjualan  : Rp ${sumSales.toLocaleString('id-ID')}`, 18, 48);
+        doc.text(`Total HPP        : Rp ${sumHpp.toLocaleString('id-ID')}`, 18 + colW, 48);
+        doc.text(`Total Setor      : Rp ${sumSetor.toLocaleString('id-ID')}`, 18 + colW * 2, 48);
+        doc.text(`Total Modal +    : Rp ${sumModal.toLocaleString('id-ID')}`, 18, 53);
+        doc.text(`Total Laba Bersih: Rp ${sumNet.toLocaleString('id-ID')}`, 18 + colW, 53);
+        doc.text(`Total Kerugian   : Rp ${sumLoss.toLocaleString('id-ID')}`, 18 + colW * 2, 53);
+
+        // ===== TABEL =====
+        const rows = calcHistoryList.map((s, i) => [
+          i + 1,
+          s.time || '-',
+          s.user || '-',
+          'Rp ' + (s.totalSales || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.totalHpp || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.modalTambahan || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.setor || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.totalCapital || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.netProfit || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.afterDeposit || 0).toLocaleString('id-ID'),
+          'Rp ' + (s.loss || 0).toLocaleString('id-ID'),
+          s.status || '-'
+        ]);
+
+        const foot = [[
+          { content: 'TOTAL', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: 'Rp ' + sumSales.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: 'Rp ' + sumHpp.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: 'Rp ' + sumModal.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: 'Rp ' + sumSetor.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: '', styles: { fillColor: [240,240,240] } },
+          { content: 'Rp ' + sumNet.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: '', styles: { fillColor: [240,240,240] } },
+          { content: 'Rp ' + sumLoss.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240], textColor:[0,0,0] } },
+          { content: '', styles: { fillColor: [240,240,240] } }
+        ]];
+
+        doc.autoTable({
+          startY: 60,
+          head: [[ 'No', 'Waktu Simpan', 'Disimpan Oleh', 'Total Penjualan', 'Total HPP', 'Modal Tambahan', 'Setor', 'Total Modal', 'Laba Bersih', 'Setelah Setor', 'Kerugian', 'Status' ]],
+          body: rows,
+          foot: foot,
+          theme: 'grid',
+          styles: {
+            fontSize: 7.5,
+            cellPadding: 1.6,
+            overflow: 'linebreak',
+            valign: 'middle',
+            textColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+            lineColor: [0, 0, 0],
+            lineWidth: 0.15
+          },
+          headStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            halign: 'center',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25,
+            fontSize: 7.5
+          },
+          footStyles: {
+            fillColor: [240, 240, 240],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            lineColor: [0, 0, 0],
+            lineWidth: 0.25
+          },
+          alternateRowStyles: { fillColor: [250, 250, 250] },
+          columnStyles: {
+            0: { cellWidth: 8, halign: 'center' },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 28 },
+            3: { cellWidth: 24, halign: 'right' },
+            4: { cellWidth: 20, halign: 'right' },
+            5: { cellWidth: 22, halign: 'right' },
+            6: { cellWidth: 20, halign: 'right' },
+            7: { cellWidth: 22, halign: 'right' },
+            8: { cellWidth: 24, halign: 'right' },
+            9: { cellWidth: 24, halign: 'right' },
+            10: { cellWidth: 20, halign: 'right' },
+            11: { cellWidth: 20, halign: 'center', fontStyle: 'bold' }
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 11) {
+              const v = String(data.cell.raw || '');
+              if (v === 'RUGI') { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [215, 215, 215]; }
+              else if (v === 'LABA') { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [235, 235, 235]; }
+            }
+          },
+          didDrawPage: () => {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.3);
+            doc.rect(8, 8, pageW - 16, pageH - 16, 'S');
+          }
+        });
+
+        // ===== DATA TERBARU =====
+        let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 8 : pageH - 40;
+        if (finalY > pageH - 40) { doc.addPage(); finalY = 20; }
+
+        const latest = calcHistoryList[0] || {};
+        doc.setDrawColor(0, 0, 0);
+        doc.setFillColor(250, 250, 250);
+        doc.rect(14, finalY, pageW - 28, 32, 'FD');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text('DATA TERBARU (SNAPSHOT TERAKHIR)', 18, finalY + 6);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Waktu          : ${latest.time || '-'}`, 18, finalY + 13);
+        doc.text(`Total Penjualan: Rp ${(latest.totalSales || 0).toLocaleString('id-ID')}`, 18, finalY + 19);
+        doc.text(`Laba Bersih    : Rp ${(latest.netProfit || 0).toLocaleString('id-ID')}`, 18, finalY + 25);
+
+        doc.text(`Setor          : Rp ${(latest.setor || 0).toLocaleString('id-ID')}`, 18 + (pageW - 36) / 3, finalY + 13);
+        doc.text(`Modal Tambahan : Rp ${(latest.modalTambahan || 0).toLocaleString('id-ID')}`, 18 + (pageW - 36) / 3, finalY + 19);
+        doc.text(`Setelah Setor  : Rp ${(latest.afterDeposit || 0).toLocaleString('id-ID')}`, 18 + (pageW - 36) / 3, finalY + 25);
+
+        doc.text(`Status         : ${latest.status || '-'}`, 18 + 2 * (pageW - 36) / 3, finalY + 13);
+        doc.text(`Kerugian       : Rp ${(latest.loss || 0).toLocaleString('id-ID')}`, 18 + 2 * (pageW - 36) / 3, finalY + 19);
+        doc.text(`Total Modal    : Rp ${(latest.totalCapital || 0).toLocaleString('id-ID')}`, 18 + 2 * (pageW - 36) / 3, finalY + 25);
+
+        // ===== FOOTER =====
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`Halaman ${i} dari ${pageCount}`, pageW / 2, pageH - 6, { align: 'center' });
+          doc.text("Toko Online a'didin", 14, pageH - 6);
+          doc.text(`Dicetak ${jamCetak}`, pageW - 14, pageH - 6, { align: 'right' });
+        }
+
+        const pad = (n) => String(n).padStart(2, '0');
+        const fileName = `Kalkulasi-Penjualan_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
+        doc.save(fileName);
+      } catch (err) {
+        console.error('Export PDF kalkulasi gagal:', err);
+        alert('Gagal membuat PDF: ' + (err && err.message ? err.message : err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = origInnerHTML || '<i class="fas fa-file-pdf"></i> Export PDF Tabel'; }
+      }
+    }
+
+    (function initCalcExtraButtons() {
+      const saveBtn = $('btn-save-calc');
+      const expBtn = $('btn-export-pdf-calc');
+      const clearBtn = $('btn-clear-calc-history');
+      if (saveBtn) saveBtn.addEventListener('click', saveCalcSnapshot);
+      if (expBtn) expBtn.addEventListener('click', exportCalcToPDF);
+      if (clearBtn) clearBtn.addEventListener('click', () => {
+        if (!calcHistoryList || calcHistoryList.length === 0) { alert("Belum ada data untuk dihapus."); return; }
+        if (confirm("Hapus SEMUA riwayat simpan kalkulasi?\nTindakan ini tidak bisa dibatalkan.")) {
+          calcHistoryList = [];
+          saveCalcHistory();
+          alert("✅ Semua riwayat kalkulasi dihapus.");
+        }
+      });
+    })();
+
+    // ============================================================
+    // ===== END RIWAYAT SIMPAN KALKULASI =========================
+    // ============================================================
 
     const renderAdminUsers = () => {
       const tbody = $('admin-users-table');
@@ -2909,7 +3281,6 @@
 
         await ensureJsPDFLib();
         const { jsPDF } = window.jspdf;
-        // Landscape A4 - karena ada kolom Ekspayer
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
         const threshold = getLowStockThreshold();
@@ -2920,7 +3291,6 @@
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
 
-        // ===== HEADER HITAM PUTIH =====
         doc.setDrawColor(0, 0, 0);
         doc.setFillColor(255, 255, 255);
         doc.setTextColor(0, 0, 0);
@@ -2937,7 +3307,6 @@
         doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 31);
         doc.text(`Batas Stok Menipis: ${threshold}`, pageW - 14, 31, { align: 'right' });
 
-        // ===== RINGKASAN =====
         const totalItems = products.length;
         const outItems = products.filter(p => p.unitType !== 'digital' && (!p.available || p.stock <= 0)).length;
         const lowItems = products.filter(p => p.unitType !== 'digital' && p.available && p.stock > 0 && p.stock <= threshold).length;
@@ -2947,7 +3316,6 @@
         doc.setFontSize(9);
         doc.text(`Total: ${totalItems} item   |   Tersedia: ${okItems}   |   Menipis: ${lowItems}   |   Habis: ${outItems}   |   Kedaluwarsa: ${expiredItems}`, 14, 37);
 
-        // ===== URUTKAN =====
         const stockRank = (p) => {
           if (p.unitType === 'digital') return 3;
           if (!p.available || p.stock <= 0) return 0;
@@ -2962,7 +3330,6 @@
           return sa - sb;
         });
 
-        // ===== SUSUN BARIS =====
         const rows = sorted.map((p, i) => {
           const isDigital = p.unitType === 'digital';
           const unit = isDigital ? 'Digital' : getUnitPretty(p.unitType);
@@ -2972,7 +3339,6 @@
           else if (rank === 0) status = '!! STOK HABIS !!';
           else if (rank === 1) status = '! STOK MENIPIS !';
 
-          // Ekspayer
           const expStatus = getExpiredStatus(p.expiredDate);
           let expDisplay = '-';
           if (p.expiredDate) {
@@ -2984,7 +3350,6 @@
           const stockDisplay = isDigital ? '∞' : String(p.stock);
           const conv = (!isDigital && isVolumeUnitType(p.unitType)) ? ` (${convertUnitQty(p.stock, p.unitType)})` : '';
 
-          // Harga & total harga
           const priceVal = parseInt(p.price) || 0;
           const costVal = parseInt(p.costPrice) || 0;
           const stockVal = isDigital ? 0 : (parseInt(p.stock) || 0);
@@ -3011,10 +3376,8 @@
           };
         });
 
-        // ===== HITUNG TOTAL =====
         let grandTotalSell = 0;
         let grandTotalCost = 0;
-        let grandTotalStockQty = 0;
         rows.forEach(r => {
           if (!r.isDigital) {
             grandTotalSell += r.totalSellRaw;
@@ -3023,12 +3386,10 @@
         });
         const grandTotalProfit = grandTotalSell - grandTotalCost;
 
-        // ===== TABLE BODY =====
         const body = rows.map(r => [
           r.idx, r.name, r.barcode, r.rack, r.category, r.unit, r.stock, r.expired, r.price, r.cost, r.totalSell, r.totalCost, r.status
         ]);
 
-        // ===== FOOT: TOTAL =====
         const foot = [[
           { content: 'TOTAL', colSpan: 10, styles: { halign: 'right', fontStyle: 'bold', textColor: [0,0,0], fillColor: [240,240,240] } },
           { content: 'Rp ' + grandTotalSell.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', textColor: [0,0,0], fillColor: [240,240,240] } },
@@ -3096,11 +3457,9 @@
           didParseCell: (data) => {
             if (data.section === 'body' && data.column.index === 12) {
               const v = String(data.cell.raw || '');
-              // Tetap hitam-putih: hanya bedakan dengan bold & tanda baca
               if (v.includes('HABIS')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.textColor = [0,0,0]; data.cell.styles.fillColor = [220,220,220]; }
               else if (v.includes('MENIPIS')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.textColor = [0,0,0]; data.cell.styles.fillColor = [240,240,240]; }
             }
-            // Ekspayer: kolom 7 - highlight kadaluwarsa/segera
             if (data.section === 'body' && data.column.index === 7) {
               const v = String(data.cell.raw || '');
               if (v.includes('KEDALUWARSA')) { data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [220,220,220]; }
@@ -3108,14 +3467,12 @@
             }
           },
           didDrawPage: (data) => {
-            // Draw a border on each page
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.3);
             doc.rect(8, 8, pageW - 16, pageH - 16, 'S');
           }
         });
 
-        // ===== RINGKASAN NILAI PERSEDIAAN =====
         let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 8 : pageH - 40;
 
         if (finalY > pageH - 30) {
@@ -3146,7 +3503,6 @@
           finalY += 5;
         });
 
-        // ===== FOOTER SETIAP HALAMAN =====
         const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
@@ -3157,7 +3513,6 @@
           doc.text(`Dicetak ${jamCetak}`, pageW - 14, pageH - 6, { align: 'right' });
         }
 
-        // ===== SIMPAN =====
         const pad = (n) => String(n).padStart(2, '0');
         const fileName = `Daftar-Stok-Barang_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`;
         doc.save(fileName);
@@ -3193,7 +3548,6 @@
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
 
-        // ===== HEADER HITAM PUTIH =====
         doc.setDrawColor(0, 0, 0);
         doc.setFillColor(255, 255, 255);
         doc.setTextColor(0, 0, 0);
@@ -3209,7 +3563,6 @@
         doc.text(`Dicetak: ${tglCetak}, ${jamCetak} WIB`, 14, 31);
         doc.text(`Total Transaksi: ${historyList.length}`, pageW - 14, 31, { align: 'right' });
 
-        // ===== KALKULASI TOTAL =====
         let totalSales = 0, totalHpp = 0, totalOngkir = 0, totalLaba = 0;
         let completedCount = 0;
         historyList.forEach(o => {
@@ -3233,7 +3586,6 @@
         const afterDeposit = netProfit - setorVal;
         const lossVal = netProfit < 0 ? Math.abs(netProfit) : 0;
 
-        // ===== RINGKASAN ATAS =====
         doc.setDrawColor(0,0,0);
         doc.setFillColor(250,250,250);
         doc.rect(14, 35, pageW - 28, 22, 'FD');
@@ -3251,7 +3603,6 @@
         doc.text(`Setor             : Rp ${setorVal.toLocaleString('id-ID')}`, 18 + colW*2, line1Y);
         doc.text(`Modal Tambahan    : Rp ${modalVal.toLocaleString('id-ID')}`, 18 + colW*2, line2Y);
 
-        // ===== TABEL HISTORI =====
         const rows = historyList.map((o, i) => {
           const sub = o.subtotal || 0;
           const hpp = o.totalHpp || 0;
@@ -3341,7 +3692,6 @@
           }
         });
 
-        // ===== RINGKASAN BAWAH =====
         let finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) ? doc.lastAutoTable.finalY + 8 : pageH - 60;
         if (finalY > pageH - 50) {
           doc.addPage();
@@ -3370,7 +3720,6 @@
         doc.text(`Total Transaksi                    : ${historyList.length}`, 18 + (pageW - 36) / 2, finalY + 25);
         doc.text(`Total Ongkir Terkumpul             : Rp ${totalOngkir.toLocaleString('id-ID')}`, 18 + (pageW - 36) / 2, finalY + 32);
 
-        // ===== FOOTER =====
         const pageCount = doc.internal.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           doc.setPage(i);
@@ -4066,7 +4415,7 @@
 
     $('btn-force-seed').addEventListener('click', () => {
       seedInitialData();
-      if (firebaseReady) { db.ref('history').set(historyList); db.ref('broadcast_history').set(broadcastHistory); db.ref('theme_promo').set(themeConfig); db.ref('shipping_config').set(shippingConfig); }
+      if (firebaseReady) { db.ref('history').set(historyList); db.ref('broadcast_history').set(broadcastHistory); db.ref('theme_promo').set(themeConfig); db.ref('shipping_config').set(shippingConfig); db.ref('calc_history').set(calcHistoryList); }
       const el = $('seed-status');
       el.classList.remove('hidden');
       el.innerText = "✅ Data berhasil disinkronkan ke Firebase!";
@@ -4162,6 +4511,16 @@
           if (data) { broadcastHistory = Object.values(data); localStorage.setItem('adidin_broadcast_history', JSON.stringify(broadcastHistory)); }
           renderAnnouncement();
           if (currentUser) renderBroadcastHistory(broadcastHistory);
+        });
+
+        db.ref('calc_history').on('value', snap => {
+          const data = snap.val();
+          if (data) {
+            calcHistoryList = Array.isArray(data) ? data : Object.values(data);
+            calcHistoryList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            localStorage.setItem('adidin_calc_history', JSON.stringify(calcHistoryList));
+          }
+          renderCalcHistory();
         });
 
         db.ref('shipping_config').on('value', snap => {
@@ -4349,6 +4708,7 @@
       checkSession();
       ensureAdminMapVisible();
       updateSalesCalculator();
+      renderCalcHistory();
     });
 
     $('btn-logout').addEventListener('click', () => {
@@ -4485,6 +4845,7 @@
     saveCart();
     calcFinance(historyList);
     updateSalesCalculator();
+    renderCalcHistory();
     checkSession();
     reshuffleProducts();
     switchPage('buyer');
