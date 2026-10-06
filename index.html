@@ -339,8 +339,8 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
           </form>
         </div>
       </div>
-          </section>
-            <section class="page-section" id="admin-section">
+            </section>
+              <section class="page-section" id="admin-section">
     <div class="auth-box" id="admin-login-box">
       <h2>Login Sistem Toko</h2>
       <form class="form-style" id="form-login">
@@ -880,21 +880,6 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     admin: "ADMIN-ADIDIN-2026",
     kasir: "KASIR-ADIDIN-2026"
   };
-  // ===== DAFTAR ID PRODUK YANG SUDAH DIHAPUS (ANTI-RESTORE) =====
-// Mencegah produk yang sudah dihapus muncul kembali dari Firebase cache
-const DELETED_PRODUCT_PREFIX = 'adidin_deleted_products_';
-function markProductDeleted(storeId, productId) {
-  const key = DELETED_PRODUCT_PREFIX + (storeId || 'default');
-  const list = safeParse(localStorage.getItem(key), []) || [];
-  const idStr = String(productId);
-  if (!list.includes(idStr)) list.push(idStr);
-  localStorage.setItem(key, JSON.stringify(list));
-}
-function isProductDeleted(storeId, productId) {
-  const key = DELETED_PRODUCT_PREFIX + (storeId || 'default');
-  const list = safeParse(localStorage.getItem(key), []) || [];
-  return list.includes(String(productId));
-  }
 
   // ===== MULTI-TOKO CONSTANTS =====
   const OWNER_STORE_NAME = "OWNER PUSAT";
@@ -963,6 +948,21 @@ function isProductDeleted(storeId, productId) {
 
   const slugify = (name) => 'store_' + String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 60);
   function isOwner() { return currentUser && currentUser.role === 'owner'; }
+
+  // ===== ANTI-RESTORE HAPUS PRODUK =====
+  const DELETED_PRODUCT_PREFIX = 'adidin_deleted_products_';
+  function markProductDeleted(storeId, productId) {
+    const key = DELETED_PRODUCT_PREFIX + (storeId || 'default');
+    const list = safeParse(localStorage.getItem(key), []) || [];
+    const idStr = String(productId);
+    if (!list.includes(idStr)) list.push(idStr);
+    localStorage.setItem(key, JSON.stringify(list));
+  }
+  function isProductDeleted(storeId, productId) {
+    const key = DELETED_PRODUCT_PREFIX + (storeId || 'default');
+    const list = safeParse(localStorage.getItem(key), []) || [];
+    return list.includes(String(productId));
+  }
 
   // ===== BATCHER =====
   let _renderScheduled = false;
@@ -1101,8 +1101,6 @@ function isProductDeleted(storeId, productId) {
   };
 
   // ===== DATA STORE =====
-  const DEFAULT_PRODUCTS_EMPTY = []; // Toko baru KOSONG (tanpa produk default)
-
   let products = [];
   let adminUsers = [
     { username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" },
@@ -1596,49 +1594,46 @@ function isProductDeleted(storeId, productId) {
   }
 
   function loadStoreData(storeId) {
-  const sid = storeId || 'default';
-  const get = (k, fb) => safeParse(localStorage.getItem(`${k}_${sid}`), fb);
+    const sid = storeId || 'default';
+    const get = (k, fb) => safeParse(localStorage.getItem(`${k}_${sid}`), fb);
 
-  // ===== PRODUK: KOSONG jika belum ada =====
-  const prods = get('adidin_products', null);
-  if (Array.isArray(prods)) products = prods;
-  else if (prods && typeof prods === 'object') products = Object.values(prods);
-  else products = []; // ← Toko baru KOSONG
+    const prods = get('adidin_products', null);
+    if (Array.isArray(prods)) products = prods;
+    else if (prods && typeof prods === 'object') products = Object.values(prods);
+    else products = [];
 
-  // Simpan kalau belum ada key di localStorage
-  if (!localStorage.getItem(`adidin_products_${sid}`)) {
-    localStorage.setItem(`adidin_products_${sid}`, JSON.stringify([]));
+    if (!localStorage.getItem(`adidin_products_${sid}`)) {
+      localStorage.setItem(`adidin_products_${sid}`, JSON.stringify([]));
+    }
+
+    const users = get('adidin_users', null);
+    if (users) adminUsers = Array.isArray(users) ? users : Object.values(users);
+    else adminUsers = [
+      { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
+      { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
+    ];
+
+    historyList = get('adidin_history', []);
+    if (!Array.isArray(historyList)) historyList = [];
+    calcHistoryList = get('adidin_calc_history', []);
+    if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
+    broadcastHistory = get('adidin_broadcast_history', []);
+    if (!Array.isArray(broadcastHistory)) broadcastHistory = [];
+    cart = get('adidin_cart', []);
+    if (!Array.isArray(cart)) cart = [];
+
+    storeOpen = localStorage.getItem(`adidin_store_open_${sid}`) !== 'false';
+
+    const sc = get('adidin_shipping_config', null);
+    if (sc) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...sc }; }
+    else shippingConfig = { ...DEFAULT_SHIPPING_CONFIG };
+
+    const th = get('adidin_theme_promo', null);
+    if (th) themeConfig = { ...DEFAULT_THEME, ...th };
+    else themeConfig = { ...DEFAULT_THEME };
+
+    invalidateSearchIndex();
   }
-
-  const users = get('adidin_users', null);
-  if (users) adminUsers = Array.isArray(users) ? users : Object.values(users);
-  else adminUsers = [
-    { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
-    { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
-  ];
-
-  historyList = get('adidin_history', []);
-  if (!Array.isArray(historyList)) historyList = [];
-  calcHistoryList = get('adidin_calc_history', []);
-  if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
-  broadcastHistory = get('adidin_broadcast_history', []);
-  if (!Array.isArray(broadcastHistory)) broadcastHistory = [];
-  cart = get('adidin_cart', []);
-  if (!Array.isArray(cart)) cart = [];
-
-  storeOpen = localStorage.getItem(`adidin_store_open_${sid}`) !== 'false';
-
-  const sc = get('adidin_shipping_config', null);
-  if (sc) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...sc }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; }
-  else shippingConfig = { ...DEFAULT_SHIPPING_CONFIG };
-
-  const th = get('adidin_theme_promo', null);
-  if (th) themeConfig = { ...DEFAULT_THEME, ...th };
-  else themeConfig = { ...DEFAULT_THEME };
-
-  invalidateSearchIndex();
-  }
-
 
   // ===== FIREBASE PER-STORE LISTENERS =====
   let _activeFirebaseRefs = [];
@@ -1650,25 +1645,24 @@ function isProductDeleted(storeId, productId) {
     _activeFirebaseRefs.forEach(ref => { try { ref.off(); } catch(e) {} });
     _activeFirebaseRefs = [];
 
-  // Products — Anti-Restore: kalau Firebase kosong = toko memang kosong
-const pRef = db.ref(`products/${sid}`);
-pRef.on('value', snap => {
-  const data = snap.val();
-  if (Array.isArray(data)) products = data;
-  else if (data && typeof data === 'object') products = Object.values(data);
-  else products = []; // ← Firebase kosong = toko kosong, JANGAN restore produk default
-  localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
-  invalidateSearchIndex();
-  scheduleRenderBatch();
-});
-_activeFirebaseRefs.push(pRef);
+    const pRef = db.ref(`products/${sid}`);
+    pRef.on('value', snap => {
+      const data = snap.val();
+      let arr = [];
+      if (Array.isArray(data)) arr = data;
+      else if (data && typeof data === 'object') arr = Object.values(data);
+      arr = arr.filter(p => p && p.id && !isProductDeleted(sid, p.id));
+      products = arr;
+      localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
+      invalidateSearchIndex();
+      scheduleRenderBatch();
+    });
+    _activeFirebaseRefs.push(pRef);
 
-    // Store status
     const sRef = db.ref(`store_status/${sid}`);
     sRef.on('value', snap => { if (snap.exists()) storeOpen = snap.val() === true; else storeOpen = true; renderStoreStatus(); scheduleRenderBatch(); });
     _activeFirebaseRefs.push(sRef);
 
-    // History
     const hRef = db.ref(`history/${sid}`);
     hRef.on('value', snap => {
       const data = snap.val();
@@ -1679,7 +1673,6 @@ _activeFirebaseRefs.push(pRef);
     });
     _activeFirebaseRefs.push(hRef);
 
-    // Broadcast
     const bRef = db.ref(`broadcast_history/${sid}`);
     bRef.on('value', snap => {
       const data = snap.val();
@@ -1690,7 +1683,6 @@ _activeFirebaseRefs.push(pRef);
     });
     _activeFirebaseRefs.push(bRef);
 
-    // Calc history
     const cRef = db.ref(`calc_history/${sid}`);
     cRef.on('value', snap => {
       const data = snap.val();
@@ -1700,16 +1692,14 @@ _activeFirebaseRefs.push(pRef);
     });
     _activeFirebaseRefs.push(cRef);
 
-    // Shipping config
     const shRef = db.ref(`shipping_config/${sid}`);
     shRef.on('value', snap => {
       const data = snap.val();
-      if (data) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...data }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; applyShippingForm(); renderCart(); }
-      else { const local = safeParse(localStorage.getItem(`adidin_shipping_config_${sid}`), null); if (local) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...local }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; applyShippingForm(); renderCart(); } }
+      if (data) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...data }; applyShippingForm(); renderCart(); }
+      else { const local = safeParse(localStorage.getItem(`adidin_shipping_config_${sid}`), null); if (local) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...local }; applyShippingForm(); renderCart(); } }
     });
     _activeFirebaseRefs.push(shRef);
 
-    // Theme
     const tRef = db.ref(`theme_promo/${sid}`);
     tRef.on('value', snap => {
       const data = snap.val();
@@ -1867,7 +1857,6 @@ _activeFirebaseRefs.push(pRef);
       saveStores();
     }
 
-    // ===== EDIT CABANG =====
     function openEditStore(storeId) {
       const s = allStores.find(x => x.id === storeId);
       if (!s) return alert('Cabang tidak ditemukan!');
@@ -1998,7 +1987,7 @@ _activeFirebaseRefs.push(pRef);
         doc.text(`Cabang: ${storeLabel} | Total: ${arr.length}`, pageW / 2, 21, { align: 'center' });
         doc.text(`Dicetak: ${tgl}, ${jam} WIB`, 14, 31);
         const rows = arr.map((l, i) => [i + 1, l.timeStr, l.storeName, l.user, (l.role || '-').toUpperCase(), l.action, l.wa || '-']);
-        doc.autoTable({ startY: 38, head: [['No','Waktu','Cabang','Karyawan','Role','Aksi','WA']], body: rows, theme: 'grid', styles: { fontSize: 8, cellPadding: 1.8, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center', lineWidth: 0.25 }, didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); } });
+        doc.autoTable({ startY: 38, head: [['No','Waktu','Cabang','Karyawan','Role','Aksi','WA']], body: rows, theme: 'grid', styles: { fontSize: 8, cellPadding: 1.8 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center' } });
         const pad = n => String(n).padStart(2,'0');
         doc.save(`LogToko_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
       } catch(e) { alert('Gagal: ' + e.message); }
@@ -2097,6 +2086,9 @@ _activeFirebaseRefs.push(pRef);
         if (allStores.some(s => s.code === store.code)) store.code += Math.floor(Math.random()*100);
         allStores.push(store);
         saveStores();
+        // Toko baru = produk KOSONG
+        localStorage.setItem(`adidin_products_${store.id}`, JSON.stringify([]));
+        if (firebaseReady) { try { db.ref(`products/${store.id}`).set([]); } catch(e) {} }
       } else {
         store = allStores.find(s => s.name.toLowerCase() === storeName.toLowerCase());
         if (!store) return alert('Toko tidak ditemukan!');
@@ -2113,7 +2105,6 @@ _activeFirebaseRefs.push(pRef);
       $('ms-switch-login').click();
     }
 
-    // ===== RENDER STORE STATUS =====
     const renderStoreStatus = () => {
       const banner = $('store-status-banner'), textEl = $('store-status-text'), adminBtn = $('btn-toggle-store-status');
       if (banner && textEl) {
@@ -2128,7 +2119,6 @@ _activeFirebaseRefs.push(pRef);
       updateScheduleUI();
     };
 
-    // ===== NAVIGASI =====
     const switchPage = (name) => {
       ['buyer-dashboard','cart-dashboard','admin-section'].forEach(id => $(id).classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
@@ -2167,7 +2157,6 @@ _activeFirebaseRefs.push(pRef);
       }
     };
 
-    // ===== ANNOUNCEMENT =====
     const renderAnnouncement = () => {
       const activeList = getActiveAnnouncements();
       const badge = $('bell-badge'), content = $('bell-content'), empty = $('bell-empty');
@@ -2414,7 +2403,6 @@ _activeFirebaseRefs.push(pRef);
       else finish([]);
     };
 
-    // ===== RENDER CART =====
     const renderCart = () => {
       const list = $('cart-items-list'); list.innerHTML = '';
       updateScheduleUI();
@@ -2481,7 +2469,6 @@ _activeFirebaseRefs.push(pRef);
       saveCart(); renderCart();
     };
 
-    // ===== SESSION =====
     const checkSession = () => {
       if (currentUser) {
         $('admin-login-box').classList.add('hidden');
@@ -2613,7 +2600,6 @@ _activeFirebaseRefs.push(pRef);
       $('pos-change-pay').innerText = `Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}`;
     };
 
-    // ===== SCANNER =====
     const openScanner = async (target) => {
       activeScanTarget = target;
       try { const ok = await ensureHtml5QrcodeLib(); if (!ok) throw new Error('library tidak tersedia'); }
@@ -2656,7 +2642,6 @@ _activeFirebaseRefs.push(pRef);
       if ($('stat-profit')) $('stat-profit').innerText = `Rp ${(revenue-cost).toLocaleString('id-ID')}`;
     };
 
-    // ===== CALCULATOR =====
     function updateSalesCalculator() {
       const elSales = $('calc-total-sales'); if (!elSales) return;
       let totalSales = 0, totalHpp = 0;
@@ -2753,7 +2738,6 @@ _activeFirebaseRefs.push(pRef);
       finally { if (btn) { btn.disabled = false; btn.innerHTML = orig || '<i class="fas fa-file-pdf"></i> Export PDF Tabel'; } }
     }
 
-    // ===== ADMIN USERS/BROADCAST =====
     const renderAdminUsers = () => {
       const tbody = $('admin-users-table'); tbody.innerHTML = '';
       adminUsers.forEach(u => {
@@ -2861,7 +2845,6 @@ _activeFirebaseRefs.push(pRef);
       handleUnitType();
     };
 
-    // ===== RENDER ADMIN PRODUCTS =====
     const renderAdminProducts = () => {
       const tbody = $('admin-product-table'); if (!tbody) return;
       const searchInput = $('search-admin');
@@ -2907,20 +2890,18 @@ _activeFirebaseRefs.push(pRef);
         if (edit) editProduct(edit);
         else if (toggle) { const prod = getProductById(toggle); if (prod) { prod.available = b.getAttribute('data-status') === 'true' ? false : true; saveProducts(); } }
         else if (del) {
-  if (!confirm("⚠️ HAPUS PERMANEN?\n\nBarang ini akan dihapus dari toko ini secara PERMANEN dan tidak akan muncul lagi.\n\nLanjutkan?")) return;
-  const sid = activeStoreId || 'default';
-  const toDeleteId = String(del);
-  // Hapus dari array lokal
-  products = products.filter(p => String(p.id) !== toDeleteId);
-  invalidateSearchIndex();
-  // Simpan ke localStorage + Firebase (overwrite dengan array baru = produk hilang permanen)
-  localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
-  if (firebaseReady) {
-    db.ref(`products/${sid}`).set(products).catch(err => console.error("Gagal hapus di Firebase:", err));
-  }
-  // Refresh UI
-  renderProducts(); renderAdminProducts(); renderPosProducts(); renderQuickSearchResults();
-  alert("✅ Barang berhasil dihapus permanen!");
+          if (!confirm("⚠️ HAPUS PERMANEN?\n\nBarang ini akan dihapus dari toko ini secara PERMANEN dan tidak akan muncul lagi.\n\nLanjutkan?")) return;
+          const sid = activeStoreId || 'default';
+          const toDeleteId = String(del);
+          markProductDeleted(sid, toDeleteId);
+          products = products.filter(p => String(p.id) !== toDeleteId);
+          invalidateSearchIndex();
+          localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
+          if (firebaseReady) {
+            db.ref(`products/${sid}`).set(products).catch(err => console.error("Gagal hapus di Firebase:", err));
+          }
+          renderProducts(); renderAdminProducts(); renderPosProducts(); renderQuickSearchResults();
+          alert("✅ Barang berhasil dihapus permanen!");
         }
       }));
     };
@@ -3197,30 +3178,6 @@ _activeFirebaseRefs.push(pRef);
     }
     async function btFeed(n = 4) { if (n > 0) await sendRaw(new Uint8Array(n)); }
 
-    async function cetakStrukBluetoothPOS(summary, total, cash, change, kasir, timestamp) {
-      if (!btPrinterChar) { const ok = await connectBluetooth(); if (!ok) return; }
-      const kasirInfo = getKasirInfo();
-      const waToko = formatWA(MAIN_WA_NUMBER);
-      await sendRaw(escposInit());
-      await btPrintLine('================================','c');
-      await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
-      await btPrintLine("toko online a'didin",'c');
-      await btPrintLine('WA Admin : ' + waToko,'c');
-      await btPrintLine('================================','c');
-      await btPrintLine('Kasir: ' + (kasir || kasirInfo.nama));
-      await btPrintLine('Waktu: ' + timestamp);
-      await btPrintLine('--------------------------------');
-      String(summary).split('\n').filter(l => l.trim()).forEach(async line => await btPrintLine(line));
-      await btPrintLine('--------------------------------');
-      await btPrintLine('TOTAL  : Rp ' + Number(total).toLocaleString('id-ID'),'c',true);
-      await btPrintLine('BAYAR  : Rp ' + Number(cash).toLocaleString('id-ID'),'c');
-      await btPrintLine('KEMBALI: Rp ' + Number(change).toLocaleString('id-ID'),'c');
-      await btPrintLine('--------------------------------');
-      await btPrintLine('Terima Kasih','c');
-      await btFeed(4);
-      setBtStatus('✅ Struk terkirim');
-    }
-
     // ===== EVENT BINDING =====
     const bindEvent = (id, event, handler) => { const el = $(id); if (el) el.addEventListener(event, handler); };
 
@@ -3494,17 +3451,9 @@ _activeFirebaseRefs.push(pRef);
       historyList.unshift(order);
       saveHistory();
       const kasirInfo = getKasirInfo();
-      const waToko = formatWA(MAIN_WA_NUMBER);
-      if (btPrinterChar) await cetakStrukBluetoothPOS(summary, total, cash, (cash-total), kasirInfo.nama, order.timestamp);
-      else {
-        const choice = confirm('Printer BT belum terhubung.\n[OK] Hubungkan BT\n[Batal] Cetak via browser');
-        if (choice) { const ok = await connectBluetooth(); if (ok) await cetakStrukBluetoothPOS(summary, total, cash, (cash-total), kasirInfo.nama, order.timestamp); }
-        else {
-          const qrDataUrl = await generateReceiptQR();
-          const receiptHtml = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="contact-wa">WA Admin: ${waToko}</div><hr><table class="info-table"><tr><td>No. Struk</td><td>:</td><td>${order.id}</td></tr><tr><td>Kasir</td><td>:</td><td>${kasirInfo.nama}</td></tr><tr><td>Waktu</td><td>:</td><td>${order.timestamp}</td></tr></table><hr><pre class="receipt-items">${summary}</pre><hr><table class="total-table"><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr><tr><td>BAYAR</td><td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td></tr><tr><td>KEMBALI</td><td style="text-align:right;">Rp ${(cash-total).toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
-          await printDynamicReceipt(receiptHtml);
-        }
-      }
+      const qrDataUrl = await generateReceiptQR();
+      const receiptHtml = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="contact-wa">WA Admin: ${formatWA(MAIN_WA_NUMBER)}</div><hr><table class="info-table"><tr><td>No. Struk</td><td>:</td><td>${order.id}</td></tr><tr><td>Kasir</td><td>:</td><td>${kasirInfo.nama}</td></tr><tr><td>Waktu</td><td>:</td><td>${order.timestamp}</td></tr></table><hr><pre class="receipt-items">${summary}</pre><hr><table class="total-table"><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr><tr><td>BAYAR</td><td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td></tr><tr><td>KEMBALI</td><td style="text-align:right;">Rp ${(cash-total).toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
+      await printDynamicReceipt(receiptHtml);
       posCart = []; $('pos-cash-input').value = ""; renderPosCart();
     });
 
@@ -3569,10 +3518,11 @@ _activeFirebaseRefs.push(pRef);
       allStores.push(store); saveStores();
       const defaultUsers = [{ username:"admin", password:"admin123", whatsapp: phone || "628991286742", role:"admin" }, { username:"kasir", password:"kasir123", whatsapp: phone || "628991286742", role:"kasir" }];
       localStorage.setItem(`adidin_users_${store.id}`, JSON.stringify(defaultUsers));
-      if (firebaseReady) { try { db.ref(`users/${store.id}`).set(defaultUsers); } catch(e) {} }
+      localStorage.setItem(`adidin_products_${store.id}`, JSON.stringify([]));
+      if (firebaseReady) { try { db.ref(`users/${store.id}`).set(defaultUsers); db.ref(`products/${store.id}`).set([]); } catch(e) {} }
       addForm.reset();
       fetchOwnerStats().then(renderOwnerDashboard);
-      alert(`✅ Cabang "${name}" ditambahkan!`);
+      alert(`✅ Cabang "${name}" ditambahkan! Toko baru kosong.`);
     });
 
     async function exportOwnerPDF() {
@@ -3638,39 +3588,35 @@ _activeFirebaseRefs.push(pRef);
       } catch(e) { console.error("Firebase error:", e); const el = $('realtime-status'); el.textContent = "● GAGAL"; el.className = "realtime-status offline"; }
     }
 
-    
-function ensureDefaultStores() {
-  const stored = safeParse(localStorage.getItem('ms_all_stores'), null);
-  if (Array.isArray(stored) && stored.length > 0) {
-    allStores = stored;
-    // Pastikan setiap toko punya key products di localStorage (kosong)
-    allStores.forEach(s => {
-      if (!localStorage.getItem(`adidin_products_${s.id}`)) {
-        localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([]));
+    function ensureDefaultStores() {
+      const stored = safeParse(localStorage.getItem('ms_all_stores'), null);
+      if (Array.isArray(stored) && stored.length > 0) {
+        allStores = stored;
+        allStores.forEach(s => {
+          if (!localStorage.getItem(`adidin_products_${s.id}`)) localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([]));
+        });
+        return;
       }
-    });
-    return;
-  }
-  const now = Date.now();
-  allStores = [
-    { id: slugify("Toko Pusat a'didin"), name: "Toko Pusat a'didin", code: "PUSAT", address: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon", phone: "628991286742", active: true, createdAt: now },
-    { id: slugify("Toko Cabang Cirebon"), name: "Toko Cabang Cirebon", code: "CRB01", address: "Jl. Siliwangi No. 10, Cirebon", phone: "628991286743", active: true, createdAt: now + 1 },
-    { id: slugify("Toko Cabang Kuningan"), name: "Toko Cabang Kuningan", code: "KNG01", address: "Jl. Siliwangi No. 25, Kuningan", phone: "628991286744", active: true, createdAt: now + 2 }
-  ];
-  saveStores();
-  const defaultUsers = [
-    { username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" },
-    { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
-    { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
-  ];
-  allStores.forEach(s => {
-    if (!localStorage.getItem(`adidin_users_${s.id}`)) localStorage.setItem(`adidin_users_${s.id}`, JSON.stringify(defaultUsers));
-    // SETIAP TOKO DIMULAI DENGAN PRODUK KOSONG
-    if (!localStorage.getItem(`adidin_products_${s.id}`)) localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([]));
-  });
-  if (!localStorage.getItem(`adidin_users_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_users_${OWNER_STORE_ID}`, JSON.stringify(defaultUsers));
-  if (!localStorage.getItem(`adidin_products_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_products_${OWNER_STORE_ID}`, JSON.stringify([]));
-}
+      const now = Date.now();
+      allStores = [
+        { id: slugify("Toko Pusat a'didin"), name: "Toko Pusat a'didin", code: "PUSAT", address: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon", phone: "628991286742", active: true, createdAt: now },
+        { id: slugify("Toko Cabang Cirebon"), name: "Toko Cabang Cirebon", code: "CRB01", address: "Jl. Siliwangi No. 10, Cirebon", phone: "628991286743", active: true, createdAt: now + 1 },
+        { id: slugify("Toko Cabang Kuningan"), name: "Toko Cabang Kuningan", code: "KNG01", address: "Jl. Siliwangi No. 25, Kuningan", phone: "628991286744", active: true, createdAt: now + 2 }
+      ];
+      saveStores();
+      const defaultUsers = [
+        { username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" },
+        { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
+        { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
+      ];
+      allStores.forEach(s => {
+        if (!localStorage.getItem(`adidin_users_${s.id}`)) localStorage.setItem(`adidin_users_${s.id}`, JSON.stringify(defaultUsers));
+        if (!localStorage.getItem(`adidin_products_${s.id}`)) localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([]));
+      });
+      if (!localStorage.getItem(`adidin_users_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_users_${OWNER_STORE_ID}`, JSON.stringify(defaultUsers));
+      if (!localStorage.getItem(`adidin_products_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_products_${OWNER_STORE_ID}`, JSON.stringify([]));
+    }
+
     const updateClock = () => { const now = new Date(); $('live-datetime').innerText = `${now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} ${now.toLocaleTimeString('id-ID')} WIB`; };
     setInterval(updateClock, 1000);
     updateClock();
@@ -3694,7 +3640,7 @@ function ensureDefaultStores() {
       updateSwitcherVisibility();
       setTimeout(() => { const roleEl = $('ms-reg-role'); if (roleEl) roleEl.dispatchEvent(new Event('change')); }, 100);
       initFirebase();
-      console.log('%c🏬 Multi-Toko Siap! Stok TERPISAH per cabang.', 'background:#e11d48;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold;');
+      console.log('%c🏬 Multi-Toko Siap! Toko baru KOSONG, stok TERPISAH per cabang.', 'background:#e11d48;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold;');
       console.log('👑 Owner: toko=OWNER PUSAT | user=owner | pass=owner123 | sandi=' + SECRET_CODES.owner);
       console.log('🏬 Admin: toko=Toko Pusat a\'didin | user=admin | pass=admin123 | sandi=' + SECRET_CODES.admin);
       console.log('🛒 Kasir: toko=Toko Pusat a\'didin | user=kasir | pass=kasir123 | sandi=' + SECRET_CODES.kasir);
