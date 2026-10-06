@@ -3608,24 +3608,39 @@ _activeFirebaseRefs.push(pRef);
       } catch(e) { console.error("Firebase error:", e); const el = $('realtime-status'); el.textContent = "● GAGAL"; el.className = "realtime-status offline"; }
     }
 
-    function ensureDefaultStores() {
-      const stored = safeParse(localStorage.getItem('ms_all_stores'), null);
-      if (Array.isArray(stored) && stored.length > 0) { allStores = stored; return; }
-      const now = Date.now();
-      allStores = [
-        { id: slugify("Toko Pusat a'didin"), name: "Toko Pusat a'didin", code: "PUSAT", address: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon", phone: "628991286742", active: true, createdAt: now },
-        { id: slugify("Toko Cabang Cirebon"), name: "Toko Cabang Cirebon", code: "CRB01", address: "Jl. Siliwangi No. 10, Cirebon", phone: "628991286743", active: true, createdAt: now + 1 },
-        { id: slugify("Toko Cabang Kuningan"), name: "Toko Cabang Kuningan", code: "KNG01", address: "Jl. Siliwangi No. 25, Kuningan", phone: "628991286744", active: true, createdAt: now + 2 }
-      ];
-      saveStores();
-      const defaultUsers = [{ username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" }, { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" }, { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }];
-      allStores.forEach(s => {
-        if (!localStorage.getItem(`adidin_users_${s.id}`)) localStorage.setItem(`adidin_users_${s.id}`, JSON.stringify(defaultUsers));
-        if (!localStorage.getItem(`adidin_products_${s.id}`)) localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([{ ...DEFAULT_PRODUCT }]));
-      });
-      if (!localStorage.getItem(`adidin_users_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_users_${OWNER_STORE_ID}`, JSON.stringify(defaultUsers));
-    }
-
+    
+function ensureDefaultStores() {
+  const stored = safeParse(localStorage.getItem('ms_all_stores'), null);
+  if (Array.isArray(stored) && stored.length > 0) {
+    allStores = stored;
+    // Pastikan setiap toko punya key products di localStorage (kosong)
+    allStores.forEach(s => {
+      if (!localStorage.getItem(`adidin_products_${s.id}`)) {
+        localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([]));
+      }
+    });
+    return;
+  }
+  const now = Date.now();
+  allStores = [
+    { id: slugify("Toko Pusat a'didin"), name: "Toko Pusat a'didin", code: "PUSAT", address: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon", phone: "628991286742", active: true, createdAt: now },
+    { id: slugify("Toko Cabang Cirebon"), name: "Toko Cabang Cirebon", code: "CRB01", address: "Jl. Siliwangi No. 10, Cirebon", phone: "628991286743", active: true, createdAt: now + 1 },
+    { id: slugify("Toko Cabang Kuningan"), name: "Toko Cabang Kuningan", code: "KNG01", address: "Jl. Siliwangi No. 25, Kuningan", phone: "628991286744", active: true, createdAt: now + 2 }
+  ];
+  saveStores();
+  const defaultUsers = [
+    { username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" },
+    { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
+    { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
+  ];
+  allStores.forEach(s => {
+    if (!localStorage.getItem(`adidin_users_${s.id}`)) localStorage.setItem(`adidin_users_${s.id}`, JSON.stringify(defaultUsers));
+    // SETIAP TOKO DIMULAI DENGAN PRODUK KOSONG
+    if (!localStorage.getItem(`adidin_products_${s.id}`)) localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([]));
+  });
+  if (!localStorage.getItem(`adidin_users_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_users_${OWNER_STORE_ID}`, JSON.stringify(defaultUsers));
+  if (!localStorage.getItem(`adidin_products_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_products_${OWNER_STORE_ID}`, JSON.stringify([]));
+}
     const updateClock = () => { const now = new Date(); $('live-datetime').innerText = `${now.toLocaleDateString('id-ID', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} ${now.toLocaleTimeString('id-ID')} WIB`; };
     setInterval(updateClock, 1000);
     updateClock();
