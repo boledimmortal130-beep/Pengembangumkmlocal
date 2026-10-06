@@ -1,296 +1,211 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
-  <title>Pengembang UMKM Lokal — Multi Cabang</title>
-
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Pengembang UMKM Lokal","short_name":"UMKM","start_url":".","display":"standalone","background_color":"%23fff7ed","theme_color":"%23e11d48"}'>
-
-  <meta name="theme-color" content="#e11d48">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
-  <link rel="dns-prefetch" href="https://unpkg.com">
-  <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
-  <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
-    :root{
-      --primary:#e11d48;--primary-hover:#be123c;--success:#16a34a;--danger:#dc2626;
-      --warning:#f97316;--bg:#fff7ed;--border:#fed7aa;--text:#431407;--muted:#9a3412;
-      --wa:#25d366;--header-start:#e11d48;--header-end:#f97316;--header-text:#fff;
-      --btn-text:#fff;--card-bg:#fff;--radius:8px;--shadow:0 4px 10px rgba(225,29,72,.12)
-    }
-
-    html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-    body{background:var(--bg);color:var(--text);line-height:1.5;-webkit-tap-highlight-color:transparent;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-    button,.nav-link,.product-card,.pos-item-card{touch-action:manipulation}
-
-    .container{width:94%;max-width:1200px;margin:0 auto}
-    .hidden{display:none!important}
-    .text-center{text-align:center}
-    header{background:linear-gradient(135deg,var(--header-start),var(--header-end));box-shadow:0 4px 18px rgba(225,29,72,.35);padding:12px 0;position:sticky;top:0;z-index:100}
-    .navbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
-    .logo h1{color:var(--header-text);font-size:20px;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.2)}
-    .logo p{font-size:11px;color:var(--header-text);opacity:.9}
-    .datetime-display{font-size:11px;color:var(--header-text);font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.2)}
-    nav{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-    .nav-link{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:8px 12px;font-size:15px;font-weight:800;color:var(--header-text);border-radius:999px;cursor:pointer;transition:.2s;backdrop-filter:blur(4px)}
-    .nav-link:hover,.nav-link.active{background:#fff;color:var(--primary);border-color:#fff}
-    .notification-bell{position:relative;cursor:pointer;padding:6px 8px;color:var(--header-text);display:inline-flex;align-items:center}
-    .notification-bell .fa-bell{font-size:18px;transition:transform .2s}
-    .bell-badge{position:absolute;top:-2px;right:-2px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;min-width:16px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.2)}
-    .bell-dropdown{position:fixed;top:55px;right:12px;width:340px;max-width:calc(100vw - 24px);max-height:420px;overflow-y:auto;background:#fff;border:2px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:10000;animation:bellAppear .2s ease-out}
-    @keyframes bellAppear{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-    .bell-dropdown-header{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:#fff;padding:12px 14px;font-weight:800;font-size:14px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:1}
-    .bell-dropdown-body{padding:8px 12px}
-    .bell-empty{padding:20px 15px;text-align:center;color:var(--muted);font-weight:600;font-size:13px;background:#fff7ed;border-radius:8px;margin:8px 0}
-    .bell-item{display:block;border-bottom:1px dashed var(--border);padding:10px 2px;font-size:12px;color:var(--text);line-height:1.5}
-    .bell-item:last-child{border-bottom:none}
-    .bell-item strong{color:var(--primary);display:block;margin-bottom:2px}
-    @keyframes bellPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
-    .bell-pulse{animation:bellPulse 1.5s infinite;display:inline-block}
-    .realtime-status{font-size:10px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.2);color:var(--header-text);border:1px solid rgba(255,255,255,.25)}
-    .realtime-status.online{color:#052e16;background:#bbf7d0;border-color:#86efac}
-    .realtime-status.offline{color:#7f1d1d;background:#fee2e2;border-color:#fecaca}
-    button{cursor:pointer;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;transition:opacity .2s,transform .1s;color:var(--btn-text)}
-    button:active{transform:scale(.98)}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .btn-primary{background:var(--primary);color:var(--btn-text)}
-    .btn-success{background:var(--success);color:var(--btn-text)}
-    .btn-danger{background:var(--danger);color:var(--btn-text)}
-    .btn-secondary{background:var(--warning);color:var(--btn-text)}
-    .btn-wa{background:var(--wa);color:#fff}
-    .btn-block{width:100%;display:block}
-    .form-style input,.form-style select,.form-style textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none;background:var(--card-bg);color:var(--text)}
-    .form-style textarea{height:65px;resize:vertical}
-    .form-group{margin-bottom:10px}
-    .form-group label{display:block;font-size:12px;font-weight:700;margin-bottom:3px}
-    .page-section{display:none;padding:15px 0}
-    .page-section.active{display:block}
-    .section-title{font-size:18px;font-weight:800;margin-bottom:15px;position:relative;padding-bottom:5px;color:var(--primary)}
-    .section-title::after{content:'';position:absolute;left:0;bottom:0;width:45px;height:4px;background:linear-gradient(90deg,var(--header-start),var(--header-end));border-radius:4px}
-    .store-status-banner{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;font-weight:800;font-size:13px;margin-bottom:15px;border:2px solid;background:#dcfce7;border-color:#86efac;color:#15803d}
-    .store-status-banner.closed{background:#fee2e2;border-color:#fecaca;color:#b91c1d}
-    .btn-status-toko{font-size:14px;padding:14px;font-weight:800;display:block;width:100%;border-radius:10px;border:2px solid #e2e8f0}
-    .delivery-promo{background:linear-gradient(135deg,#fff7ed,#ffedd5);border:2px solid #fdba74;color:#c2410c;padding:12px;border-radius:10px;margin-bottom:15px;font-size:13px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(249,115,22,.15)}
-    .search-filter-box{display:flex;flex-direction:column;gap:10px;background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:var(--shadow)}
-    @media(min-width:768px){.search-filter-box{flex-direction:row;gap:12px}}
-    .search-input,.filter-select{display:flex;align-items:center;background:#fff7ed;padding:8px 12px;border-radius:8px;flex:1;border:1px solid #fed7aa}
-    .search-input input,.filter-select select{border:none;background:transparent;width:100%;margin-left:8px;outline:none;font-size:13px;color:var(--text)}
-    .shuffle-btn-products{display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,var(--header-start),var(--header-end));color:#fff;border:none;border-radius:8px;padding:11px 16px;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 3px 10px rgba(225,29,72,.25);letter-spacing:.2px;width:100%}
-    @media(min-width:768px){.shuffle-btn-products{width:auto}}
-    .shuffle-btn-products:hover{opacity:.93}
-    .shuffle-btn-products:active{transform:scale(.97)}
-    .shuffle-btn-products i{font-size:13px;transition:transform .6s ease}
-    .shuffle-btn-products.spin i{transform:rotate(360deg)}
-    .shuffle-btn-products.admin-wide{width:100%;max-width:100%}
-    .admin-shuffle-note{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
-    .admin-shuffle-note strong{color:var(--primary)}
-    #admin-shuffle-status{font-size:11px;font-weight:700;margin-top:8px;min-height:15px;color:var(--success);line-height:1.4}
-
-    .product-card,.cart-item,.pos-item-card{
-      content-visibility:auto;
-      contain-intrinsic-size:auto 220px;
-      contain:layout style paint;
-    }
-
-    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-    .product-card{background:var(--card-bg);border:2px solid #fed7aa;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);transition:transform .18s,border-color .18s}
-    .product-card:hover{transform:translateY(-3px);border-color:var(--warning)}
-    .product-card.store-closed,.product-card.out-of-stock{opacity:.6}
-    .product-img-box{height:120px;background:#fff7ed;position:relative}
-    .product-img-box img{width:100%;height:100%;object-fit:cover}
-    .badge-rack{position:absolute;top:6px;left:6px;background:rgba(225,29,72,.9);color:#fff;font-size:9px;padding:3px 8px;border-radius:999px;font-weight:700}
-    .badge-out{position:absolute;top:6px;right:6px;background:var(--danger);color:#fff;font-size:9px;padding:3px 8px;border-radius:999px;font-weight:700}
-    .product-info{padding:10px;flex:1}
-    .product-cat{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:800}
-    .product-title{font-size:14px;margin:3px 0;color:var(--text)}
-    .product-desc{font-size:11px;color:var(--muted);margin-bottom:5px}
-    .product-price{font-size:15px;color:var(--primary);font-weight:800}
-    .price-sub-calc{font-size:10px;color:var(--muted);font-style:italic;min-height:14px}
-    .price-sub-calc.active-calc{
-      color:var(--primary);
-      font-style:normal;
-      font-weight:700;
-      background:#fff1f2;
-      border-left:3px solid var(--primary);
-      padding:4px 6px;
-      border-radius:4px;
-      margin-top:4px;
-      line-height:1.4;
-      animation:priceFlash .35s ease-out;
-    }
-    @keyframes priceFlash{from{background:#fecdd3}to{background:#fff1f2}}
-    .weight-conversion-tag{
-      display:inline-block;
-      background:#fef3c7;
-      color:#92400e;
-      font-size:9px;
-      font-weight:800;
-      padding:1px 6px;
-      border-radius:999px;
-      margin-left:4px;
-      letter-spacing:.2px;
-    }
-    .weight-selector-box,.digital-selector-box{background:#fff7ed;border:1px solid #fed7aa;padding:6px;border-radius:8px;margin:6px 0}
-    .weight-selector-box label{font-size:10px;font-weight:700;display:block;margin-bottom:3px;color:var(--warning)}
-    .weight-presets{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}
-    .weight-presets button{padding:3px 8px;font-size:10px;background:#fed7aa;color:var(--text);border-radius:999px}
-    .weight-presets button.active{background:var(--primary);color:#fff}
-    .weight-custom-input,.digital-custom-input{display:flex;align-items:center;gap:4px}
-    .weight-custom-input input,.digital-custom-input input{width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px}
-    .product-action{padding:0 10px 10px}
-    .cart-container{display:grid;grid-template-columns:1fr;gap:15px}
-    @media(min-width:768px){.cart-container{grid-template-columns:1.4fr 1fr}}
-    .cart-item{display:flex;flex-direction:column;gap:8px;background:var(--card-bg);border:2px solid #fed7aa;border-radius:10px;padding:10px;margin-bottom:10px;box-shadow:var(--shadow)}
-    @media(min-width:480px){.cart-item{flex-direction:row;align-items:center}}
-    .cart-item img{width:55px;height:55px;object-fit:cover;border-radius:8px}
-    .cart-item-details{flex:1}
-    .cart-qty-controls{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
-    .cart-quick-add{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px;box-shadow:var(--shadow)}
-    .cart-quick-add h3{font-size:15px;color:var(--primary);margin-bottom:4px}
-    .cart-quick-add > p{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4}
-    .quick-search-wrap{position:relative}
-    .quick-search-wrap .search-input{background:#fff7ed}
-    .quick-search-results{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:2px solid var(--border);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.18);max-height:340px;overflow-y:auto;z-index:900;animation:bellAppear .15s ease-out;-webkit-overflow-scrolling:touch}
-    .quick-search-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px dashed #fed7aa;cursor:pointer;transition:background .15s}
-    .quick-search-item:last-child{border-bottom:none}
-    .quick-search-item:hover{background:#fff7ed}
-    .quick-search-item img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#fff7ed}
-    .quick-search-info{flex:1;min-width:0}
-    .quick-search-info h5{font-size:13px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .quick-search-info .qprice{font-size:12px;color:var(--primary);font-weight:800}
-    .quick-search-info .qcat{font-size:10px;color:var(--muted)}
-    .quick-search-badge{display:inline-block;margin-top:3px;font-size:9px;background:#ffedd5;color:#c2410c;padding:2px 7px;border-radius:999px;font-weight:800}
-    .quick-search-badge.ok{background:#dcfce7;color:#15803d}
-    .quick-search-empty{padding:18px;text-align:center;font-size:12px;color:var(--muted)}
-    .quick-search-hint{padding:12px;text-align:center;font-size:11px;color:var(--muted);background:#fff7ed}
-    .checkout-wrapper{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
-    .order-summary{background:#fff7ed;padding:10px;border-radius:8px;font-size:12px;margin-bottom:15px;border:1px solid #fed7aa}
-    .summary-line{display:flex;justify-content:space-between;margin-bottom:5px}
-    .summary-line.total{font-size:15px;font-weight:800;color:var(--primary);margin-top:5px}
-    .note-payment-warning{background:#fff7ed;border:2px solid #fdba74;padding:8px;border-radius:8px;font-size:11px;color:#c2410c;margin-bottom:10px}
-    .auth-box{max-width:380px;margin:25px auto;background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 8px 20px rgba(225,29,72,.15)}
-    .auth-box h2{text-align:center;margin-bottom:12px;color:var(--primary)}
-    .auth-switch{text-align:center;font-size:11px;margin-top:10px}
-    .auth-switch span{color:var(--primary);font-weight:700;cursor:pointer}
-    .admin-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:15px;border-bottom:2px solid var(--border);padding-bottom:10px;gap:8px}
-    .admin-grid{display:grid;grid-template-columns:1fr;gap:15px}
-    @media(min-width:992px){.admin-grid{grid-template-columns:1fr 1.8fr}}
-    .card{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:var(--shadow)}
-    .card h3{font-size:15px;margin-bottom:10px;border-bottom:2px solid var(--border);padding-bottom:5px;color:var(--primary)}
-    .pos-grid{display:grid;grid-template-columns:1fr;gap:15px}
-    @media(min-width:768px){.pos-grid{grid-template-columns:1.2fr 1fr}}
-    .pos-products{max-height:480px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
-    .pos-item-card{background:var(--card-bg);border:2px solid var(--border);border-radius:8px;padding:8px;text-align:center;cursor:pointer;transition:.2s}
-    .pos-item-card:hover{border-color:var(--primary);background:#fff7ed;transform:translateY(-2px)}
-    .pos-item-card img{width:100%;height:60px;object-fit:cover;border-radius:6px}
-    .table-responsive{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:8px;-webkit-overflow-scrolling:touch}
-    .admin-table{width:100%;border-collapse:collapse;font-size:11px;min-width:680px}
-    .admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
-    .admin-table th{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:var(--header-text);font-weight:700;white-space:nowrap}
-    .admin-table td img{width:32px;height:32px;object-fit:cover;border-radius:6px}
-    .admin-table tr.row-out{background:#fef2f2;}
-    .admin-table tr.row-out:hover{background:#fee2e2;}
-    .admin-table tr.row-low{background:#fffbeb;}
-    .admin-table tr.row-low:hover{background:#fef3c7;}
-    .stock-alert-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;letter-spacing:.2px}
-    .stock-alert-badge.danger{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
-    .stock-alert-badge.warn{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
-    .expired-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;letter-spacing:.2px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
-    .expired-badge.warn{background:#fef3c7;color:#b45309;border-color:#fde68a}
-    .expired-badge.ok{background:#dcfce7;color:#15803d;border-color:#86efac}
-    .stock-warning-banner{background:#fff7ed;border:2px solid #fdba74;color:#c2410c;padding:10px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;font-weight:600;line-height:1.4}
-    .stock-warning-banner i{font-size:15px;margin-top:1px}
-    .stock-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:stretch}
-    .stock-toolbar .search-input{flex:1;min-width:170px}
-    .stock-toolbar button{white-space:nowrap}
-    .low-threshold-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;background:#fff7ed;border:1px dashed #fdba74;border-radius:8px;padding:8px 10px}
-    .low-threshold-row label{font-size:11px;font-weight:800;color:var(--muted)}
-    .low-threshold-row input{width:74px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;text-align:center;color:var(--text);background:#fff}
-    .low-threshold-row small{font-size:10px;color:var(--muted);line-height:1.3}
-    .badge-stock{padding:2px 6px;font-size:9px;border-radius:999px;font-weight:700;white-space:nowrap}
-    .badge-stock.in{background:#dcfce7;color:#16a34a}
-    .badge-stock.out{background:#fee2e2;color:#dc2626}
-    .order-status-badge{display:inline-block;padding:3px 8px;font-size:10px;font-weight:700;border-radius:999px;margin-bottom:6px}
-    .order-status-badge.active{background:#dbeafe;color:#1d4ed8}
-    .order-status-badge.diterima{background:#ffedd5;color:#c2410c}
-    .order-status-badge.diproses{background:#fef3c7;color:#b45309}
-    .order-status-badge.diantar{background:#cffafe;color:#0e7490}
-    .order-status-badge.selesai{background:#dcfce7;color:#15803d}
-    .row-order-completed{opacity:.75;background:#fafaf9}
-    .btn-actions-group{display:flex;flex-direction:column;gap:4px;min-width:200px}
-    .btn-actions-group button{padding:5px 8px;font-size:10px;text-align:left;width:100%;white-space:normal}
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
-    .stat-card{background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;padding:10px;text-align:center}
-    .stat-card p{font-size:14px;font-weight:800;margin-top:3px;color:var(--primary)}
-    .stat-card.profit p{color:var(--success)}
-    .stat-card.loss p{color:var(--danger)}
-    .scanner-modal,.topping-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;padding:15px}
-    .scanner-box,.topping-box{background:#fff;border-radius:12px;padding:15px;width:100%;max-width:420px;text-align:center}
-    .topping-box h4{margin-bottom:10px}
-    #topping-list{max-height:260px;overflow-y:auto}
-    .topping-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer}
-    #printable-receipt{display:none}
-    @media print{
-      body *{visibility:hidden!important}
-      #printable-receipt,#printable-receipt *{visibility:visible!important}
-      #printable-receipt{display:block!important;position:absolute;left:0;top:0;width:100%;max-width:80mm;font-family:'Courier New',Courier,monospace;color:#000;font-size:10px;line-height:1.3;background:#fff}
-      @page{size:auto;margin:2mm}
-    }
-    footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));margin-top:15px;padding:14px 0;border-top:4px solid #fecaca;color:var(--header-text);font-size:12px;text-align:center}
-    .location-warning{background:#fee2e2;border:1px solid #fecaca;color:#7f1d1d;padding:8px;font-size:11px;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:5px}
-    .shipping-per-item{background:#f0fdf4;border:2px solid #a7f3d0;border-radius:8px;padding:12px;margin-top:15px}
-    .shipping-per-item h4{margin-bottom:10px;color:var(--success)}
-    .per-item-rule-box{background:#fff;border:1px solid #86efac;border-radius:8px;padding:10px;margin-bottom:10px}
-    .per-item-rule-box h5{font-size:13px;margin-bottom:8px;color:var(--success);border-bottom:1px dashed #bbf7d0;padding-bottom:6px}
-    @media(max-width:768px){.admin-grid{grid-template-columns:1fr}.cart-container{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,1fr)}}
-    #map-picker,#admin-map{display:block;width:100%;z-index:1;background:#e2e8f0;border-radius:8px}
-    #map-picker{height:250px}
-    #admin-map{height:300px}
-    .leaflet-container{width:100%;height:100%;font-family:inherit;z-index:1}
-    @media(max-width:480px){#map-picker{height:220px}#admin-map{height:200px}}
-
-    .history-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center;justify-content:space-between;}
-    .history-toolbar h3{margin:0;border:none;padding:0;flex:1;}
-    .history-toolbar button{white-space:nowrap;}
-
-    .calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-    @media(max-width:480px){.calc-inputs{grid-template-columns:1fr;}}
-
-    .calc-action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
-    .calc-action-bar button{flex:1;min-width:150px;padding:11px 14px;font-size:12px;}
-
-    .calc-history-wrap{margin-top:14px;border-top:2px dashed #fdba74;padding-top:12px;}
-    .calc-history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
-    .calc-history-header h4{font-size:13px;color:var(--primary);margin:0;}
-
-    @media(max-width:480px){
-      header{padding:9px 0}
-      .logo h1{font-size:17px}
-      .logo p{font-size:10px}
-      .nav-link{padding:7px 10px;font-size:13px}
-      .notification-bell .fa-bell{font-size:16px}
-      .section-title{font-size:16px}
-      button{padding:9px 12px;font-size:12px}
-      .search-input,.filter-select{padding:9px 12px}
-      .search-input input,.filter-select select{font-size:13px}
-    }
-    @media(prefers-reduced-motion:reduce){
-      *{animation-duration:.001ms!important;transition-duration:.001ms!important}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Pengembang UMKM Lokal — Multi Cabang</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Pengembang UMKM Lokal","short_name":"UMKM","start_url":".","display":"standalone","background_color":"%23fff7ed","theme_color":"%23e11d48"}'>
+<meta name="theme-color" content="#e11d48">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://unpkg.com">
+<link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+<link rel="dns-prefetch" href="https://nominatim.openstreetmap.org">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+:root{--primary:#e11d48;--primary-hover:#be123c;--success:#16a34a;--danger:#dc2626;--warning:#f97316;--bg:#fff7ed;--border:#fed7aa;--text:#431407;--muted:#9a3412;--wa:#25d366;--header-start:#e11d48;--header-end:#f97316;--header-text:#fff;--btn-text:#fff;--card-bg:#fff;--radius:8px;--shadow:0 4px 10px rgba(225,29,72,.12)}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);line-height:1.5;-webkit-tap-highlight-color:transparent;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+button,.nav-link,.product-card,.pos-item-card{touch-action:manipulation}
+.container{width:94%;max-width:1200px;margin:0 auto}
+.hidden{display:none!important}
+.text-center{text-align:center}
+header{background:linear-gradient(135deg,var(--header-start),var(--header-end));box-shadow:0 4px 18px rgba(225,29,72,.35);padding:12px 0;position:sticky;top:0;z-index:100}
+.navbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.logo h1{color:var(--header-text);font-size:20px;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.2)}
+.logo p{font-size:11px;color:var(--header-text);opacity:.9}
+.datetime-display{font-size:11px;color:var(--header-text);font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+nav{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.nav-link{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);padding:8px 12px;font-size:15px;font-weight:800;color:var(--header-text);border-radius:999px;cursor:pointer;transition:.2s;backdrop-filter:blur(4px)}
+.nav-link:hover,.nav-link.active{background:#fff;color:var(--primary);border-color:#fff}
+.notification-bell{position:relative;cursor:pointer;padding:6px 8px;color:var(--header-text);display:inline-flex;align-items:center}
+.notification-bell .fa-bell{font-size:18px}
+.bell-badge{position:absolute;top:-2px;right:-2px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;min-width:16px;text-align:center}
+.bell-dropdown{position:fixed;top:55px;right:12px;width:340px;max-width:calc(100vw - 24px);max-height:420px;overflow-y:auto;background:#fff;border:2px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:10000}
+.bell-dropdown-header{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:#fff;padding:12px 14px;font-weight:800;font-size:14px;border-radius:10px 10px 0 0}
+.bell-dropdown-body{padding:8px 12px}
+.bell-empty{padding:20px 15px;text-align:center;color:var(--muted);font-weight:600;font-size:13px;background:#fff7ed;border-radius:8px;margin:8px 0}
+.bell-item{display:block;border-bottom:1px dashed var(--border);padding:10px 2px;font-size:12px;color:var(--text);line-height:1.5}
+.bell-item:last-child{border-bottom:none}
+.bell-item strong{color:var(--primary);display:block;margin-bottom:2px}
+.realtime-status{font-size:10px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.2);color:var(--header-text);border:1px solid rgba(255,255,255,.25)}
+.realtime-status.online{color:#052e16;background:#bbf7d0;border-color:#86efac}
+.realtime-status.offline{color:#7f1d1d;background:#fee2e2;border-color:#fecaca}
+button{cursor:pointer;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;transition:opacity .2s,transform .1s;color:var(--btn-text)}
+button:active{transform:scale(.98)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--primary);color:var(--btn-text)}
+.btn-success{background:var(--success);color:var(--btn-text)}
+.btn-danger{background:var(--danger);color:var(--btn-text)}
+.btn-secondary{background:var(--warning);color:var(--btn-text)}
+.btn-wa{background:var(--wa);color:#fff}
+.btn-block{width:100%;display:block}
+.form-style input,.form-style select,.form-style textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;outline:none;background:var(--card-bg);color:var(--text)}
+.form-style textarea{height:65px;resize:vertical}
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:12px;font-weight:700;margin-bottom:3px}
+.page-section{display:none;padding:15px 0}
+.page-section.active{display:block}
+.section-title{font-size:18px;font-weight:800;margin-bottom:15px;position:relative;padding-bottom:5px;color:var(--primary)}
+.section-title::after{content:'';position:absolute;left:0;bottom:0;width:45px;height:4px;background:linear-gradient(90deg,var(--header-start),var(--header-end));border-radius:4px}
+.store-status-banner{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:10px;font-weight:800;font-size:13px;margin-bottom:15px;border:2px solid;background:#dcfce7;border-color:#86efac;color:#15803d}
+.store-status-banner.closed{background:#fee2e2;border-color:#fecaca;color:#b91c1d}
+.btn-status-toko{font-size:14px;padding:14px;font-weight:800;display:block;width:100%;border-radius:10px;border:2px solid #e2e8f0}
+.delivery-promo{background:linear-gradient(135deg,#fff7ed,#ffedd5);border:2px solid #fdba74;color:#c2410c;padding:12px;border-radius:10px;margin-bottom:15px;font-size:13px;display:flex;align-items:center;gap:8px}
+.search-filter-box{display:flex;flex-direction:column;gap:10px;background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px}
+@media(min-width:768px){.search-filter-box{flex-direction:row;gap:12px}}
+.search-input,.filter-select{display:flex;align-items:center;background:#fff7ed;padding:8px 12px;border-radius:8px;flex:1;border:1px solid #fed7aa}
+.search-input input,.filter-select select{border:none;background:transparent;width:100%;margin-left:8px;outline:none;font-size:13px;color:var(--text)}
+.shuffle-btn-products{display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,var(--header-start),var(--header-end));color:#fff;border:none;border-radius:8px;padding:11px 16px;font-size:12px;font-weight:800;white-space:nowrap;width:100%}
+.shuffle-btn-products.admin-wide{width:100%}
+.admin-shuffle-note{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+#admin-shuffle-status{font-size:11px;font-weight:700;margin-top:8px;min-height:15px;color:var(--success)}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.product-card{background:var(--card-bg);border:2px solid #fed7aa;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.product-card.store-closed,.product-card.out-of-stock{opacity:.6}
+.product-img-box{height:120px;background:#fff7ed;position:relative}
+.product-img-box img{width:100%;height:100%;object-fit:cover}
+.badge-rack{position:absolute;top:6px;left:6px;background:rgba(225,29,72,.9);color:#fff;font-size:9px;padding:3px 8px;border-radius:999px;font-weight:700}
+.badge-out{position:absolute;top:6px;right:6px;background:var(--danger);color:#fff;font-size:9px;padding:3px 8px;border-radius:999px;font-weight:700}
+.product-info{padding:10px;flex:1}
+.product-cat{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:800}
+.product-title{font-size:14px;margin:3px 0;color:var(--text)}
+.product-desc{font-size:11px;color:var(--muted);margin-bottom:5px}
+.product-price{font-size:15px;color:var(--primary);font-weight:800}
+.price-sub-calc{font-size:10px;color:var(--muted);font-style:italic;min-height:14px}
+.price-sub-calc.active-calc{color:var(--primary);font-style:normal;font-weight:700;background:#fff1f2;border-left:3px solid var(--primary);padding:4px 6px;border-radius:4px;margin-top:4px;line-height:1.4}
+.weight-conversion-tag{display:inline-block;background:#fef3c7;color:#92400e;font-size:9px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:4px}
+.weight-selector-box,.digital-selector-box{background:#fff7ed;border:1px solid #fed7aa;padding:6px;border-radius:8px;margin:6px 0}
+.weight-selector-box label{font-size:10px;font-weight:700;display:block;margin-bottom:3px;color:var(--warning)}
+.weight-presets{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}
+.weight-presets button{padding:3px 8px;font-size:10px;background:#fed7aa;color:var(--text);border-radius:999px}
+.weight-presets button.active{background:var(--primary);color:#fff}
+.weight-custom-input,.digital-custom-input{display:flex;align-items:center;gap:4px}
+.weight-custom-input input,.digital-custom-input input{width:100%;padding:4px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px}
+.product-action{padding:0 10px 10px}
+.cart-container{display:grid;grid-template-columns:1fr;gap:15px}
+@media(min-width:768px){.cart-container{grid-template-columns:1.4fr 1fr}}
+.cart-item{display:flex;flex-direction:column;gap:8px;background:var(--card-bg);border:2px solid #fed7aa;border-radius:10px;padding:10px;margin-bottom:10px}
+@media(min-width:480px){.cart-item{flex-direction:row;align-items:center}}
+.cart-item img{width:55px;height:55px;object-fit:cover;border-radius:8px}
+.cart-item-details{flex:1}
+.cart-qty-controls{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
+.cart-quick-add{background:var(--card-bg);border:2px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px}
+.cart-quick-add h3{font-size:15px;color:var(--primary);margin-bottom:4px}
+.cart-quick-add > p{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4}
+.quick-search-wrap{position:relative}
+.quick-search-wrap .search-input{background:#fff7ed}
+.quick-search-results{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:2px solid var(--border);border-radius:10px;box-shadow:0 10px 26px rgba(0,0,0,.18);max-height:340px;overflow-y:auto;z-index:900}
+.quick-search-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px dashed #fed7aa;cursor:pointer}
+.quick-search-item:last-child{border-bottom:none}
+.quick-search-item img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#fff7ed}
+.quick-search-info{flex:1;min-width:0}
+.quick-search-info h5{font-size:13px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quick-search-info .qprice{font-size:12px;color:var(--primary);font-weight:800}
+.quick-search-info .qcat{font-size:10px;color:var(--muted)}
+.quick-search-badge{display:inline-block;margin-top:3px;font-size:9px;background:#ffedd5;color:#c2410c;padding:2px 7px;border-radius:999px;font-weight:800}
+.quick-search-badge.ok{background:#dcfce7;color:#15803d}
+.quick-search-empty{padding:18px;text-align:center;font-size:12px;color:var(--muted)}
+.checkout-wrapper{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:14px}
+.order-summary{background:#fff7ed;padding:10px;border-radius:8px;font-size:12px;margin-bottom:15px;border:1px solid #fed7aa}
+.summary-line{display:flex;justify-content:space-between;margin-bottom:5px}
+.summary-line.total{font-size:15px;font-weight:800;color:var(--primary);margin-top:5px}
+.note-payment-warning{background:#fff7ed;border:2px solid #fdba74;padding:8px;border-radius:8px;font-size:11px;color:#c2410c;margin-bottom:10px}
+.auth-box{max-width:380px;margin:25px auto;background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:20px}
+.auth-box h2{text-align:center;margin-bottom:12px;color:var(--primary)}
+.auth-switch{text-align:center;font-size:11px;margin-top:10px}
+.auth-switch span{color:var(--primary);font-weight:700;cursor:pointer}
+.admin-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:15px;border-bottom:2px solid var(--border);padding-bottom:10px;gap:8px}
+.admin-grid{display:grid;grid-template-columns:1fr;gap:15px}
+@media(min-width:992px){.admin-grid{grid-template-columns:1fr 1.8fr}}
+.card{background:var(--card-bg);border:2px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h3{font-size:15px;margin-bottom:10px;border-bottom:2px solid var(--border);padding-bottom:5px;color:var(--primary)}
+.pos-grid{display:grid;grid-template-columns:1fr;gap:15px}
+@media(min-width:768px){.pos-grid{grid-template-columns:1.2fr 1fr}}
+.pos-products{max-height:480px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.pos-item-card{background:var(--card-bg);border:2px solid var(--border);border-radius:8px;padding:8px;text-align:center;cursor:pointer}
+.pos-item-card:hover{border-color:var(--primary);background:#fff7ed}
+.pos-item-card img{width:100%;height:60px;object-fit:cover;border-radius:6px}
+.table-responsive{width:100%;overflow-x:auto;border:1px solid var(--border);border-radius:8px;-webkit-overflow-scrolling:touch}
+.admin-table{width:100%;border-collapse:collapse;font-size:11px;min-width:680px}
+.admin-table th,.admin-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.admin-table th{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:var(--header-text);font-weight:700;white-space:nowrap}
+.admin-table td img{width:32px;height:32px;object-fit:cover;border-radius:6px}
+.admin-table tr.row-out{background:#fef2f2}
+.admin-table tr.row-low{background:#fffbeb}
+.stock-alert-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px}
+.stock-alert-badge.danger{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+.stock-alert-badge.warn{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+.expired-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
+.expired-badge.warn{background:#fef3c7;color:#b45309;border-color:#fde68a}
+.expired-badge.ok{background:#dcfce7;color:#15803d;border-color:#86efac}
+.stock-warning-banner{background:#fff7ed;border:2px solid #fdba74;color:#c2410c;padding:10px 12px;border-radius:10px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;font-weight:600;line-height:1.4}
+.stock-toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.stock-toolbar .search-input{flex:1;min-width:170px}
+.low-threshold-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;background:#fff7ed;border:1px dashed #fdba74;border-radius:8px;padding:8px 10px}
+.low-threshold-row label{font-size:11px;font-weight:800;color:var(--muted)}
+.low-threshold-row input{width:74px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;text-align:center;background:#fff}
+.low-threshold-row small{font-size:10px;color:var(--muted);line-height:1.3}
+.badge-stock{padding:2px 6px;font-size:9px;border-radius:999px;font-weight:700;white-space:nowrap}
+.badge-stock.in{background:#dcfce7;color:#16a34a}
+.badge-stock.out{background:#fee2e2;color:#dc2626}
+.order-status-badge{display:inline-block;padding:3px 8px;font-size:10px;font-weight:700;border-radius:999px;margin-bottom:6px}
+.order-status-badge.active{background:#dbeafe;color:#1d4ed8}
+.order-status-badge.diterima{background:#ffedd5;color:#c2410c}
+.order-status-badge.diproses{background:#fef3c7;color:#b45309}
+.order-status-badge.diantar{background:#cffafe;color:#0e7490}
+.order-status-badge.selesai{background:#dcfce7;color:#15803d}
+.row-order-completed{opacity:.75;background:#fafaf9}
+.btn-actions-group{display:flex;flex-direction:column;gap:4px;min-width:200px}
+.btn-actions-group button{padding:5px 8px;font-size:10px;text-align:left;width:100%;white-space:normal}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+.stat-card{background:#fff7ed;border:2px solid #fed7aa;border-radius:8px;padding:10px;text-align:center}
+.stat-card p{font-size:14px;font-weight:800;margin-top:3px;color:var(--primary)}
+.stat-card.profit p{color:var(--success)}
+.stat-card.loss p{color:var(--danger)}
+.scanner-modal,.topping-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;padding:15px}
+.scanner-box,.topping-box{background:#fff;border-radius:12px;padding:15px;width:100%;max-width:420px;text-align:center}
+#topping-list{max-height:260px;overflow-y:auto}
+.topping-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer}
+#printable-receipt{display:none}
+footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));margin-top:15px;padding:14px 0;border-top:4px solid #fecaca;color:var(--header-text);font-size:12px;text-align:center}
+.shipping-per-item{background:#f0fdf4;border:2px solid #a7f3d0;border-radius:8px;padding:12px;margin-top:15px}
+.shipping-per-item h4{margin-bottom:10px;color:var(--success)}
+.per-item-rule-box{background:#fff;border:1px solid #86efac;border-radius:8px;padding:10px;margin-bottom:10px}
+.per-item-rule-box h5{font-size:13px;margin-bottom:8px;color:var(--success);border-bottom:1px dashed #bbf7d0;padding-bottom:6px}
+@media(max-width:768px){.admin-grid{grid-template-columns:1fr}.cart-container{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,1fr)}}
+#map-picker,#admin-map{display:block;width:100%;z-index:1;background:#e2e8f0;border-radius:8px}
+#map-picker{height:250px}
+#admin-map{height:300px}
+.leaflet-container{width:100%;height:100%;font-family:inherit;z-index:1}
+@media(max-width:480px){#map-picker{height:220px}#admin-map{height:200px}}
+.history-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;align-items:center;justify-content:space-between}
+.history-toolbar h3{margin:0;border:none;padding:0;flex:1}
+.calc-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+@media(max-width:480px){.calc-inputs{grid-template-columns:1fr}}
+.calc-action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.calc-action-bar button{flex:1;min-width:150px;padding:11px 14px;font-size:12px}
+.calc-history-wrap{margin-top:14px;border-top:2px dashed #fdba74;padding-top:12px}
+.calc-history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.calc-history-header h4{font-size:13px;color:var(--primary);margin:0}
+@media(max-width:480px){header{padding:9px 0}.logo h1{font-size:17px}.nav-link{padding:7px 10px;font-size:13px}.section-title{font-size:16px}button{padding:9px 12px;font-size:12px}}
+</style>
 </head>
 <body>
 
@@ -424,8 +339,8 @@
           </form>
         </div>
       </div>
-    </section>
-      <section class="page-section" id="admin-section">
+          </section>
+            <section class="page-section" id="admin-section">
     <div class="auth-box" id="admin-login-box">
       <h2>Login Sistem Toko</h2>
       <form class="form-style" id="form-login">
@@ -567,7 +482,7 @@
               <div class="form-group">
                 <label><i class="fas fa-hourglass-half" style="color:var(--warning);"></i> Ekspayer (Tanggal Kedaluwarsa)</label>
                 <input type="date" id="prod-expired">
-                <small style="font-size:10px;color:var(--muted);">Opsional. Kosongkan jika produk tidak memiliki tanggal kedaluwarsa. Tidak ditampilkan di halaman toko pembeli.</small>
+                <small style="font-size:10px;color:var(--muted);">Opsional. Kosongkan jika produk tidak memiliki tanggal kedaluwarsa.</small>
               </div>
               <div class="form-group"><label>Foto</label><input type="file" id="prod-image-file" accept="image/*"><img id="img-preview" class="hidden" style="max-width:100%;height:100px;object-fit:cover;margin-top:5px;" alt="pratinjau"></div>
               <div class="form-group"><label>Deskripsi</label><textarea id="prod-desc" required></textarea></div>
@@ -582,7 +497,7 @@
           <div class="card" id="history-card">
             <div class="history-toolbar">
               <h3 style="color:var(--primary);"><i class="fas fa-history"></i> Histori Pesanan</h3>
-              <button class="btn-primary" id="btn-export-pdf-history" type="button" style="background:#dc2626;padding:8px 14px;" title="Export data seluruh penjualan ke PDF">
+              <button class="btn-primary" id="btn-export-pdf-history" type="button" style="background:#dc2626;padding:8px 14px;">
                 <i class="fas fa-file-pdf"></i> Export PDF Penjualan
               </button>
             </div>
@@ -591,10 +506,7 @@
 
           <div class="card admin-only-feature" id="sales-calculator-card">
             <h3><i class="fas fa-calculator"></i> Kalkulator Penjualan, Setor, Modal & Kerugian</h3>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">
-              Total penjualan, HPP, dan laba kotor dihitung <strong>otomatis</strong> dari histori pesanan berstatus <em>Selesai</em>.
-              Isi <strong>Setor</strong> (uang yang disetorkan) dan <strong>Modal</strong> tambahan untuk menghitung <strong>laba bersih, sisa kas, dan kerugian</strong> otomatis.
-            </p>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Total penjualan, HPP, dan laba kotor dihitung <strong>otomatis</strong> dari histori pesanan berstatus <em>Selesai</em>.</p>
 
             <div class="stats-grid">
               <div class="stat-card"><h6>Total Penjualan</h6><p id="calc-total-sales">Rp 0</p></div>
@@ -606,17 +518,17 @@
               <div class="form-group" style="margin:0;">
                 <label><i class="fas fa-hand-holding-usd"></i> Input Setor (Rp)</label>
                 <input type="number" id="calc-setor" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;">
-                <small style="font-size:10px;color:var(--muted);">Uang hasil penjualan yang disetorkan / ditarik dari kas.</small>
+                <small style="font-size:10px;color:var(--muted);">Uang hasil penjualan yang disetorkan.</small>
               </div>
               <div class="form-group" style="margin:0;">
                 <label><i class="fas fa-coins"></i> Input Modal Tambahan (Rp)</label>
                 <input type="number" id="calc-modal" value="0" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;">
-                <small style="font-size:10px;color:var(--muted);">Modal tambahan di luar HPP (misal: beli alat, ongkos, dll).</small>
+                <small style="font-size:10px;color:var(--muted);">Modal di luar HPP.</small>
               </div>
             </div>
 
             <div class="stats-grid">
-              <div class="stat-card"><h6>Total Modal (HPP + Input)</h6><p id="calc-total-capital">Rp 0</p></div>
+              <div class="stat-card"><h6>Total Modal</h6><p id="calc-total-capital">Rp 0</p></div>
               <div class="stat-card profit"><h6>Laba Bersih</h6><p id="calc-net-profit">Rp 0</p></div>
               <div class="stat-card"><h6>Setelah Setor</h6><p id="calc-after-deposit">Rp 0</p></div>
               <div class="stat-card" id="calc-status-card"><h6>Status Usaha</h6><p id="calc-status">-</p></div>
@@ -628,29 +540,18 @@
             </button>
 
             <div class="calc-action-bar">
-              <button type="button" class="btn-success" id="btn-save-calc">
-                <i class="fas fa-save"></i> Simpan Data Kalkulasi
-              </button>
-              <button type="button" class="btn-danger" id="btn-export-pdf-calc" style="background:#dc2626;">
-                <i class="fas fa-file-pdf"></i> Export PDF Tabel
-              </button>
+              <button type="button" class="btn-success" id="btn-save-calc"><i class="fas fa-save"></i> Simpan Data Kalkulasi</button>
+              <button type="button" class="btn-danger" id="btn-export-pdf-calc" style="background:#dc2626;"><i class="fas fa-file-pdf"></i> Export PDF Tabel</button>
             </div>
 
             <div class="calc-history-wrap" id="calc-history-wrap">
               <div class="calc-history-header">
                 <h4><i class="fas fa-database"></i> Riwayat Simpan Kalkulasi</h4>
-                <button type="button" class="btn-danger" id="btn-clear-calc-history" style="padding:5px 10px;font-size:10px;">
-                  <i class="fas fa-trash"></i> Hapus Semua
-                </button>
+                <button type="button" class="btn-danger" id="btn-clear-calc-history" style="padding:5px 10px;font-size:10px;"><i class="fas fa-trash"></i> Hapus Semua</button>
               </div>
               <div class="table-responsive">
                 <table class="admin-table" style="min-width:720px;">
-                  <thead>
-                    <tr>
-                      <th>Waktu Simpan</th><th>Penjualan</th><th>HPP</th><th>Modal +</th><th>Setor</th>
-                      <th>Laba Bersih</th><th>Setelah Setor</th><th>Kerugian</th><th>Status</th><th>Aksi</th>
-                    </tr>
-                  </thead>
+                  <thead><tr><th>Waktu Simpan</th><th>Penjualan</th><th>HPP</th><th>Modal +</th><th>Setor</th><th>Laba Bersih</th><th>Setelah Setor</th><th>Kerugian</th><th>Status</th><th>Aksi</th></tr></thead>
                   <tbody id="calc-history-table"></tbody>
                 </table>
               </div>
@@ -666,15 +567,13 @@
                 <input type="text" id="search-admin" placeholder="Cari barang / barcode / rak" autocomplete="off" spellcheck="false">
               </div>
               <button class="btn-primary" id="btn-scan-stock" type="button"><i class="fas fa-barcode"></i> Scan</button>
-              <button class="btn-primary" id="btn-export-pdf-stock" type="button" style="background:#dc2626;" title="Export seluruh tabel stok barang ke PDF">
-                <i class="fas fa-file-pdf"></i> Export PDF
-              </button>
+              <button class="btn-primary" id="btn-export-pdf-stock" type="button" style="background:#dc2626;"><i class="fas fa-file-pdf"></i> Export PDF</button>
             </div>
 
             <div class="low-threshold-row">
               <label for="low-stock-threshold"><i class="fas fa-bell"></i> Batas Stok Menipis:</label>
               <input type="number" id="low-stock-threshold" min="1" value="5">
-              <small>Barang dengan stok ≤ batas ini otomatis <strong>naik ke atas</strong> & diberi tanda ⚠️. Stok habis selalu di paling atas.</small>
+              <small>Barang dengan stok ≤ batas ini otomatis <strong>naik ke atas</strong> & diberi tanda ⚠️.</small>
             </div>
 
             <div id="low-stock-alert" class="stock-warning-banner hidden"></div>
@@ -698,7 +597,6 @@
                   <button type="button" class="btn-secondary" id="btn-search-ship-address" style="flex:1;"><i class="fas fa-search-location"></i> Cari di Peta</button>
                   <button type="button" class="btn-wa" id="btn-use-my-location-store" style="flex:1;"><i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya</button>
                 </div>
-                <small style="font-size:10px;color:var(--muted);">Klik Cari / Gunakan Lokasi Saya, lalu geser penanda pada peta untuk posisi paling presisi.</small>
               </div>
               <div class="form-group"><label>Geser Penanda / Klik Peta untuk Menentukan Lokasi Toko</label><div id="admin-map"></div><p id="admin-map-status" style="font-size:11px;color:var(--muted);margin-top:4px;"></p></div>
               <input type="hidden" id="ship-lat" value="-6.200000">
@@ -920,9 +818,7 @@
     </div>
     <div class="table-responsive">
       <table class="admin-table" style="min-width:680px;">
-        <thead>
-          <tr><th>Waktu</th><th>Cabang</th><th>Karyawan</th><th>Role</th><th>Aksi</th></tr>
-        </thead>
+        <thead><tr><th>Waktu</th><th>Cabang</th><th>Karyawan</th><th>Role</th><th>Aksi</th></tr></thead>
         <tbody id="ms-log-table-body">
           <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px;font-style:italic;">Memuat log...</td></tr>
         </tbody>
@@ -958,766 +854,853 @@
 </div>
 
 <footer><div class="container text-center"><p>&copy; 2026 Pengembang UMKM Lokal — toko online a'didin ✨</p></div></footer>
-  <script>
-    // ===== FIREBASE CONFIG =====
-    const firebaseConfig = {
-      apiKey: "AIzaSyB4Nqe2FKO2q12qhwVEWtvUrd-l8WgVEtU",
-      authDomain: "pengembangumkmlokal.firebaseapp.com",
-      databaseURL: "https://pengembangumkmlokal-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "pengembangumkmlokal",
-      storageBucket: "pengembangumkmlokal.firebasestorage.app",
-      messagingSenderId: "15691261446",
-      appId: "1:15691261446:web:336aaa7c7c72234071c587",
-      measurementId: "G-310K0508RR"
-    };
+<script>
+  // ===== FIREBASE CONFIG =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyB4Nqe2FKO2q12qhwVEWtvUrd-l8WgVEtU",
+    authDomain: "pengembangumkmlokal.firebaseapp.com",
+    databaseURL: "https://pengembangumkmlokal-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "pengembangumkmlokal",
+    storageBucket: "pengembangumkmlokal.firebasestorage.app",
+    messagingSenderId: "15691261446",
+    appId: "1:15691261446:web:336aaa7c7c72234071c587",
+    measurementId: "G-310K0508RR"
+  };
 
-    let firebaseReady = false;
-    let db = null;
+  let firebaseReady = false;
+  let db = null;
 
-    const DEFAULT_SECRET_REGISTRATION = "aliciapitalaurasalsabila";
-    const MAIN_WA_NUMBER = "628991286742";
-    const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
+  const DEFAULT_SECRET_REGISTRATION = "aliciapitalaurasalsabila";
+  const MAIN_WA_NUMBER = "628991286742";
+  const STORE_URL = window.location.href.startsWith('http') ? window.location.href : 'https://adidin-toko.web.app';
 
-    // ===== SANDI OTORISASI PER ROLE =====
-    const SECRET_CODES = {
-      owner: "OWNER-ADIDIN-2026",
-      admin: "ADMIN-ADIDIN-2026",
-      kasir: "KASIR-ADIDIN-2026"
-    };
+  // ===== SANDI OTORISASI PER ROLE =====
+  const SECRET_CODES = {
+    owner: "OWNER-ADIDIN-2026",
+    admin: "ADMIN-ADIDIN-2026",
+    kasir: "KASIR-ADIDIN-2026"
+  };
 
-    // ===== MULTI-TOKO CONSTANTS =====
-    const OWNER_STORE_NAME = "OWNER PUSAT";
-    const OWNER_STORE_CODE = "OWNER";
-    const OWNER_STORE_ID = "store_owner_pusat";
+  // ===== MULTI-TOKO CONSTANTS =====
+  const OWNER_STORE_NAME = "OWNER PUSAT";
+  const OWNER_STORE_CODE = "OWNER";
+  const OWNER_STORE_ID = "store_owner_pusat";
 
-    // ===== STATE MULTI-TOKO =====
-    let activeStoreId = localStorage.getItem('ms_active_store_id') || null;
-    let activeStoreName = localStorage.getItem('ms_active_store_name') || null;
-    let allStores = [];
-    let ownerStats = {};
+  // ===== STATE MULTI-TOKO =====
+  let activeStoreId = localStorage.getItem('ms_active_store_id') || null;
+  let activeStoreName = localStorage.getItem('ms_active_store_name') || null;
+  let allStores = [];
+  let ownerStats = {};
 
-    // ===== HELPERS =====
-    const _scriptCache = new Map();
-    function loadScriptOnce(src) {
-      if (_scriptCache.has(src)) return _scriptCache.get(src);
-      const p = new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = src; s.async = true;
-        s.onload = () => resolve(true);
-        s.onerror = () => { _scriptCache.delete(src); reject(new Error('Gagal memuat: ' + src)); };
-        document.head.appendChild(s);
-      });
-      _scriptCache.set(src, p);
-      return p;
-    }
-    async function ensureQRCodeLib() {
-      if (typeof QRCode !== 'undefined') return true;
-      try { await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); } catch (e) { return false; }
-      return typeof QRCode !== 'undefined';
-    }
-    async function ensureHtml5QrcodeLib() {
-      if (typeof Html5Qrcode !== 'undefined') return true;
-      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
-      return typeof Html5Qrcode !== 'undefined';
-    }
-    async function ensureJsPDFLib() {
-      if (window.jspdf && window.jspdf.jsPDF) {
-        if (!window.jspdf.jsPDF.API.autoTable) {
-          await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-        }
-        return window.jspdf;
+  // ===== HELPERS =====
+  const _scriptCache = new Map();
+  function loadScriptOnce(src) {
+    if (_scriptCache.has(src)) return _scriptCache.get(src);
+    const p = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = () => resolve(true);
+      s.onerror = () => { _scriptCache.delete(src); reject(new Error('Gagal memuat: ' + src)); };
+      document.head.appendChild(s);
+    });
+    _scriptCache.set(src, p);
+    return p;
+  }
+  async function ensureQRCodeLib() {
+    if (typeof QRCode !== 'undefined') return true;
+    try { await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); } catch (e) { return false; }
+    return typeof QRCode !== 'undefined';
+  }
+  async function ensureHtml5QrcodeLib() {
+    if (typeof Html5Qrcode !== 'undefined') return true;
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js');
+    return typeof Html5Qrcode !== 'undefined';
+  }
+  async function ensureJsPDFLib() {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      if (!window.jspdf.jsPDF.API.autoTable) {
+        await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
       }
-      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
-      if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('Gagal memuat pustaka PDF.');
       return window.jspdf;
     }
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('Gagal memuat pustaka PDF.');
+    return window.jspdf;
+  }
 
-    let btPrinterChar = null;
-    let btStatusEl = document.getElementById('bt-status-label');
+  let btPrinterChar = null;
+  let btStatusEl = document.getElementById('bt-status-label');
 
-    const safeParse = (json, fallback) => {
-      try { const parsed = json ? JSON.parse(json) : null; return parsed !== null ? parsed : fallback; }
-      catch { return fallback; }
-    };
+  const safeParse = (json, fallback) => {
+    try { const parsed = json ? JSON.parse(json) : null; return parsed !== null ? parsed : fallback; }
+    catch { return fallback; }
+  };
 
-    const _domCache = new Map();
-    const $ = (id) => {
-      const cached = _domCache.get(id);
-      if (cached && cached.isConnected) return cached;
-      const el = document.getElementById(id);
-      if (el) _domCache.set(id, el);
-      return el;
-    };
+  const _domCache = new Map();
+  const $ = (id) => {
+    const cached = _domCache.get(id);
+    if (cached && cached.isConnected) return cached;
+    const el = document.getElementById(id);
+    if (el) _domCache.set(id, el);
+    return el;
+  };
 
-    const slugify = (name) => 'store_' + String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 60);
-    function isOwner() { return currentUser && currentUser.role === 'owner'; }
+  const slugify = (name) => 'store_' + String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 60);
+  function isOwner() { return currentUser && currentUser.role === 'owner'; }
 
-    // ===== BATCHER =====
-    let _renderScheduled = false;
-    function scheduleRenderBatch() {
-      if (_renderScheduled) return;
-      _renderScheduled = true;
-      requestAnimationFrame(() => {
-        _renderScheduled = false;
-        try { renderProducts(); } catch (e) {}
-        try { renderQuickSearchResults(); } catch (e) {}
-        if (currentUser) {
-          try { renderAdminProducts(); } catch (e) {}
-          try { renderPosProducts(); } catch (e) {}
-        }
+  // ===== BATCHER =====
+  let _renderScheduled = false;
+  function scheduleRenderBatch() {
+    if (_renderScheduled) return;
+    _renderScheduled = true;
+    requestAnimationFrame(() => {
+      _renderScheduled = false;
+      try { renderProducts(); } catch (e) {}
+      try { renderQuickSearchResults(); } catch (e) {}
+      if (currentUser) {
+        try { renderAdminProducts(); } catch (e) {}
+        try { renderPosProducts(); } catch (e) {}
+      }
+    });
+  }
+
+  // ===== VOLUME UNITS =====
+  const VOLUME_UNIT_INFO = {
+    kg: { family: 'weight', baseUnit: 'kg', subUnit: 'gram', factor: 1000, baseShort: 'Kg', subShort: 'g', baseNoun: 'Kilo', subNoun: 'Gram', defaultInput: 1, inputStep: 0.05, inputMin: 0.05, cartStep: 0.25, presets: [{label:'¼ Kg',val:0.25},{label:'½ Kg',val:0.5},{label:'1 Kg',val:1,active:true},{label:'2 Kg',val:2},{label:'5 Kg',val:5}] },
+    gram: { family: 'weight', baseUnit: 'kg', subUnit: 'gram', factor: 1000, baseShort: 'Kg', subShort: 'g', baseNoun: 'Kilo', subNoun: 'Gram', defaultInput: 1000, inputStep: 50, inputMin: 10, cartStep: 100, presets: [{label:'100 g',val:100},{label:'250 g',val:250},{label:'500 g',val:500},{label:'1000 g',val:1000,active:true}] },
+    liter: { family: 'volume', baseUnit: 'liter', subUnit: 'mililiter', factor: 1000, baseShort: 'L', subShort: 'ml', baseNoun: 'Liter', subNoun: 'ML', defaultInput: 1, inputStep: 0.05, inputMin: 0.05, cartStep: 0.25, presets: [{label:'¼ L',val:0.25},{label:'½ L',val:0.5},{label:'1 L',val:1,active:true},{label:'2 L',val:2}] },
+    mililiter: { family: 'volume', baseUnit: 'liter', subUnit: 'mililiter', factor: 1000, baseShort: 'L', subShort: 'ml', baseNoun: 'Liter', subNoun: 'ML', defaultInput: 1000, inputStep: 50, inputMin: 10, cartStep: 100, presets: [{label:'100 ml',val:100},{label:'250 ml',val:250},{label:'500 ml',val:500},{label:'1000 ml',val:1000,active:true}] }
+  };
+
+  function getUnitPretty(unitType) {
+    const map = { pcs:'Pcs', kg:'Kg', gram:'Gram', liter:'Liter', mililiter:'Mililiter (ml)', lusin:'Lusin', pack:'Pack', bungkus:'Bungkus', ball:'Ball', slop:'Slop', dus:'Dus', renteng:'Renteng', box:'Box', botol:'Botol', digital:'Digital' };
+    return map[unitType] || 'Pcs';
+  }
+  function isVolumeUnitType(u) { return u in VOLUME_UNIT_INFO; }
+  function getVolumeUnitInfo(u) { return VOLUME_UNIT_INFO[u] || null; }
+  function getUnitStep(u) { const i = getVolumeUnitInfo(u); return i ? i.cartStep : 1; }
+
+  function convertUnitQty(qty, unitType) {
+    const info = getVolumeUnitInfo(unitType);
+    if (!info) return '';
+    const q = parseFloat(qty) || 0;
+    if (info.family === 'weight') {
+      if (unitType === 'kg') { const g = q * info.factor; return `${(Math.round(g*100)/100).toLocaleString('id-ID')} gram`; }
+      else { const kg = q / info.factor; return `${(Math.round(kg*1000)/1000).toLocaleString('id-ID')} Kg`; }
+    } else {
+      if (unitType === 'liter') { const ml = q * info.factor; return `${(Math.round(ml*100)/100).toLocaleString('id-ID')} ml`; }
+      else { const liter = q / info.factor; return `${(Math.round(liter*1000)/1000).toLocaleString('id-ID')} L`; }
+    }
+  }
+
+  function formatQtyLabel(qty, unitType) {
+    if (unitType === 'digital') return '1 Transaksi';
+    const q = parseFloat(qty) || 0;
+    const pretty = getUnitPretty(unitType);
+    if (unitType === 'gram' || unitType === 'mililiter') return `${Math.round(q).toLocaleString('id-ID')} ${pretty}`;
+    if (unitType === 'kg' || unitType === 'liter') return `${(Math.round(q*100)/100).toLocaleString('id-ID')} ${pretty}`;
+    return `${q} ${pretty}`;
+  }
+
+  function escapeHtmlText(str) {
+    return String(str === undefined || str === null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function formatExpiredDate(isoStr) {
+    if (!isoStr) return '-';
+    try { const d = new Date(isoStr); if (isNaN(d.getTime())) return '-'; return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }); }
+    catch { return '-'; }
+  }
+  function getExpiredStatus(isoStr) {
+    if (!isoStr) return { level: 'none', text: '-', daysLeft: null };
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return { level: 'none', text: '-', daysLeft: null };
+    const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
+    const diff = Math.round((d.getTime() - today.getTime()) / (1000*60*60*24));
+    if (diff < 0) return { level: 'expired', text: 'KEDALUWARSA', daysLeft: diff };
+    if (diff <= 7) return { level: 'soon', text: `SEGERA EXP (${diff}h)`, daysLeft: diff };
+    return { level: 'ok', text: 'Aman', daysLeft: diff };
+  }
+
+  // ===== MAPS =====
+  let leafletReady = null;
+  const geocodeCache = new Map();
+  const reverseGeocodeCache = new Map();
+  let shippingUiReqId = false;
+  function requestShippingUpdate() {
+    if (shippingUiReqId) return;
+    shippingUiReqId = true;
+    requestAnimationFrame(() => { shippingUiReqId = false; updateShippingDisplay(); });
+  }
+  function loadLeaflet() {
+    if (window.L) return Promise.resolve(window.L);
+    if (leafletReady) return leafletReady;
+    leafletReady = new Promise((resolve, reject) => {
+      const cssReady = document.getElementById('leaflet-css') ? Promise.resolve() :
+        new Promise(resCss => { const css = document.createElement('link'); css.id='leaflet-css'; css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; css.onload=()=>resCss(); css.onerror=()=>resCss(); document.head.appendChild(css); });
+      cssReady.then(() => {
+        if (window.L) { resolve(window.L); return; }
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => resolve(window.L);
+        script.onerror = () => { leafletReady = null; reject(new Error('Gagal memuat peta.')); };
+        document.head.appendChild(script);
       });
-    }
+    });
+    return leafletReady;
+  }
+  function scheduleInvalidate(map) {
+    if (!map) return;
+    requestAnimationFrame(() => { if (map && map._container && map._container.offsetParent !== null) map.invalidateSize(); });
+  }
+  function addFastTiles(map) {
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', subdomains: 'abc', maxZoom: 19, preferCanvas: true, updateWhenIdle: true, keepBuffer: 2 }).addTo(map);
+    osm.once('tileerror', () => { if (map.hasLayer(osm)) map.removeLayer(osm); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 19 }).addTo(map); });
+    return osm;
+  }
 
-    // ===== VOLUME UNITS =====
-    const VOLUME_UNIT_INFO = {
-      kg: { family: 'weight', baseUnit: 'kg', subUnit: 'gram', factor: 1000, baseShort: 'Kg', subShort: 'g', baseNoun: 'Kilo', subNoun: 'Gram', defaultInput: 1, inputStep: 0.05, inputMin: 0.05, cartStep: 0.25, presets: [{label:'¼ Kg',val:0.25},{label:'½ Kg',val:0.5},{label:'1 Kg',val:1,active:true},{label:'2 Kg',val:2},{label:'5 Kg',val:5}] },
-      gram: { family: 'weight', baseUnit: 'kg', subUnit: 'gram', factor: 1000, baseShort: 'Kg', subShort: 'g', baseNoun: 'Kilo', subNoun: 'Gram', defaultInput: 1000, inputStep: 50, inputMin: 10, cartStep: 100, presets: [{label:'100 g',val:100},{label:'250 g',val:250},{label:'500 g',val:500},{label:'1000 g',val:1000,active:true}] },
-      liter: { family: 'volume', baseUnit: 'liter', subUnit: 'mililiter', factor: 1000, baseShort: 'L', subShort: 'ml', baseNoun: 'Liter', subNoun: 'ML', defaultInput: 1, inputStep: 0.05, inputMin: 0.05, cartStep: 0.25, presets: [{label:'¼ L',val:0.25},{label:'½ L',val:0.5},{label:'1 L',val:1,active:true},{label:'2 L',val:2}] },
-      mililiter: { family: 'volume', baseUnit: 'liter', subUnit: 'mililiter', factor: 1000, baseShort: 'L', subShort: 'ml', baseNoun: 'Liter', subNoun: 'ML', defaultInput: 1000, inputStep: 50, inputMin: 10, cartStep: 100, presets: [{label:'100 ml',val:100},{label:'250 ml',val:250},{label:'500 ml',val:500},{label:'1000 ml',val:1000,active:true}] }
+  // ===== THEME =====
+  const DEFAULT_THEME = { headerStart:'#e11d48', headerEnd:'#f97316', headerText:'#ffffff', primary:'#e11d48', btnText:'#ffffff', bg:'#fff7ed', border:'#fed7aa', text:'#431407' };
+  let themeConfig = safeParse(localStorage.getItem('adidin_theme_promo'), DEFAULT_THEME);
+
+  const applyTheme = () => {
+    const r = document.documentElement.style;
+    r.setProperty('--header-start', themeConfig.headerStart);
+    r.setProperty('--header-end', themeConfig.headerEnd);
+    r.setProperty('--header-text', themeConfig.headerText);
+    r.setProperty('--primary', themeConfig.primary);
+    r.setProperty('--btn-text', themeConfig.btnText);
+    r.setProperty('--bg', themeConfig.bg);
+    r.setProperty('--border', themeConfig.border);
+    r.setProperty('--text', themeConfig.text);
+    r.setProperty('--card-bg', '#ffffff');
+    if ($('theme-header-start')) $('theme-header-start').value = themeConfig.headerStart;
+    if ($('theme-header-end')) $('theme-header-end').value = themeConfig.headerEnd;
+    if ($('theme-header-text')) $('theme-header-text').value = themeConfig.headerText;
+    if ($('theme-primary')) $('theme-primary').value = themeConfig.primary;
+    if ($('theme-btn-text')) $('theme-btn-text').value = themeConfig.btnText;
+    if ($('theme-bg-color')) $('theme-bg-color').value = themeConfig.bg;
+    if ($('theme-border')) $('theme-border').value = themeConfig.border;
+    if ($('theme-text')) $('theme-text').value = themeConfig.text;
+  };
+
+  // ===== DATA STORE =====
+  const DEFAULT_PRODUCT = { id:"1", barcode:"8998866200011", name:"Beras Pandan Wangi", unitType:"kg", price:15000, costPrice:13000, stock:50, rack:"Rak Utama", category:"Sembako", desc:"Beras pulen lokal super.", img:"https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400", available:true, toppings:[], expiredDate:"" };
+
+  let products = [];
+  let adminUsers = [
+    { username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" },
+    { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
+    { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
+  ];
+  let historyList = [];
+  let calcHistoryList = [];
+  let broadcastHistory = [];
+  let storeOpen = true;
+  let cart = [];
+  let currentUser = safeParse(localStorage.getItem('adidin_admin_session'), null);
+  let posCart = [];
+  let html5QrCodeScanner = null;
+  let activeScanTarget = null;
+  let encodedImage = "";
+  let pendingToppingCallback = null;
+  let lowStockThreshold = parseInt(localStorage.getItem('adidin_low_stock_threshold'));
+  if (!lowStockThreshold || lowStockThreshold < 1) lowStockThreshold = 5;
+  const getLowStockThreshold = () => lowStockThreshold;
+
+  // ===== SEARCH INDEX =====
+  let _searchIndexRef = null, _searchIndex = [], _productMapRef = null, _productMap = new Map();
+  function getProductSearchIndex() {
+    if (_searchIndexRef === products && _searchIndex.length === products.length) return _searchIndex;
+    _searchIndex = products.map(p => ({ p, key: ((p.name||'') + ' ' + (p.category||'')).toLowerCase() }));
+    _searchIndexRef = products;
+    return _searchIndex;
+  }
+  function getProductMap() {
+    if (_productMapRef === products && _productMap.size === products.length) return _productMap;
+    const m = new Map();
+    for (let i = 0; i < products.length; i++) m.set(String(products[i].id), products[i]);
+    _productMap = m; _productMapRef = products;
+    return m;
+  }
+  function getProductById(id) { return getProductMap().get(String(id)); }
+  function invalidateSearchIndex() { _searchIndexRef = null; _productMapRef = null; }
+
+  let _cartSubtotalCache = 0, _cartItemCountCache = 0;
+
+  // ===== SHUFFLE =====
+  let _productRandomMap = new Map();
+  function reshuffleProducts() {
+    const newMap = new Map();
+    products.forEach(p => newMap.set(String(p.id), Math.random()));
+    _productRandomMap = newMap;
+  }
+  function syncProductRandomMap() {
+    const ids = new Set();
+    products.forEach(p => ids.add(String(p.id)));
+    Array.from(_productRandomMap.keys()).forEach(k => { if (!ids.has(k)) _productRandomMap.delete(k); });
+    products.forEach(p => { const k = String(p.id); if (!_productRandomMap.has(k)) _productRandomMap.set(k, Math.random()); });
+  }
+  function getProductRandomWeight(id) {
+    const k = String(id);
+    if (!_productRandomMap.has(k)) _productRandomMap.set(k, Math.random());
+    return _productRandomMap.get(k);
+  }
+  const canShuffleProducts = () => !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner'));
+  function setAdminShuffleStatus(text, ok = true) {
+    const el = $('admin-shuffle-status'); if (!el) return;
+    el.innerText = text || ''; el.style.color = ok ? 'var(--success)' : 'var(--danger)';
+  }
+  function animateAdminShuffleButton() {
+    const btn = $('btn-admin-shuffle-products'); if (!btn) return;
+    btn.classList.add('spin'); setTimeout(() => btn.classList.remove('spin'), 650);
+  }
+  function shuffleProductOrder({ animate = false } = {}) { reshuffleProducts(); renderProducts(); if (animate) animateAdminShuffleButton(); }
+  function adminShuffleProducts() {
+    if (!currentUser) return alert("Login dulu sebagai Admin/Kasir.");
+    if (!canShuffleProducts()) return alert("Hanya Admin/Owner yang dapat mengacak.");
+    if (!products || products.length === 0) return alert("Belum ada produk.");
+    shuffleProductOrder({ animate: true });
+    setAdminShuffleStatus(`✅ Urutan diacak pada ${new Date().toLocaleTimeString('id-ID')} — ${products.length} produk.`);
+    setTimeout(() => setAdminShuffleStatus(''), 6000);
+  }
+
+  const DEFAULT_SHIPPING_CONFIG = {
+    enabled: true, storeLat: -6.693932, storeLng: 108.509458,
+    storeAddress: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon",
+    perKm: 3000, minFee: 5000, freeMin: 100000,
+    extraFlatEnable: false, extraFlatMaxQty: 3, extraFlatFee: 5000,
+    extraPerEnable: false, extraPerMaxQty: 3, extraPerPrice: 1000
+  };
+  let shippingConfig = { ...DEFAULT_SHIPPING_CONFIG };
+
+  let userLocation = null, mapPicker = null, mapMarker = null, adminMap = null, adminMarker = null;
+  const getActiveAnnouncements = () => broadcastHistory.filter(b => b.enabled !== false);
+
+  // ===== REVERSE GEOCODE =====
+  const reverseGeocodeWithFallback = async (lat, lng) => {
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    if (reverseGeocodeCache.has(key)) return reverseGeocodeCache.get(key);
+    let result = null;
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`;
+      const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch(url, { signal: ctrl.signal }); clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.address) {
+          const a = data.address; const parts = [];
+          const road = a.road || a.pedestrian || a.footway || a.path || '';
+          if (a.house_number && road) parts.push(`${road} No. ${a.house_number}`); else if (road) parts.push(road);
+          ['neighbourhood','suburb','city_district','village','town','municipality','county','district','city','state','postcode','country'].forEach(k => { if (a[k] && !parts.includes(a[k])) parts.push(a[k]); });
+          if (parts.length) result = parts.join(', ');
+        }
+      }
+    } catch(e) {}
+    reverseGeocodeCache.set(key, result);
+    return result;
+  };
+
+  const geocodeAddress = async (address) => {
+    const key = (address || '').trim().toLowerCase();
+    if (!key) return null;
+    if (geocodeCache.has(key)) return geocodeCache.get(key);
+    let result = null;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length) {
+          const item = list[0];
+          result = { lat: parseFloat(item.lat), lng: parseFloat(item.lon), displayName: item.display_name || '' };
+        }
+      }
+    } catch(e) {}
+    geocodeCache.set(key, result);
+    return result;
+  };
+
+  // ===== SAVE FUNCTIONS (Per-Store Isolation) =====
+  const saveProducts = () => {
+    invalidateSearchIndex();
+    const sid = activeStoreId || 'default';
+    const doLocal = () => {
+      localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
+      renderProducts();
+      if (currentUser) { renderAdminProducts(); renderPosProducts(); }
+      renderQuickSearchResults();
     };
+    if (firebaseReady) {
+      db.ref(`products/${sid}`).set(products).then(doLocal).catch(err => { console.error(err); doLocal(); });
+    } else doLocal();
+  };
 
-    function getUnitPretty(unitType) {
-      const map = { pcs:'Pcs', kg:'Kg', gram:'Gram', liter:'Liter', mililiter:'Mililiter (ml)', lusin:'Lusin', pack:'Pack', bungkus:'Bungkus', ball:'Ball', slop:'Slop', dus:'Dus', renteng:'Renteng', box:'Box', botol:'Botol', digital:'Digital' };
-      return map[unitType] || 'Pcs';
+  const saveUsers = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_users_${sid}`, JSON.stringify(adminUsers));
+    if (firebaseReady) db.ref(`users/${sid}`).set(adminUsers);
+    if (currentUser) renderAdminUsers();
+  };
+
+  const saveHistory = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_history_${sid}`, JSON.stringify(historyList));
+    if (firebaseReady) db.ref(`history/${sid}`).set(historyList);
+    renderHistory(historyList); calcFinance(historyList); updateSalesCalculator();
+  };
+
+  const saveBroadcast = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_broadcast_history_${sid}`, JSON.stringify(broadcastHistory));
+    if (firebaseReady) db.ref(`broadcast_history/${sid}`).set(broadcastHistory);
+    renderAnnouncement();
+    if (currentUser) renderBroadcastHistory(broadcastHistory);
+  };
+
+  const saveCart = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_cart_${sid}`, JSON.stringify(cart));
+    $('cart-count').innerText = cart.length;
+  };
+
+  const saveCalcHistory = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_calc_history_${sid}`, JSON.stringify(calcHistoryList));
+    if (firebaseReady) { try { db.ref(`calc_history/${sid}`).set(calcHistoryList); } catch(e) {} }
+    renderCalcHistory();
+  };
+
+  const saveStoreStatus = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_store_open_${sid}`, storeOpen);
+    if (firebaseReady) db.ref(`store_status/${sid}`).set(storeOpen);
+    renderStoreStatus();
+  };
+
+  const saveTheme = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_theme_promo_${sid}`, JSON.stringify(themeConfig));
+    if (firebaseReady) db.ref(`theme_promo/${sid}`).set(themeConfig);
+    applyTheme();
+  };
+
+  const saveShippingConfig = () => {
+    const sid = activeStoreId || 'default';
+    localStorage.setItem(`adidin_shipping_config_${sid}`, JSON.stringify(shippingConfig));
+    if (firebaseReady) db.ref(`shipping_config/${sid}`).set(shippingConfig);
+    applyShippingForm(); renderCart();
+  };
+
+  const saveStores = () => {
+    localStorage.setItem('ms_all_stores', JSON.stringify(allStores));
+    if (firebaseReady) db.ref('stores').set(allStores);
+    populateStoreDatalists();
+    renderOwnerDashboard();
+  };
+
+  // ===== SHIPPING CALCULATIONS =====
+  const haversineDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLon = (lon2-lon1)*Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  };
+
+  const calculateExtraShippingFees = (itemCount) => {
+    const totalQty = parseFloat(itemCount) || 0;
+    let flat = 0, perItem = 0;
+    if (shippingConfig.extraFlatEnable && shippingConfig.extraFlatMaxQty > 0 && totalQty > shippingConfig.extraFlatMaxQty) flat = shippingConfig.extraFlatFee || 0;
+    if (shippingConfig.extraPerEnable && shippingConfig.extraPerMaxQty > 0 && totalQty > shippingConfig.extraPerMaxQty) {
+      const overQty = totalQty - shippingConfig.extraPerMaxQty;
+      perItem = Math.max(0, Math.round(overQty * (shippingConfig.extraPerPrice || 0)));
     }
-    function isVolumeUnitType(u) { return u in VOLUME_UNIT_INFO; }
-    function getVolumeUnitInfo(u) { return VOLUME_UNIT_INFO[u] || null; }
-    function getUnitStep(u) { const i = getVolumeUnitInfo(u); return i ? i.cartStep : 1; }
+    return { flat, perItem, total: flat + perItem };
+  };
 
-    function convertUnitQty(qty, unitType) {
-      const info = getVolumeUnitInfo(unitType);
-      if (!info) return '';
-      const q = parseFloat(qty) || 0;
-      if (info.family === 'weight') {
-        if (unitType === 'kg') { const g = q * info.factor; return `${(Math.round(g*100)/100).toLocaleString('id-ID')} gram`; }
-        else { const kg = q / info.factor; return `${(Math.round(kg*1000)/1000).toLocaleString('id-ID')} Kg`; }
-      } else {
-        if (unitType === 'liter') { const ml = q * info.factor; return `${(Math.round(ml*100)/100).toLocaleString('id-ID')} ml`; }
-        else { const liter = q / info.factor; return `${(Math.round(liter*1000)/1000).toLocaleString('id-ID')} L`; }
+  const calculateDistanceFee = (subtotal) => {
+    if (!shippingConfig.enabled || !subtotal || subtotal <= 0) return 0;
+    if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
+    if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
+    if (!shippingConfig.storeLat || !shippingConfig.storeLng) return 0;
+    const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
+    let distanceFee;
+    if (distance <= 1) distanceFee = shippingConfig.minFee || 0;
+    else distanceFee = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
+    return Math.max(0, Math.round(distanceFee));
+  };
+
+  const getOngkirStatusInfo = (subtotal) => {
+    const isEnabled = shippingConfig.enabled;
+    const isFree = isEnabled && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin;
+    const isAuto = isEnabled && !isFree && !!(userLocation && userLocation.lat) && !!(shippingConfig.storeLat && shippingConfig.storeLng);
+    return { isEnabled, isFree, isAuto };
+  };
+
+  function updateScheduleUI() {
+    const modeGroup = $('delivery-mode-group'), mode = $('delivery-mode'), scheduleGroup = $('schedule-group');
+    const scheduleInput = $('checkout-schedule'), warning = $('schedule-required-warning'), note = $('schedule-note');
+    if (!mode || !scheduleGroup || !scheduleInput) return;
+    const isStoreClosed = !storeOpen;
+    if (isStoreClosed) {
+      if (modeGroup) modeGroup.classList.add('hidden');
+      if (warning) warning.classList.remove('hidden');
+      mode.value = 'schedule';
+    } else {
+      if (modeGroup) modeGroup.classList.remove('hidden');
+      if (warning) warning.classList.add('hidden');
+    }
+    const isScheduleMode = !storeOpen || mode.value === 'schedule';
+    scheduleGroup.classList.toggle('hidden', !isScheduleMode);
+    scheduleInput.required = isScheduleMode;
+    scheduleInput.min = toDateTimeLocalValue(new Date());
+    if (isScheduleMode) {
+      if (!scheduleInput.value) scheduleInput.value = getSuggestedScheduleValue();
+      if (note) note.innerHTML = 'Pilih <strong>hari, tanggal, jam & menit</strong> pengiriman/pengambilan.';
+    } else if (note) note.innerHTML = 'Pesanan akan dikirim segera.';
+    updateSchedulePreview();
+  }
+
+  const updateShippingDisplay = () => {
+    if (!$('summary-shipping')) return;
+    const subtotal = _cartSubtotalCache;
+    const shippingSpan = $('summary-shipping'), totalSpan = $('summary-total');
+    const noteEl = $('summary-ongkir-note'), distInfo = $('map-distance-info');
+    const extraRow = $('summary-extra-row'), extraSpan = $('summary-extra');
+    const itemCount = _cartItemCountCache;
+    const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
+    let distanceFee = 0, extraFee = 0;
+    if (isEnabled && isAuto) { distanceFee = calculateDistanceFee(subtotal); extraFee = calculateExtraShippingFees(itemCount).total; }
+    const totalOngkir = distanceFee + extraFee;
+    if (extraRow && extraSpan) {
+      if (isEnabled && isAuto && extraFee > 0) { extraRow.classList.remove('hidden'); extraSpan.innerText = `Rp ${extraFee.toLocaleString('id-ID')}`; }
+      else { extraRow.classList.add('hidden'); extraSpan.innerText = "Rp 0"; }
+    }
+    if (!isEnabled) { shippingSpan.innerText = "Gratis / Tidak ada"; totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`; }
+    else if (isFree) { shippingSpan.innerText = "GRATIS 🎉"; totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`; }
+    else if (!isAuto) { shippingSpan.innerText = "Dikonfirmasi Admin"; totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')} (+Ongkir)`; }
+    else { shippingSpan.innerText = `Rp ${distanceFee.toLocaleString('id-ID')}`; totalSpan.innerText = `Rp ${(subtotal + totalOngkir).toLocaleString('id-ID')}`; }
+    if (noteEl) {
+      if (isEnabled && !isFree && !isAuto && subtotal > 0) { noteEl.style.display = 'block'; noteEl.innerText = "⚠️ Ongkir belum termasuk — admin akan menghitung."; }
+      else noteEl.style.display = 'none';
+    }
+    if (distInfo) {
+      if (!isEnabled) distInfo.innerText = "🚚 Tidak ada ongkir.";
+      else if (!subtotal) distInfo.innerText = "🛒 Tambahkan produk untuk menghitung ongkir.";
+      else if (isFree) distInfo.innerText = `🎉 Ongkir GRATIS (≥ Rp ${(shippingConfig.freeMin||0).toLocaleString('id-ID')}).`;
+      else if (!isAuto) distInfo.innerText = "📍 Alamat WAJIB diketik manual. Peta untuk hitung ongkir otomatis.";
+      else {
+        const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
+        let extraNote = extraFee > 0 ? ` | Tambahan: Rp ${extraFee.toLocaleString('id-ID')}` : "";
+        distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Ongkir: Rp ${distanceFee.toLocaleString('id-ID')}${extraNote} | Total: Rp ${totalOngkir.toLocaleString('id-ID')}`;
       }
     }
+  };
 
-    function formatQtyLabel(qty, unitType) {
-      if (unitType === 'digital') return '1 Transaksi';
-      const q = parseFloat(qty) || 0;
-      const pretty = getUnitPretty(unitType);
-      if (unitType === 'gram' || unitType === 'mililiter') return `${Math.round(q).toLocaleString('id-ID')} ${pretty}`;
-      if (unitType === 'kg' || unitType === 'liter') return `${(Math.round(q*100)/100).toLocaleString('id-ID')} ${pretty}`;
-      return `${q} ${pretty}`;
-    }
+  const reverseGeocode = async (lat, lng) => {
+    const mapStatusEl = $('map-status');
+    const address = await reverseGeocodeWithFallback(lat, lng);
+    const finalAddress = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    if (userLocation) userLocation.address = finalAddress;
+    if (mapStatusEl) mapStatusEl.innerText = address ? `📍 Lokasi: ${finalAddress}` : `📍 Koordinat: ${finalAddress}`;
+    requestShippingUpdate();
+  };
 
-    function escapeHtmlText(str) {
-      return String(str === undefined || str === null ? '' : str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-    }
+  let locatingNow = false, livePositionWatchId = null, lastLivePosition = null;
+  const stopLivePositionWatch = () => { if (livePositionWatchId !== null) { try { navigator.geolocation.clearWatch(livePositionWatchId); } catch(e) {} livePositionWatchId = null; } };
+  const startLivePositionWatch = () => {
+    if (!navigator.geolocation || livePositionWatchId !== null) return;
+    try {
+      livePositionWatchId = navigator.geolocation.watchPosition(
+        pos => { lastLivePosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy || 999, ts: Date.now() }; },
+        err => { console.warn("GPS watch error:", err); },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
+      );
+    } catch(e) {}
+  };
 
-    function formatExpiredDate(isoStr) {
-      if (!isoStr) return '-';
-      try { const d = new Date(isoStr); if (isNaN(d.getTime())) return '-'; return d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }); }
-      catch { return '-'; }
-    }
-    function getExpiredStatus(isoStr) {
-      if (!isoStr) return { level: 'none', text: '-', daysLeft: null };
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return { level: 'none', text: '-', daysLeft: null };
-      const today = new Date(); today.setHours(0,0,0,0); d.setHours(0,0,0,0);
-      const diff = Math.round((d.getTime() - today.getTime()) / (1000*60*60*24));
-      if (diff < 0) return { level: 'expired', text: 'KEDALUWARSA', daysLeft: diff };
-      if (diff <= 7) return { level: 'soon', text: `SEGERA EXP (${diff}h)`, daysLeft: diff };
-      return { level: 'ok', text: 'Aman', daysLeft: diff };
-    }
-
-    // ===== MAPS =====
-    let leafletReady = null;
-    const geocodeCache = new Map();
-    const reverseGeocodeCache = new Map();
-    let shippingUiReqId = false;
-    function requestShippingUpdate() {
-      if (shippingUiReqId) return;
-      shippingUiReqId = true;
-      requestAnimationFrame(() => { shippingUiReqId = false; updateShippingDisplay(); });
-    }
-    function loadLeaflet() {
-      if (window.L) return Promise.resolve(window.L);
-      if (leafletReady) return leafletReady;
-      leafletReady = new Promise((resolve, reject) => {
-        const cssReady = document.getElementById('leaflet-css') ? Promise.resolve() :
-          new Promise(resCss => { const css = document.createElement('link'); css.id='leaflet-css'; css.rel='stylesheet'; css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; css.onload=()=>resCss(); css.onerror=()=>resCss(); document.head.appendChild(css); });
-        cssReady.then(() => {
-          if (window.L) { resolve(window.L); return; }
-          const script = document.createElement('script');
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.onload = () => resolve(window.L);
-          script.onerror = () => { leafletReady = null; reject(new Error('Gagal memuat peta.')); };
-          document.head.appendChild(script);
-        });
-      });
-      return leafletReady;
-    }
-    function scheduleInvalidate(map) {
-      if (!map) return;
-      requestAnimationFrame(() => { if (map && map._container && map._container.offsetParent !== null) map.invalidateSize(); });
-    }
-    function addFastTiles(map) {
-      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', subdomains: 'abc', maxZoom: 19, preferCanvas: true, updateWhenIdle: true, keepBuffer: 2 }).addTo(map);
-      osm.once('tileerror', () => { if (map.hasLayer(osm)) map.removeLayer(osm); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 19 }).addTo(map); });
-      return osm;
-    }
-
-    // ===== THEME =====
-    const DEFAULT_THEME = { headerStart:'#e11d48', headerEnd:'#f97316', headerText:'#ffffff', primary:'#e11d48', btnText:'#ffffff', bg:'#fff7ed', border:'#fed7aa', text:'#431407' };
-    let themeConfig = safeParse(localStorage.getItem('adidin_theme_promo'), DEFAULT_THEME);
-
-    const applyTheme = () => {
-      const r = document.documentElement.style;
-      r.setProperty('--header-start', themeConfig.headerStart);
-      r.setProperty('--header-end', themeConfig.headerEnd);
-      r.setProperty('--header-text', themeConfig.headerText);
-      r.setProperty('--primary', themeConfig.primary);
-      r.setProperty('--btn-text', themeConfig.btnText);
-      r.setProperty('--bg', themeConfig.bg);
-      r.setProperty('--border', themeConfig.border);
-      r.setProperty('--text', themeConfig.text);
-      r.setProperty('--card-bg', '#ffffff');
-      if ($('theme-header-start')) $('theme-header-start').value = themeConfig.headerStart;
-      if ($('theme-header-end')) $('theme-header-end').value = themeConfig.headerEnd;
-      if ($('theme-header-text')) $('theme-header-text').value = themeConfig.headerText;
-      if ($('theme-primary')) $('theme-primary').value = themeConfig.primary;
-      if ($('theme-btn-text')) $('theme-btn-text').value = themeConfig.btnText;
-      if ($('theme-bg-color')) $('theme-bg-color').value = themeConfig.bg;
-      if ($('theme-border')) $('theme-border').value = themeConfig.border;
-      if ($('theme-text')) $('theme-text').value = themeConfig.text;
+  const getFreshPosition = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject(new Error("BROWSER_TIDAK_DUKUNG")); return; }
+    startLivePositionWatch();
+    const ACCURACY_TARGET = 25, MAX_WAIT = 15000;
+    let bestPos = null, settled = false, watchId = null, timeoutId = null;
+    const cleanup = () => { if (watchId !== null) { try { navigator.geolocation.clearWatch(watchId); } catch(e) {} watchId = null; } if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; } };
+    const finish = (pos) => { if (settled) return; settled = true; cleanup(); resolve(pos); };
+    const fallbackOrFail = (err) => {
+      if (settled) return; settled = true; cleanup();
+      if (lastLivePosition && Date.now() - lastLivePosition.ts < 30000) {
+        resolve({ coords: { latitude: lastLivePosition.lat, longitude: lastLivePosition.lng, accuracy: lastLivePosition.accuracy || 999, timestamp: lastLivePosition.ts } });
+      } else reject(err);
     };
+    try { watchId = navigator.geolocation.watchPosition(
+      (pos) => { const acc = pos.coords.accuracy || 9999; if (!bestPos || acc < (bestPos.coords.accuracy || 9999)) bestPos = pos; if (acc <= ACCURACY_TARGET) finish(bestPos); },
+      (err) => { if (!bestPos) fallbackOrFail(err); },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    ); } catch(e) { fallbackOrFail(e); return; }
+    timeoutId = setTimeout(() => { if (bestPos) finish(bestPos); else fallbackOrFail(new Error("TIMEOUT")); }, MAX_WAIT);
+  });
 
-    // ===== DATA STORE =====
-    let products = safeParse(localStorage.getItem('adidin_products'), [{ id:"1", barcode:"8998866200011", name:"Beras Pandan Wangi", unitType:"kg", price:15000, costPrice:13000, stock:50, rack:"Rak Utama", category:"Sembako", desc:"Beras pulen lokal super.", img:"https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400", available:true, toppings:[], expiredDate:"" }]);
-    let adminUsers = safeParse(localStorage.getItem('adidin_users'), [
-      { username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" },
+  const initMapPicker = async (lat, lng) => {
+    const mapStatusEl = $("map-status");
+    try { await loadLeaflet(); }
+    catch(err) { if (mapStatusEl) mapStatusEl.innerText = "⚠️ " + err.message; return; }
+    if (!mapPicker) {
+      $("map-picker").style.display = "block";
+      mapPicker = L.map("map-picker", { zoomControl: true, preferCanvas: true, scrollWheelZoom: true }).setView([lat, lng], 17);
+      mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
+      addFastTiles(mapPicker);
+      mapMarker.on("drag", e => { const p = e.target.getLatLng(); userLocation = { lat: p.lat, lng: p.lng, address: userLocation && userLocation.address || "" }; requestShippingUpdate(); });
+      mapMarker.on("dragend", e => { const p = e.target.getLatLng(); userLocation = { lat: p.lat, lng: p.lng, address: "" }; updateShippingDisplay(); reverseGeocode(p.lat, p.lng); });
+      mapPicker.on("click", e => { mapMarker.setLatLng(e.latlng); userLocation = { lat: e.latlng.lat, lng: e.latlng.lng, address: "" }; updateShippingDisplay(); reverseGeocode(e.latlng.lat, e.latlng.lng); });
+    } else {
+      $("map-picker").style.display = "block";
+      mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
+      if (mapMarker) mapMarker.setLatLng([lat, lng]);
+    }
+    scheduleInvalidate(mapPicker);
+    setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 200);
+    setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 600);
+  };
+
+  const setCustomerMapLocation = async (lat, lng) => {
+    await initMapPicker(lat, lng);
+    if (mapPicker) mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
+    if (mapMarker) mapMarker.setLatLng([lat, lng]);
+    userLocation = { lat, lng, address: "" };
+    reverseGeocode(lat, lng);
+    updateShippingDisplay();
+  };
+
+  const locateCustomerCurrent = async ({ force = false } = {}) => {
+    if (locatingNow) return !!(userLocation && userLocation.lat);
+    if (!force && userLocation && userLocation.lat) {
+      const mapEl = $("map-picker");
+      if (!mapPicker || (mapEl && mapEl.style.display === 'none')) {
+        await initMapPicker(userLocation.lat, userLocation.lng);
+        if (mapMarker) mapMarker.setLatLng([userLocation.lat, userLocation.lng]);
+      }
+      return true;
+    }
+    const btn = $("btn-use-my-location"), mapStatusEl = $("map-status");
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendapatkan lokasi...'; }
+    if (mapStatusEl) mapStatusEl.innerHTML = "📡 Mengambil lokasi GPS...";
+    locatingNow = true;
+    try {
+      const pos = await getFreshPosition();
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : null;
+      await setCustomerMapLocation(lat, lng);
+      if (mapStatusEl) mapStatusEl.innerHTML = acc ? `✅ Lokasi diperbarui (akurasi ±${acc} m).` : "✅ Lokasi diperbarui.";
+      updateShippingDisplay();
+      return true;
+    } catch(err) {
+      console.warn("Gagal ambil lokasi:", err);
+      if (mapStatusEl) mapStatusEl.innerHTML = "⚠️ Tidak dapat akses lokasi. Aktifkan GPS lalu klik 'Gunakan Lokasi Saya'.";
+      if (force) alert("Aktifkan GPS lalu klik 'Gunakan Lokasi Saya' lagi.");
+      return false;
+    } finally {
+      locatingNow = false;
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya'; }
+      updateShippingDisplay();
+    }
+  };
+
+  let _lastAutoLocateTs = 0;
+  const AUTO_LOCATE_THROTTLE_MS = 4000;
+  const autoActivateCartLocation = async () => {
+    const mapEl = $('map-picker'), mapStatusEl = $('map-status');
+    if (mapEl && mapEl.style.display === 'none') mapEl.style.display = 'block';
+    if (userLocation && userLocation.lat) {
+      try { await initMapPicker(userLocation.lat, userLocation.lng); if (mapMarker) mapMarker.setLatLng([userLocation.lat, userLocation.lng]); } catch(e) {}
+      startLivePositionWatch();
+      return;
+    }
+    if (locatingNow) return;
+    const now = Date.now();
+    if (now - _lastAutoLocateTs < AUTO_LOCATE_THROTTLE_MS) return;
+    _lastAutoLocateTs = now;
+    if (mapStatusEl) mapStatusEl.innerHTML = "📡 Mengaktifkan peta & lokasi...";
+    const ok = await locateCustomerCurrent({ force: false });
+    if (ok && mapPicker) {
+      scheduleInvalidate(mapPicker);
+      try { mapPicker.setView([userLocation.lat, userLocation.lng], Math.max(mapPicker.getZoom() || 16, 16)); } catch(e) {}
+      startLivePositionWatch();
+    }
+  };
+
+  const initAdminMap = async (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
+    const el = $('admin-map'); if (!el) return;
+    try { await loadLeaflet(); } catch(err) { $('admin-map-status').innerText = '⚠️ ' + err.message; return; }
+    if (!$('admin-section').classList.contains('active')) return;
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'owner')) return;
+    if (!adminMap) {
+      el.style.display = 'block';
+      adminMap = L.map('admin-map', { scrollWheelZoom: false, zoomControl: true, preferCanvas: true }).setView([lat, lng], 16);
+      adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
+      addFastTiles(adminMap);
+      adminMap.on('click', e => { adminMarker.setLatLng([e.latlng.lat, e.latlng.lng]); updateShopCoordinate(e.latlng.lat, e.latlng.lng); });
+      adminMarker.on('dragend', e => { const p = e.target.getLatLng(); updateShopCoordinate(p.lat, p.lng); });
+    } else {
+      el.style.display = 'block';
+      adminMap.setView([lat, lng], 16);
+      adminMarker.setLatLng([lat, lng]);
+    }
+    scheduleInvalidate(adminMap);
+  };
+
+  const ensureAdminMapVisible = () => {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'owner')) return;
+    if (!$('admin-section').classList.contains('active')) return;
+    if (!$('admin-map')) return;
+    requestAnimationFrame(() => {
+      if (adminMap) scheduleInvalidate(adminMap);
+      else initAdminMap(parseFloat($('ship-lat').value) || shippingConfig.storeLat, parseFloat($('ship-lng').value) || shippingConfig.storeLng);
+    });
+  };
+
+  let adminCoordTid = null;
+  const updateShopCoordinate = (lat, lng) => {
+    $('ship-lat').value = lat; $('ship-lng').value = lng;
+    $('admin-map-status').innerText = `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    if (adminCoordTid) clearTimeout(adminCoordTid);
+    adminCoordTid = setTimeout(() => reverseAdminGeocode(lat, lng), 350);
+  };
+  const reverseAdminGeocode = async (lat, lng) => {
+    const address = await reverseGeocodeWithFallback(lat, lng);
+    if (address) { $('ship-address').value = address; $('admin-map-status').innerText = `Alamat: ${address}`; }
+    else $('admin-map-status').innerText = `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  };
+
+  // ===== MULTI-TOKO CORE =====
+  function populateStoreDatalists() {
+    const html = allStores.map(s => `<option value="${s.name}">${s.code} — ${s.address||''}</option>`).join('') +
+                 `<option value="${OWNER_STORE_NAME}">Akses Semua Cabang (Owner)</option>`;
+    ['ms-store-list','ms-store-list-reg'].forEach(id => { const el = $(id); if (el) el.innerHTML = html; });
+  }
+
+  function loadStoreData(storeId) {
+    const sid = storeId || 'default';
+    const get = (k, fb) => safeParse(localStorage.getItem(`${k}_${sid}`), fb);
+
+    const prods = get('adidin_products', null);
+    if (Array.isArray(prods) && prods.length > 0) products = prods;
+    else if (prods && typeof prods === 'object') products = Object.values(prods);
+    else products = [{ ...DEFAULT_PRODUCT }];
+
+    const users = get('adidin_users', null);
+    if (users) adminUsers = Array.isArray(users) ? users : Object.values(users);
+    else adminUsers = [
       { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
       { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
-    ]);
-    let historyList = safeParse(localStorage.getItem('adidin_history'), []);
-    let calcHistoryList = safeParse(localStorage.getItem('adidin_calc_history'), []);
+    ];
+
+    historyList = get('adidin_history', []);
+    if (!Array.isArray(historyList)) historyList = [];
+    calcHistoryList = get('adidin_calc_history', []);
     if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
-    let broadcastHistory = safeParse(localStorage.getItem('adidin_broadcast_history'), []);
-    let storeOpen = localStorage.getItem('adidin_store_open') !== 'false';
-    let cart = safeParse(localStorage.getItem('adidin_cart'), []);
+    broadcastHistory = get('adidin_broadcast_history', []);
+    if (!Array.isArray(broadcastHistory)) broadcastHistory = [];
+    cart = get('adidin_cart', []);
     if (!Array.isArray(cart)) cart = [];
-    let currentUser = safeParse(localStorage.getItem('adidin_admin_session'), null);
-    let posCart = [];
-    let html5QrCodeScanner = null;
-    let activeScanTarget = null;
-    let encodedImage = "";
-    let pendingToppingCallback = null;
-    let lowStockThreshold = parseInt(localStorage.getItem('adidin_low_stock_threshold'));
-    if (!lowStockThreshold || lowStockThreshold < 1) lowStockThreshold = 5;
-    const getLowStockThreshold = () => lowStockThreshold;
 
-    // ===== SEARCH INDEX =====
-    let _searchIndexRef = null, _searchIndex = [], _productMapRef = null, _productMap = new Map();
-    function getProductSearchIndex() {
-      if (_searchIndexRef === products && _searchIndex.length === products.length) return _searchIndex;
-      _searchIndex = products.map(p => ({ p, key: ((p.name||'') + ' ' + (p.category||'')).toLowerCase() }));
-      _searchIndexRef = products;
-      return _searchIndex;
-    }
-    function getProductMap() {
-      if (_productMapRef === products && _productMap.size === products.length) return _productMap;
-      const m = new Map();
-      for (let i = 0; i < products.length; i++) m.set(String(products[i].id), products[i]);
-      _productMap = m; _productMapRef = products;
-      return m;
-    }
-    function getProductById(id) { return getProductMap().get(String(id)); }
-    function invalidateSearchIndex() { _searchIndexRef = null; _productMapRef = null; }
+    storeOpen = localStorage.getItem(`adidin_store_open_${sid}`) !== 'false';
 
-    let _cartSubtotalCache = 0, _cartItemCountCache = 0;
+    const sc = get('adidin_shipping_config', null);
+    if (sc) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...sc }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; }
+    else shippingConfig = { ...DEFAULT_SHIPPING_CONFIG };
 
-    // ===== SHUFFLE =====
-    let _productRandomMap = new Map();
-    function reshuffleProducts() {
-      const newMap = new Map();
-      products.forEach(p => newMap.set(String(p.id), Math.random()));
-      _productRandomMap = newMap;
-    }
-    function syncProductRandomMap() {
-      const ids = new Set();
-      products.forEach(p => ids.add(String(p.id)));
-      Array.from(_productRandomMap.keys()).forEach(k => { if (!ids.has(k)) _productRandomMap.delete(k); });
-      products.forEach(p => { const k = String(p.id); if (!_productRandomMap.has(k)) _productRandomMap.set(k, Math.random()); });
-    }
-    function getProductRandomWeight(id) {
-      const k = String(id);
-      if (!_productRandomMap.has(k)) _productRandomMap.set(k, Math.random());
-      return _productRandomMap.get(k);
-    }
-    const canShuffleProducts = () => !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner'));
-    function setAdminShuffleStatus(text, ok = true) {
-      const el = $('admin-shuffle-status'); if (!el) return;
-      el.innerText = text || ''; el.style.color = ok ? 'var(--success)' : 'var(--danger)';
-    }
-    function animateAdminShuffleButton() {
-      const btn = $('btn-admin-shuffle-products'); if (!btn) return;
-      btn.classList.add('spin'); setTimeout(() => btn.classList.remove('spin'), 650);
-    }
-    function shuffleProductOrder({ animate = false } = {}) { reshuffleProducts(); renderProducts(); if (animate) animateAdminShuffleButton(); }
-    function adminShuffleProducts() {
-      if (!currentUser) return alert("Login dulu sebagai Admin/Kasir.");
-      if (!canShuffleProducts()) return alert("Hanya Admin/Owner yang dapat mengacak.");
-      if (!products || products.length === 0) return alert("Belum ada produk.");
-      shuffleProductOrder({ animate: true });
-      setAdminShuffleStatus(`✅ Urutan diacak pada ${new Date().toLocaleTimeString('id-ID')} — ${products.length} produk.`);
-      setTimeout(() => setAdminShuffleStatus(''), 6000);
-    }
+    const th = get('adidin_theme_promo', null);
+    if (th) themeConfig = { ...DEFAULT_THEME, ...th };
+    else themeConfig = { ...DEFAULT_THEME };
 
-    const DEFAULT_SHIPPING_CONFIG = {
-      enabled: true, storeLat: -6.693932, storeLng: 108.509458,
-      storeAddress: "Jl. Syekh Datul Kahfi DS. Gamel, Cirebon",
-      perKm: 3000, minFee: 5000, freeMin: 100000,
-      extraFlatEnable: false, extraFlatMaxQty: 3, extraFlatFee: 5000,
-      extraPerEnable: false, extraPerMaxQty: 3, extraPerPrice: 1000
-    };
-    let shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...(safeParse(localStorage.getItem('adidin_shipping_config'), {})) };
-    if (shippingConfig.perItemRules) delete shippingConfig.perItemRules;
+    invalidateSearchIndex();
+  }
 
-    let userLocation = null, mapPicker = null, mapMarker = null, adminMap = null, adminMarker = null;
-    const getActiveAnnouncements = () => broadcastHistory.filter(b => b.enabled !== false);
+  // ===== FIREBASE PER-STORE LISTENERS =====
+  let _activeFirebaseRefs = [];
 
-    // ===== REVERSE GEOCODE =====
-    const reverseGeocodeWithFallback = async (lat, lng) => {
-      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-      if (reverseGeocodeCache.has(key)) return reverseGeocodeCache.get(key);
-      let result = null;
-      try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`;
-        const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 5000);
-        const res = await fetch(url, { signal: ctrl.signal }); clearTimeout(timer);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.address) {
-            const a = data.address; const parts = [];
-            const road = a.road || a.pedestrian || a.footway || a.path || '';
-            if (a.house_number && road) parts.push(`${road} No. ${a.house_number}`); else if (road) parts.push(road);
-            ['neighbourhood','suburb','city_district','village','town','municipality','county','district','city','state','postcode','country'].forEach(k => { if (a[k] && !parts.includes(a[k])) parts.push(a[k]); });
-            if (parts.length) result = parts.join(', ');
-          }
-        }
-      } catch(e) {}
-      reverseGeocodeCache.set(key, result);
-      return result;
-    };
+  function rebindFirebaseListeners(storeId) {
+    if (!firebaseReady || !db) return;
+    const sid = storeId || 'default';
 
-    const geocodeAddress = async (address) => {
-      const key = (address || '').trim().toLowerCase();
-      if (!key) return null;
-      if (geocodeCache.has(key)) return geocodeCache.get(key);
-      let result = null;
-      try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&addressdetails=1&limit=1`;
-        const res = await fetch(url);
-        if (res.ok) {
-          const list = await res.json();
-          if (Array.isArray(list) && list.length) {
-            const item = list[0];
-            result = { lat: parseFloat(item.lat), lng: parseFloat(item.lon), displayName: item.display_name || '' };
-          }
-        }
-      } catch(e) {}
-      geocodeCache.set(key, result);
-      return result;
-    };
+    _activeFirebaseRefs.forEach(ref => { try { ref.off(); } catch(e) {} });
+    _activeFirebaseRefs = [];
 
-    const saveShippingConfig = () => {
-      localStorage.setItem(`adidin_shipping_config_${activeStoreId||'default'}`, JSON.stringify(shippingConfig));
-      localStorage.setItem('adidin_shipping_config', JSON.stringify(shippingConfig));
-      if (firebaseReady) db.ref(`shipping_config/${activeStoreId||'default'}`).set(shippingConfig);
-      applyShippingForm(); renderCart();
-    };
-
-    const applyShippingForm = () => {
-      if (!$('ship-enabled')) return;
-      $('ship-enabled').value = shippingConfig.enabled ? 'true' : 'false';
-      $('ship-address').value = shippingConfig.storeAddress || '';
-      $('ship-lat').value = shippingConfig.storeLat || -6.200000;
-      $('ship-lng').value = shippingConfig.storeLng || 106.816666;
-      $('ship-per-km').value = shippingConfig.perKm;
-      $('ship-min-fee').value = shippingConfig.minFee;
-      $('ship-free-min').value = shippingConfig.freeMin;
-      if ($('extra-flat-enable')) $('extra-flat-enable').checked = shippingConfig.extraFlatEnable === true;
-      if ($('extra-flat-max')) $('extra-flat-max').value = shippingConfig.extraFlatMaxQty || 3;
-      if ($('extra-flat-fee')) $('extra-flat-fee').value = shippingConfig.extraFlatFee || 0;
-      if ($('extra-per-enable')) $('extra-per-enable').checked = shippingConfig.extraPerEnable === true;
-      if ($('extra-per-max')) $('extra-per-max').value = shippingConfig.extraPerMaxQty || 3;
-      if ($('extra-per-price')) $('extra-per-price').value = shippingConfig.extraPerPrice || 0;
-      if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'owner') && $('admin-section').classList.contains('active') && $('admin-map')) {
-        requestAnimationFrame(() => initAdminMap(shippingConfig.storeLat, shippingConfig.storeLng));
-      }
-    };
-
-    const haversineDistance = (lat1, lon1, lat2, lon2) => {
-      const R = 6371;
-      const dLat = (lat2-lat1)*Math.PI/180;
-      const dLon = (lon2-lon1)*Math.PI/180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    };
-
-    const calculateExtraShippingFees = (itemCount) => {
-      const totalQty = parseFloat(itemCount) || 0;
-      let flat = 0, perItem = 0;
-      if (shippingConfig.extraFlatEnable && shippingConfig.extraFlatMaxQty > 0 && totalQty > shippingConfig.extraFlatMaxQty) flat = shippingConfig.extraFlatFee || 0;
-      if (shippingConfig.extraPerEnable && shippingConfig.extraPerMaxQty > 0 && totalQty > shippingConfig.extraPerMaxQty) {
-        const overQty = totalQty - shippingConfig.extraPerMaxQty;
-        perItem = Math.max(0, Math.round(overQty * (shippingConfig.extraPerPrice || 0)));
-      }
-      return { flat, perItem, total: flat + perItem };
-    };
-
-    const calculateDistanceFee = (subtotal) => {
-      if (!shippingConfig.enabled || !subtotal || subtotal <= 0) return 0;
-      if (shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin) return 0;
-      if (!userLocation || !userLocation.lat || !userLocation.lng) return 0;
-      if (!shippingConfig.storeLat || !shippingConfig.storeLng) return 0;
-      const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
-      let distanceFee;
-      if (distance <= 1) distanceFee = shippingConfig.minFee || 0;
-      else distanceFee = (shippingConfig.minFee || 0) + (distance - 1) * (shippingConfig.perKm || 0);
-      return Math.max(0, Math.round(distanceFee));
-    };
-
-    const getOngkirStatusInfo = (subtotal) => {
-      const isEnabled = shippingConfig.enabled;
-      const isFree = isEnabled && shippingConfig.freeMin > 0 && subtotal >= shippingConfig.freeMin;
-      const isAuto = isEnabled && !isFree && !!(userLocation && userLocation.lat) && !!(shippingConfig.storeLat && shippingConfig.storeLng);
-      return { isEnabled, isFree, isAuto };
-    };
-
-    function updateScheduleUI() {
-      const modeGroup = $('delivery-mode-group'), mode = $('delivery-mode'), scheduleGroup = $('schedule-group');
-      const scheduleInput = $('checkout-schedule'), warning = $('schedule-required-warning'), note = $('schedule-note');
-      if (!mode || !scheduleGroup || !scheduleInput) return;
-      const isStoreClosed = !storeOpen;
-      if (isStoreClosed) {
-        if (modeGroup) modeGroup.classList.add('hidden');
-        if (warning) warning.classList.remove('hidden');
-        mode.value = 'schedule';
+    // Products
+    const pRef = db.ref(`products/${sid}`);
+    pRef.on('value', snap => {
+      const data = snap.val();
+      if (data && (Array.isArray(data) ? data.length : Object.keys(data).length)) {
+        products = Array.isArray(data) ? data : Object.values(data);
       } else {
-        if (modeGroup) modeGroup.classList.remove('hidden');
-        if (warning) warning.classList.add('hidden');
+        const local = safeParse(localStorage.getItem(`adidin_products_${sid}`), null);
+        if (Array.isArray(local) && local.length > 0) products = local;
+        else products = [{ ...DEFAULT_PRODUCT }];
       }
-      const isScheduleMode = !storeOpen || mode.value === 'schedule';
-      scheduleGroup.classList.toggle('hidden', !isScheduleMode);
-      scheduleInput.required = isScheduleMode;
-      scheduleInput.min = toDateTimeLocalValue(new Date());
-      if (isScheduleMode) {
-        if (!scheduleInput.value) scheduleInput.value = getSuggestedScheduleValue();
-        if (note) note.innerHTML = 'Pilih <strong>hari, tanggal, jam & menit</strong> pengiriman/pengambilan.';
-      } else if (note) note.innerHTML = 'Pesanan akan dikirim segera.';
-      updateSchedulePreview();
-    }
-
-    const updateShippingDisplay = () => {
-      if (!$('summary-shipping')) return;
-      const subtotal = _cartSubtotalCache;
-      const shippingSpan = $('summary-shipping'), totalSpan = $('summary-total');
-      const noteEl = $('summary-ongkir-note'), distInfo = $('map-distance-info');
-      const extraRow = $('summary-extra-row'), extraSpan = $('summary-extra');
-      const itemCount = _cartItemCountCache;
-      const { isEnabled, isFree, isAuto } = getOngkirStatusInfo(subtotal);
-      let distanceFee = 0, extraFee = 0;
-      if (isEnabled && isAuto) { distanceFee = calculateDistanceFee(subtotal); extraFee = calculateExtraShippingFees(itemCount).total; }
-      const totalOngkir = distanceFee + extraFee;
-      if (extraRow && extraSpan) {
-        if (isEnabled && isAuto && extraFee > 0) { extraRow.classList.remove('hidden'); extraSpan.innerText = `Rp ${extraFee.toLocaleString('id-ID')}`; }
-        else { extraRow.classList.add('hidden'); extraSpan.innerText = "Rp 0"; }
-      }
-      if (!isEnabled) { shippingSpan.innerText = "Gratis / Tidak ada"; totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`; }
-      else if (isFree) { shippingSpan.innerText = "GRATIS 🎉"; totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')}`; }
-      else if (!isAuto) { shippingSpan.innerText = "Dikonfirmasi Admin"; totalSpan.innerText = `Rp ${subtotal.toLocaleString('id-ID')} (+Ongkir)`; }
-      else { shippingSpan.innerText = `Rp ${distanceFee.toLocaleString('id-ID')}`; totalSpan.innerText = `Rp ${(subtotal + totalOngkir).toLocaleString('id-ID')}`; }
-      if (noteEl) {
-        if (isEnabled && !isFree && !isAuto && subtotal > 0) { noteEl.style.display = 'block'; noteEl.innerText = "⚠️ Ongkir belum termasuk — admin akan menghitung."; }
-        else noteEl.style.display = 'none';
-      }
-      if (distInfo) {
-        if (!isEnabled) distInfo.innerText = "🚚 Tidak ada ongkir.";
-        else if (!subtotal) distInfo.innerText = "🛒 Tambahkan produk untuk menghitung ongkir.";
-        else if (isFree) distInfo.innerText = `🎉 Ongkir GRATIS (≥ Rp ${(shippingConfig.freeMin||0).toLocaleString('id-ID')}).`;
-        else if (!isAuto) distInfo.innerText = "📍 Alamat WAJIB diketik manual. Peta untuk hitung ongkir otomatis.";
-        else {
-          const distance = haversineDistance(shippingConfig.storeLat, shippingConfig.storeLng, userLocation.lat, userLocation.lng);
-          let extraNote = extraFee > 0 ? ` | Tambahan: Rp ${extraFee.toLocaleString('id-ID')}` : "";
-          distInfo.innerText = `Jarak: ${distance.toFixed(2)} km | Ongkir: Rp ${distanceFee.toLocaleString('id-ID')}${extraNote} | Total: Rp ${totalOngkir.toLocaleString('id-ID')}`;
-        }
-      }
-    };
-
-    const reverseGeocode = async (lat, lng) => {
-      const mapStatusEl = $('map-status');
-      const address = await reverseGeocodeWithFallback(lat, lng);
-      const finalAddress = address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      if (userLocation) userLocation.address = finalAddress;
-      if (mapStatusEl) mapStatusEl.innerText = address ? `📍 Lokasi: ${finalAddress}` : `📍 Koordinat: ${finalAddress}`;
-      requestShippingUpdate();
-    };
-
-    let locatingNow = false, livePositionWatchId = null, lastLivePosition = null;
-    const stopLivePositionWatch = () => { if (livePositionWatchId !== null) { try { navigator.geolocation.clearWatch(livePositionWatchId); } catch(e) {} livePositionWatchId = null; } };
-    const startLivePositionWatch = () => {
-      if (!navigator.geolocation || livePositionWatchId !== null) return;
-      try {
-        livePositionWatchId = navigator.geolocation.watchPosition(
-          pos => { lastLivePosition = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy || 999, ts: Date.now() }; },
-          err => { console.warn("GPS watch error:", err); },
-          { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
-        );
-      } catch(e) {}
-    };
-
-    const getFreshPosition = () => new Promise((resolve, reject) => {
-      if (!navigator.geolocation) { reject(new Error("BROWSER_TIDAK_DUKUNG")); return; }
-      startLivePositionWatch();
-      const ACCURACY_TARGET = 25, MAX_WAIT = 15000;
-      let bestPos = null, settled = false, watchId = null, timeoutId = null;
-      const cleanup = () => { if (watchId !== null) { try { navigator.geolocation.clearWatch(watchId); } catch(e) {} watchId = null; } if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; } };
-      const finish = (pos) => { if (settled) return; settled = true; cleanup(); resolve(pos); };
-      const fallbackOrFail = (err) => {
-        if (settled) return; settled = true; cleanup();
-        if (lastLivePosition && Date.now() - lastLivePosition.ts < 30000) {
-          resolve({ coords: { latitude: lastLivePosition.lat, longitude: lastLivePosition.lng, accuracy: lastLivePosition.accuracy || 999, timestamp: lastLivePosition.ts } });
-        } else reject(err);
-      };
-      try { watchId = navigator.geolocation.watchPosition(
-        (pos) => { const acc = pos.coords.accuracy || 9999; if (!bestPos || acc < (bestPos.coords.accuracy || 9999)) bestPos = pos; if (acc <= ACCURACY_TARGET) finish(bestPos); },
-        (err) => { if (!bestPos) fallbackOrFail(err); },
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-      ); } catch(e) { fallbackOrFail(e); return; }
-      timeoutId = setTimeout(() => { if (bestPos) finish(bestPos); else fallbackOrFail(new Error("TIMEOUT")); }, MAX_WAIT);
-    });
-
-    const initMapPicker = async (lat, lng) => {
-      const mapStatusEl = $("map-status");
-      try { await loadLeaflet(); }
-      catch(err) { if (mapStatusEl) mapStatusEl.innerText = "⚠️ " + err.message; return; }
-      if (!mapPicker) {
-        $("map-picker").style.display = "block";
-        mapPicker = L.map("map-picker", { zoomControl: true, preferCanvas: true, scrollWheelZoom: true }).setView([lat, lng], 17);
-        mapMarker = L.marker([lat, lng], { draggable: true }).addTo(mapPicker);
-        addFastTiles(mapPicker);
-        mapMarker.on("drag", e => { const p = e.target.getLatLng(); userLocation = { lat: p.lat, lng: p.lng, address: userLocation && userLocation.address || "" }; requestShippingUpdate(); });
-        mapMarker.on("dragend", e => { const p = e.target.getLatLng(); userLocation = { lat: p.lat, lng: p.lng, address: "" }; updateShippingDisplay(); reverseGeocode(p.lat, p.lng); });
-        mapPicker.on("click", e => { mapMarker.setLatLng(e.latlng); userLocation = { lat: e.latlng.lat, lng: e.latlng.lng, address: "" }; updateShippingDisplay(); reverseGeocode(e.latlng.lat, e.latlng.lng); });
-      } else {
-        $("map-picker").style.display = "block";
-        mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
-        if (mapMarker) mapMarker.setLatLng([lat, lng]);
-      }
-      scheduleInvalidate(mapPicker);
-      setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 200);
-      setTimeout(() => { if (mapPicker) mapPicker.invalidateSize(); }, 600);
-    };
-
-    const setCustomerMapLocation = async (lat, lng) => {
-      await initMapPicker(lat, lng);
-      if (mapPicker) mapPicker.setView([lat, lng], Math.max(mapPicker.getZoom() || 17, 17));
-      if (mapMarker) mapMarker.setLatLng([lat, lng]);
-      userLocation = { lat, lng, address: "" };
-      reverseGeocode(lat, lng);
-      updateShippingDisplay();
-    };
-
-    const locateCustomerCurrent = async ({ force = false } = {}) => {
-      if (locatingNow) return !!(userLocation && userLocation.lat);
-      if (!force && userLocation && userLocation.lat) {
-        const mapEl = $("map-picker");
-        if (!mapPicker || (mapEl && mapEl.style.display === 'none')) {
-          await initMapPicker(userLocation.lat, userLocation.lng);
-          if (mapMarker) mapMarker.setLatLng([userLocation.lat, userLocation.lng]);
-        }
-        return true;
-      }
-      const btn = $("btn-use-my-location"), mapStatusEl = $("map-status");
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mendapatkan lokasi...'; }
-      if (mapStatusEl) mapStatusEl.innerHTML = "📡 Mengambil lokasi GPS...";
-      locatingNow = true;
-      try {
-        const pos = await getFreshPosition();
-        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-        const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : null;
-        await setCustomerMapLocation(lat, lng);
-        if (mapStatusEl) mapStatusEl.innerHTML = acc ? `✅ Lokasi diperbarui (akurasi ±${acc} m).` : "✅ Lokasi diperbarui.";
-        updateShippingDisplay();
-        return true;
-      } catch(err) {
-        console.warn("Gagal ambil lokasi:", err);
-        if (mapStatusEl) mapStatusEl.innerHTML = "⚠️ Tidak dapat akses lokasi. Aktifkan GPS lalu klik 'Gunakan Lokasi Saya'.";
-        if (force) alert("Aktifkan GPS lalu klik 'Gunakan Lokasi Saya' lagi.");
-        return false;
-      } finally {
-        locatingNow = false;
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-location-arrow"></i> Gunakan Lokasi Saya'; }
-        updateShippingDisplay();
-      }
-    };
-
-    let _lastAutoLocateTs = 0;
-    const AUTO_LOCATE_THROTTLE_MS = 4000;
-    const autoActivateCartLocation = async () => {
-      const mapEl = $('map-picker'), mapStatusEl = $('map-status');
-      if (mapEl && mapEl.style.display === 'none') mapEl.style.display = 'block';
-      if (userLocation && userLocation.lat) {
-        try { await initMapPicker(userLocation.lat, userLocation.lng); if (mapMarker) mapMarker.setLatLng([userLocation.lat, userLocation.lng]); } catch(e) {}
-        startLivePositionWatch();
-        return;
-      }
-      if (locatingNow) return;
-      const now = Date.now();
-      if (now - _lastAutoLocateTs < AUTO_LOCATE_THROTTLE_MS) return;
-      _lastAutoLocateTs = now;
-      if (mapStatusEl) mapStatusEl.innerHTML = "📡 Mengaktifkan peta & lokasi...";
-      const ok = await locateCustomerCurrent({ force: false });
-      if (ok && mapPicker) {
-        scheduleInvalidate(mapPicker);
-        try { mapPicker.setView([userLocation.lat, userLocation.lng], Math.max(mapPicker.getZoom() || 16, 16)); } catch(e) {}
-        startLivePositionWatch();
-      }
-    };
-
-    const initAdminMap = async (lat = shippingConfig.storeLat, lng = shippingConfig.storeLng) => {
-      const el = $('admin-map'); if (!el) return;
-      try { await loadLeaflet(); } catch(err) { $('admin-map-status').innerText = '⚠️ ' + err.message; return; }
-      if (!$('admin-section').classList.contains('active')) return;
-      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'owner')) return;
-      if (!adminMap) {
-        el.style.display = 'block';
-        adminMap = L.map('admin-map', { scrollWheelZoom: false, zoomControl: true, preferCanvas: true }).setView([lat, lng], 16);
-        adminMarker = L.marker([lat, lng], { draggable: true }).addTo(adminMap);
-        addFastTiles(adminMap);
-        adminMap.on('click', e => { adminMarker.setLatLng([e.latlng.lat, e.latlng.lng]); updateShopCoordinate(e.latlng.lat, e.latlng.lng); });
-        adminMarker.on('dragend', e => { const p = e.target.getLatLng(); updateShopCoordinate(p.lat, p.lng); });
-      } else {
-        el.style.display = 'block';
-        adminMap.setView([lat, lng], 16);
-        adminMarker.setLatLng([lat, lng]);
-      }
-      scheduleInvalidate(adminMap);
-    };
-
-    const ensureAdminMapVisible = () => {
-      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'owner')) return;
-      if (!$('admin-section').classList.contains('active')) return;
-      if (!$('admin-map')) return;
-      requestAnimationFrame(() => {
-        if (adminMap) scheduleInvalidate(adminMap);
-        else initAdminMap(parseFloat($('ship-lat').value) || shippingConfig.storeLat, parseFloat($('ship-lng').value) || shippingConfig.storeLng);
-      });
-    };
-
-    let adminCoordTid = null;
-    const updateShopCoordinate = (lat, lng) => {
-      $('ship-lat').value = lat; $('ship-lng').value = lng;
-      $('admin-map-status').innerText = `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      if (adminCoordTid) clearTimeout(adminCoordTid);
-      adminCoordTid = setTimeout(() => reverseAdminGeocode(lat, lng), 350);
-    };
-    const reverseAdminGeocode = async (lat, lng) => {
-      const address = await reverseGeocodeWithFallback(lat, lng);
-      if (address) { $('ship-address').value = address; $('admin-map-status').innerText = `Alamat: ${address}`; }
-      else $('admin-map-status').innerText = `Koordinat: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    };
-
-    // ===== SAVE FUNCTIONS =====
-    const saveProducts = () => {
+      localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
       invalidateSearchIndex();
-      const doLocal = () => {
-        localStorage.setItem('adidin_products', JSON.stringify(products));
-        if (activeStoreId) localStorage.setItem(`adidin_products_${activeStoreId}`, JSON.stringify(products));
-        renderProducts();
-        if (currentUser) { renderAdminProducts(); renderPosProducts(); }
-        renderQuickSearchResults();
-      };
-      if (firebaseReady) db.ref(`products/${activeStoreId||'default'}`).set(products).then(doLocal).catch(err => { console.error(err); doLocal(); });
-      else doLocal();
-    };
-    const saveUsers = () => {
-      localStorage.setItem('adidin_users', JSON.stringify(adminUsers));
-      if (activeStoreId) localStorage.setItem(`adidin_users_${activeStoreId}`, JSON.stringify(adminUsers));
-      if (firebaseReady) db.ref(`users/${activeStoreId||'default'}`).set(adminUsers);
-      if (currentUser) renderAdminUsers();
-    };
-    const saveHistory = () => {
-      localStorage.setItem('adidin_history', JSON.stringify(historyList));
-      if (activeStoreId) localStorage.setItem(`adidin_history_${activeStoreId}`, JSON.stringify(historyList));
-      if (firebaseReady) db.ref(`history/${activeStoreId||'default'}`).set(historyList);
+      scheduleRenderBatch();
+    });
+    _activeFirebaseRefs.push(pRef);
+
+    // Store status
+    const sRef = db.ref(`store_status/${sid}`);
+    sRef.on('value', snap => { if (snap.exists()) storeOpen = snap.val() === true; else storeOpen = true; renderStoreStatus(); scheduleRenderBatch(); });
+    _activeFirebaseRefs.push(sRef);
+
+    // History
+    const hRef = db.ref(`history/${sid}`);
+    hRef.on('value', snap => {
+      const data = snap.val();
+      const hasData = data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0);
+      if (hasData) historyList = Array.isArray(data) ? data : Object.values(data);
+      else { const local = safeParse(localStorage.getItem(`adidin_history_${sid}`), []); historyList = Array.isArray(local) ? local : []; }
       renderHistory(historyList); calcFinance(historyList); updateSalesCalculator();
-    };
-    const saveBroadcast = () => {
-      localStorage.setItem('adidin_broadcast_history', JSON.stringify(broadcastHistory));
-      if (activeStoreId) localStorage.setItem(`adidin_broadcast_history_${activeStoreId}`, JSON.stringify(broadcastHistory));
-      if (firebaseReady) db.ref(`broadcast_history/${activeStoreId||'default'}`).set(broadcastHistory);
+    });
+    _activeFirebaseRefs.push(hRef);
+
+    // Broadcast
+    const bRef = db.ref(`broadcast_history/${sid}`);
+    bRef.on('value', snap => {
+      const data = snap.val();
+      if (data) broadcastHistory = Object.values(data);
+      else { const local = safeParse(localStorage.getItem(`adidin_broadcast_history_${sid}`), []); broadcastHistory = Array.isArray(local) ? local : []; }
       renderAnnouncement();
       if (currentUser) renderBroadcastHistory(broadcastHistory);
-    };
-    const saveCart = () => {
-      localStorage.setItem('adidin_cart', JSON.stringify(cart));
-      if (activeStoreId) localStorage.setItem(`adidin_cart_${activeStoreId}`, JSON.stringify(cart));
-      $('cart-count').innerText = cart.length;
-    };
-    const saveCalcHistory = () => {
-      localStorage.setItem('adidin_calc_history', JSON.stringify(calcHistoryList));
-      if (activeStoreId) localStorage.setItem(`adidin_calc_history_${activeStoreId}`, JSON.stringify(calcHistoryList));
-      if (firebaseReady) { try { db.ref(`calc_history/${activeStoreId||'default'}`).set(calcHistoryList); } catch(e) {} }
+    });
+    _activeFirebaseRefs.push(bRef);
+
+    // Calc history
+    const cRef = db.ref(`calc_history/${sid}`);
+    cRef.on('value', snap => {
+      const data = snap.val();
+      if (data) calcHistoryList = Array.isArray(data) ? data : Object.values(data);
+      else { const local = safeParse(localStorage.getItem(`adidin_calc_history_${sid}`), []); calcHistoryList = Array.isArray(local) ? local : []; }
       renderCalcHistory();
-    };
-    const saveStoreStatus = () => {
-      localStorage.setItem('adidin_store_open', storeOpen);
-      if (activeStoreId) localStorage.setItem(`adidin_store_open_${activeStoreId}`, storeOpen);
-      if (firebaseReady) db.ref(`store_status/${activeStoreId||'default'}`).set(storeOpen);
-      renderStoreStatus();
-    };
-    const saveTheme = () => {
-      localStorage.setItem('adidin_theme_promo', JSON.stringify(themeConfig));
-      if (activeStoreId) localStorage.setItem(`adidin_theme_promo_${activeStoreId}`, JSON.stringify(themeConfig));
-      if (firebaseReady) db.ref(`theme_promo/${activeStoreId||'default'}`).set(themeConfig);
-      applyTheme();
-    };
-    const saveStores = () => {
-      localStorage.setItem('ms_all_stores', JSON.stringify(allStores));
-      if (firebaseReady) db.ref('stores').set(allStores);
-      populateStoreDatalists();
-      renderOwnerDashboard();
-    };
+    });
+    _activeFirebaseRefs.push(cRef);
 
-    // ===== MULTI-TOKO CORE =====
-    function populateStoreDatalists() {
-      const html = allStores.map(s => `<option value="${s.name}">${s.code} — ${s.address||''}</option>`).join('') +
-                   `<option value="${OWNER_STORE_NAME}">Akses Semua Cabang (Owner)</option>`;
-      ['ms-store-list','ms-store-list-reg'].forEach(id => { const el = $(id); if (el) el.innerHTML = html; });
-    }
+    // Shipping config
+    const shRef = db.ref(`shipping_config/${sid}`);
+    shRef.on('value', snap => {
+      const data = snap.val();
+      if (data) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...data }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; applyShippingForm(); renderCart(); }
+      else { const local = safeParse(localStorage.getItem(`adidin_shipping_config_${sid}`), null); if (local) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...local }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; applyShippingForm(); renderCart(); } }
+    });
+    _activeFirebaseRefs.push(shRef);
 
-    function loadStoreData(storeId) {
-      const sid = storeId || 'default';
-      const get = (k, fb) => safeParse(localStorage.getItem(`${k}_${sid}`), fb);
-      const prods = get('adidin_products', null);
-      if (prods) products = Array.isArray(prods) ? prods : Object.values(prods);
-      const users = get('adidin_users', null);
-      if (users) adminUsers = Array.isArray(users) ? users : Object.values(users);
-      historyList = get('adidin_history', []);
-      if (!Array.isArray(historyList)) historyList = [];
-      calcHistoryList = get('adidin_calc_history', []);
-      if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
-      broadcastHistory = get('adidin_broadcast_history', []);
-      if (!Array.isArray(broadcastHistory)) broadcastHistory = [];
-      cart = get('adidin_cart', []);
-      if (!Array.isArray(cart)) cart = [];
-      storeOpen = localStorage.getItem(`adidin_store_open_${sid}`) !== 'false';
-      const sc = get('adidin_shipping_config', null);
-      if (sc) shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...sc };
-      const th = get('adidin_theme_promo', null);
-      if (th) themeConfig = { ...DEFAULT_THEME, ...th };
-      invalidateSearchIndex();
-    }
-
+    // Theme
+    const tRef = db.ref(`theme_promo/${sid}`);
+    tRef.on('value', snap => {
+      const data = snap.val();
+      if (data) { themeConfig = { ...DEFAULT_THEME, ...data }; applyTheme(); }
+      else { const local = safeParse(localStorage.getItem(`adidin_theme_promo_${sid}`), null); if (local) { themeConfig = { ...DEFAULT_THEME, ...local }; applyTheme(); } }
+    });
+    _activeFirebaseRefs.push(tRef);
+  }
+      // ===== SET ACTIVE STORE (dengan rebind Firebase) =====
     function setActiveStore(storeId, storeName) {
       activeStoreId = storeId;
       activeStoreName = storeName;
@@ -1725,7 +1708,10 @@
       localStorage.setItem('ms_active_store_name', storeName);
       localStorage.setItem('adidin_active_store_id', storeId);
       localStorage.setItem('adidin_active_store_name', storeName);
+
       loadStoreData(storeId);
+      if (firebaseReady) rebindFirebaseListeners(storeId);
+
       renderActiveStoreBadge();
       try { renderStoreStatus(); } catch(e) {}
       try { applyTheme(); } catch(e) {}
@@ -1892,11 +1878,7 @@
       if (!newCode) return alert('Kode wajib diisi!');
       if (allStores.some(x => x.id !== id && x.name.toLowerCase() === newName.toLowerCase())) return alert('Nama sudah dipakai cabang lain!');
       if (allStores.some(x => x.id !== id && x.code === newCode)) return alert('Kode sudah dipakai cabang lain!');
-      s.name = newName;
-      s.code = newCode;
-      s.address = newAddress;
-      s.phone = newPhone;
-      s.updatedAt = Date.now();
+      s.name = newName; s.code = newCode; s.address = newAddress; s.phone = newPhone; s.updatedAt = Date.now();
       saveStores();
       if (activeStoreId === id) {
         activeStoreName = newName;
@@ -1919,9 +1901,7 @@
         id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         timestamp: now.getTime(),
         timeStr: `${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })}`,
-        action: action,
-        storeId: storeId,
-        storeName: storeName || storeId,
+        action: action, storeId: storeId, storeName: storeName || storeId,
         user: currentUser ? currentUser.username : 'Guest',
         role: currentUser ? currentUser.role : 'unknown',
         wa: currentUser ? (currentUser.whatsapp || '-') : '-'
@@ -1949,12 +1929,8 @@
       modal.classList.remove('hidden');
       const filterStore = storeId || null;
       const storeNameEl = $('ms-log-store-name');
-      if (filterStore) {
-        const s = allStores.find(x => x.id === filterStore);
-        storeNameEl.textContent = s ? s.name : filterStore;
-      } else {
-        storeNameEl.textContent = 'Semua Cabang';
-      }
+      if (filterStore) { const s = allStores.find(x => x.id === filterStore); storeNameEl.textContent = s ? s.name : filterStore; }
+      else storeNameEl.textContent = 'Semua Cabang';
       renderStoreLog(filterStore);
       modal.dataset.filterStore = filterStore || '';
     }
@@ -1965,10 +1941,7 @@
       const logs = safeParse(localStorage.getItem(STORE_LOG_KEY), []) || [];
       let arr = Array.isArray(logs) ? logs : [];
       if (filterStore) arr = arr.filter(l => l.storeId === filterStore);
-      if (arr.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px;font-style:italic;">Belum ada log buka/tutup toko.</td></tr>';
-        return;
-      }
+      if (arr.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px;font-style:italic;">Belum ada log.</td></tr>'; return; }
       arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       const frag = document.createDocumentFragment();
       arr.forEach(log => {
@@ -1977,12 +1950,7 @@
         const badgeText = isBuka ? '#15803d' : '#b91c1d';
         const icon = isBuka ? '🟢' : '🔴';
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="font-size:11px;">${log.timeStr}</td>
-          <td><strong>${log.storeName}</strong><br><small style="color:var(--muted);font-size:9px;">${log.storeId}</small></td>
-          <td><strong>${log.user}</strong><br><small style="color:var(--muted);font-size:9px;">WA: ${log.wa}</small></td>
-          <td><span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:999px;font-weight:700;font-size:10px;">${(log.role || '-').toUpperCase()}</span></td>
-          <td><span style="background:${badgeColor};color:${badgeText};padding:3px 10px;border-radius:999px;font-weight:800;font-size:10px;">${icon} ${log.action}</span></td>`;
+        tr.innerHTML = `<td style="font-size:11px;">${log.timeStr}</td><td><strong>${log.storeName}</strong><br><small style="color:var(--muted);font-size:9px;">${log.storeId}</small></td><td><strong>${log.user}</strong><br><small style="color:var(--muted);font-size:9px;">WA: ${log.wa}</small></td><td><span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:999px;font-weight:700;font-size:10px;">${(log.role || '-').toUpperCase()}</span></td><td><span style="background:${badgeColor};color:${badgeText};padding:3px 10px;border-radius:999px;font-weight:800;font-size:10px;">${icon} ${log.action}</span></td>`;
         frag.appendChild(tr);
       });
       tbody.appendChild(frag);
@@ -1993,8 +1961,7 @@
         await ensureJsPDFLib();
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
+        const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
         const now = new Date();
         const tgl = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
         const jam = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
@@ -2003,27 +1970,20 @@
         let arr = Array.isArray(logs) ? logs : [];
         if (filterStore) arr = arr.filter(l => l.storeId === filterStore);
         arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        if (arr.length === 0) return alert('Belum ada log untuk di-export.');
+        if (arr.length === 0) return alert('Belum ada log.');
         doc.setDrawColor(0); doc.setFillColor(255); doc.setTextColor(0);
         doc.rect(8, 8, pageW - 16, 18, 'S');
         doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
         doc.text("LOG BUKA/TUTUP TOKO — A'DIDIN", pageW / 2, 15, { align: 'center' });
         doc.setFontSize(9); doc.setFont('helvetica', 'normal');
         const storeLabel = filterStore ? (allStores.find(s => s.id === filterStore)?.name || filterStore) : 'Semua Cabang';
-        doc.text(`Cabang: ${storeLabel} | Total Log: ${arr.length}`, pageW / 2, 21, { align: 'center' });
+        doc.text(`Cabang: ${storeLabel} | Total: ${arr.length}`, pageW / 2, 21, { align: 'center' });
         doc.text(`Dicetak: ${tgl}, ${jam} WIB`, 14, 31);
         const rows = arr.map((l, i) => [i + 1, l.timeStr, l.storeName, l.user, (l.role || '-').toUpperCase(), l.action, l.wa || '-']);
-        doc.autoTable({
-          startY: 38,
-          head: [['No','Waktu','Cabang','Karyawan','Role','Aksi','WA']],
-          body: rows, theme: 'grid',
-          styles: { fontSize: 8, cellPadding: 1.8, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 },
-          headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center', lineWidth: 0.25 },
-          didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); }
-        });
+        doc.autoTable({ startY: 38, head: [['No','Waktu','Cabang','Karyawan','Role','Aksi','WA']], body: rows, theme: 'grid', styles: { fontSize: 8, cellPadding: 1.8, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center', lineWidth: 0.25 }, didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); } });
         const pad = n => String(n).padStart(2,'0');
         doc.save(`LogToko_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
-      } catch(e) { alert('Gagal export PDF: ' + e.message); }
+      } catch(e) { alert('Gagal: ' + e.message); }
     }
 
     function openSwitcher() {
@@ -2035,11 +1995,7 @@
         const isActive = s.id === activeStoreId;
         const item = document.createElement('div');
         item.style.cssText = `padding:12px;border:2px solid ${isActive ? '#1d4ed8' : 'var(--border)'};border-radius:10px;margin-bottom:8px;cursor:pointer;background:${isActive ? '#dbeafe' : '#fff'};`;
-        item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;">
-          <div><div style="font-weight:800;font-size:14px;">${s.owner ? '👑 ' : '🏬 '}${s.name}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:3px;">${s.code} • ${s.address||'-'}</div></div>
-          ${isActive ? '<span style="background:#1d4ed8;color:#fff;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:800;">AKTIF</span>' : ''}
-        </div>`;
+        item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;"><div><div style="font-weight:800;font-size:14px;">${s.owner ? '👑 ' : '🏬 '}${s.name}</div><div style="font-size:11px;color:var(--muted);margin-top:3px;">${s.code} • ${s.address||'-'}</div></div>${isActive ? '<span style="background:#1d4ed8;color:#fff;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:800;">AKTIF</span>' : ''}</div>`;
         if (!isActive) item.addEventListener('click', () => { setActiveStore(s.id, s.name); modal.style.display = 'none'; alert('✅ Sekarang: ' + s.name); });
         list.appendChild(item);
       });
@@ -2047,7 +2003,7 @@
       modal.classList.remove('hidden');
     }
 
-    // ===== LOGIN/REGISTER =====
+    // ===== LOGIN / REGISTER =====
     function handleMSLogin() {
       const storeName = $('ms-login-store').value.trim();
       const role = $('ms-login-role').value;
@@ -2064,20 +2020,14 @@
         if (!found) return alert('Username/password Owner salah!');
         currentUser = found;
         localStorage.setItem('adidin_admin_session', JSON.stringify(found));
-        activeStoreId = OWNER_STORE_ID;
-        activeStoreName = OWNER_STORE_NAME;
+        activeStoreId = OWNER_STORE_ID; activeStoreName = OWNER_STORE_NAME;
         localStorage.setItem('ms_active_store_id', activeStoreId);
         localStorage.setItem('ms_active_store_name', activeStoreName);
         localStorage.setItem('adidin_active_store_id', activeStoreId);
         localStorage.setItem('adidin_active_store_name', activeStoreName);
         $('multistore-auth-overlay').style.display = 'none';
         switchPage('admin');
-        setTimeout(() => {
-          $('ms-owner-dashboard').classList.remove('hidden');
-          renderActiveStoreBadge();
-          updateSwitcherVisibility();
-          fetchOwnerStats().then(renderOwnerDashboard);
-        }, 400);
+        setTimeout(() => { $('ms-owner-dashboard').classList.remove('hidden'); renderActiveStoreBadge(); updateSwitcherVisibility(); fetchOwnerStats().then(renderOwnerDashboard); }, 400);
         alert('👑 Selamat datang, Owner Pusat!');
         return;
       }
@@ -2095,11 +2045,7 @@
       setActiveStore(store.id, store.name);
       $('multistore-auth-overlay').style.display = 'none';
       switchPage('admin');
-      setTimeout(() => {
-        $('ms-owner-dashboard').classList.add('hidden');
-        renderActiveStoreBadge();
-        updateSwitcherVisibility();
-      }, 400);
+      setTimeout(() => { $('ms-owner-dashboard').classList.add('hidden'); renderActiveStoreBadge(); updateSwitcherVisibility(); }, 400);
       alert(`✅ Selamat datang ${found.role.toUpperCase()} ${found.username}\n🏬 Toko: ${store.name}`);
     }
 
@@ -2123,7 +2069,7 @@
       if (role === 'owner') {
         const ownerUsers = safeParse(localStorage.getItem(`adidin_users_${OWNER_STORE_ID}`), []) || [];
         const ownerArr = Array.isArray(ownerUsers) ? ownerUsers : Object.values(ownerUsers);
-        if (ownerArr.some(u => u.role === 'owner')) return alert('❌ Owner Pusat sudah terdaftar!\n\nHanya boleh 1 akun Owner.');
+        if (ownerArr.some(u => u.role === 'owner')) return alert('❌ Owner Pusat sudah terdaftar!');
       }
 
       let store;
@@ -2149,7 +2095,7 @@
       $('ms-switch-login').click();
     }
 
-    // ===== RENDER STORE =====
+    // ===== RENDER STORE STATUS =====
     const renderStoreStatus = () => {
       const banner = $('store-status-banner'), textEl = $('store-status-text'), adminBtn = $('btn-toggle-store-status');
       if (banner && textEl) {
@@ -2164,7 +2110,7 @@
       updateScheduleUI();
     };
 
-    // ===== NAV =====
+    // ===== NAVIGASI =====
     const switchPage = (name) => {
       ['buyer-dashboard','cart-dashboard','admin-section'].forEach(id => $(id).classList.remove('active'));
       document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
@@ -2197,12 +2143,8 @@
           }
           renderActiveStoreBadge();
           updateSwitcherVisibility();
-          if (isOwner()) {
-            $('ms-owner-dashboard').classList.remove('hidden');
-            fetchOwnerStats().then(renderOwnerDashboard);
-          } else if ($('ms-owner-dashboard')) {
-            $('ms-owner-dashboard').classList.add('hidden');
-          }
+          if (isOwner()) { $('ms-owner-dashboard').classList.remove('hidden'); fetchOwnerStats().then(renderOwnerDashboard); }
+          else if ($('ms-owner-dashboard')) $('ms-owner-dashboard').classList.add('hidden');
         }, 150);
       }
     };
@@ -2211,18 +2153,15 @@
     const renderAnnouncement = () => {
       const activeList = getActiveAnnouncements();
       const badge = $('bell-badge'), content = $('bell-content'), empty = $('bell-empty');
-      const bellIcon = document.querySelector('#bell-container .fa-bell');
       if (activeList.length > 0) {
         badge.innerText = activeList.length;
         badge.classList.remove('hidden');
         empty.classList.add('hidden');
         content.innerHTML = activeList.map(b => `<div class="bell-item"><strong>📢 ${b.time}</strong>${b.text}</div>`).join('');
-        if (bellIcon) bellIcon.classList.add('bell-pulse');
       } else {
         badge.classList.add('hidden');
         empty.classList.remove('hidden');
         content.innerHTML = '';
-        if (bellIcon) bellIcon.classList.remove('bell-pulse');
       }
     };
 
@@ -2249,8 +2188,8 @@
         const pretty = getUnitPretty(unit);
         if (priceHint) priceHint.innerText = unit === 'pcs' ? '(per Pcs)' : `(per ${pretty})`;
         if (stockHint) {
-          if (unit === 'gram') stockHint.innerText = 'Satuan gram (contoh: 5000 = 5 Kg).';
-          else if (unit === 'mililiter') stockHint.innerText = 'Satuan ml (contoh: 5000 = 5 L).';
+          if (unit === 'gram') stockHint.innerText = 'Satuan gram.';
+          else if (unit === 'mililiter') stockHint.innerText = 'Satuan ml.';
           else stockHint.innerText = `Satuan ${pretty}.`;
         }
       }
@@ -2483,8 +2422,7 @@
         const toppings = item.toppings || [];
         const topingCost = toppings.reduce((s,t) => s + (t.price||0), 0) * (item.qty || 1);
         const total = Math.round((item.product.price || 0) * (item.qty || 1)) + Math.round(topingCost);
-        subtotal += total;
-        itemCount += (parseFloat(item.qty) || 1);
+        subtotal += total; itemCount += (parseFloat(item.qty) || 1);
         const qtyLabel = formatQtyLabel(item.qty, unit);
         const topingText = toppings.length ? `<div style="font-size:10px;color:var(--primary);margin-bottom:2px;">Toping: ${toppings.map(t=>t.name).join(', ')}</div>` : '';
         let conversionLine = '';
@@ -2548,6 +2486,23 @@
       }
     };
 
+    const applyShippingForm = () => {
+      if (!$('ship-enabled')) return;
+      $('ship-enabled').value = shippingConfig.enabled ? 'true' : 'false';
+      $('ship-address').value = shippingConfig.storeAddress || '';
+      $('ship-lat').value = shippingConfig.storeLat || -6.200000;
+      $('ship-lng').value = shippingConfig.storeLng || 106.816666;
+      $('ship-per-km').value = shippingConfig.perKm;
+      $('ship-min-fee').value = shippingConfig.minFee;
+      $('ship-free-min').value = shippingConfig.freeMin;
+      if ($('extra-flat-enable')) $('extra-flat-enable').checked = shippingConfig.extraFlatEnable === true;
+      if ($('extra-flat-max')) $('extra-flat-max').value = shippingConfig.extraFlatMaxQty || 3;
+      if ($('extra-flat-fee')) $('extra-flat-fee').value = shippingConfig.extraFlatFee || 0;
+      if ($('extra-per-enable')) $('extra-per-enable').checked = shippingConfig.extraPerEnable === true;
+      if ($('extra-per-max')) $('extra-per-max').value = shippingConfig.extraPerMaxQty || 3;
+      if ($('extra-per-price')) $('extra-per-price').value = shippingConfig.extraPerPrice || 0;
+    };
+
     const renderPosProducts = () => {
       const container = $('pos-product-list'); if (!container) return;
       const search = ($('pos-search').value || '').toLowerCase();
@@ -2560,7 +2515,7 @@
         card.className = 'pos-item-card';
         card.onclick = () => addPos(p);
         const stockTxt = p.unitType === 'digital' ? '∞' : `${p.stock} ${getUnitPretty(p.unitType)}`;
-        card.innerHTML = `<img src="${p.img}" alt="" loading="lazy"><h5>${p.name}</h5><p>Rp ${p.price.toLocaleString('id-ID')} <small style="font-size:9px;color:var(--muted);">/${getUnitPretty(p.unitType)}</small></p><div style="font-size:9px;color:var(--muted);">Stok: ${stockTxt} | Rak: ${p.rack||'-'}</div>${(p.toppings&&p.toppings.length) ? '<div style="font-size:9px;color:var(--primary);">Toping tersedia</div>' : ''}`;
+        card.innerHTML = `<img src="${p.img}" alt="" loading="lazy"><h5>${p.name}</h5><p>Rp ${p.price.toLocaleString('id-ID')} <small style="font-size:9px;color:var(--muted);">/${getUnitPretty(p.unitType)}</small></p><div style="font-size:9px;color:var(--muted);">Stok: ${stockTxt} | Rak: ${p.rack||'-'}</div>`;
         frag.appendChild(card);
       });
       container.appendChild(frag);
@@ -2711,17 +2666,6 @@
       localStorage.setItem('adidin_calc_modal', String(modalTambahan));
     }
 
-    (function initCalcInputs() {
-      const setorEl = $('calc-setor'), modalEl = $('calc-modal');
-      if (!setorEl || !modalEl) return;
-      setorEl.value = localStorage.getItem('adidin_calc_setor') || '0';
-      modalEl.value = localStorage.getItem('adidin_calc_modal') || '0';
-      setorEl.addEventListener('input', updateSalesCalculator);
-      modalEl.addEventListener('input', updateSalesCalculator);
-      const resetBtn = $('btn-reset-calc');
-      if (resetBtn) resetBtn.addEventListener('click', () => { setorEl.value = '0'; modalEl.value = '0'; updateSalesCalculator(); });
-    })();
-
     const renderCalcHistory = () => {
       const tbody = $('calc-history-table'); if (!tbody) return;
       tbody.innerHTML = '';
@@ -2755,7 +2699,7 @@
       const loss = netProfit < 0 ? Math.abs(netProfit) : 0;
       const status = netProfit > 0 ? 'LABA' : netProfit < 0 ? 'RUGI' : 'IMPAS';
       const now = new Date();
-      const snap = { id: 'calc_' + Date.now(), time: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, timestamp: now.getTime(), user: (currentUser.username || '-') + ' (' + ((currentUser.role || '').toUpperCase()) + ')', totalSales: totalSalesVal, totalHpp: totalHppVal, grossProfit: totalSalesVal - totalHppVal, modalTambahan, setor, totalCapital, netProfit, afterDeposit, loss, status, orderCount: historyList.filter(o => o.orderStatus === 'selesai' || o.orderStatus === 'completed').length };
+      const snap = { id: 'calc_' + Date.now(), time: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, timestamp: now.getTime(), user: (currentUser.username || '-') + ' (' + ((currentUser.role || '').toUpperCase()) + ')', totalSales: totalSalesVal, totalHpp: totalHppVal, grossProfit: totalSalesVal - totalHppVal, modalTambahan, setor, totalCapital, netProfit, afterDeposit, loss, status };
       calcHistoryList.unshift(snap);
       saveCalcHistory();
       alert(`✅ Data disimpan!\nPenjualan: Rp ${totalSalesVal.toLocaleString('id-ID')}\nLaba Bersih: Rp ${netProfit.toLocaleString('id-ID')}\nStatus: ${status}`);
@@ -2780,11 +2724,11 @@
         doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
         doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 15, { align: 'center' });
         doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-        doc.text('Laporan Kalkulasi Penjualan, Setor, Modal & Kerugian', pageW / 2, 21, { align: 'center' });
+        doc.text('Laporan Kalkulasi', pageW / 2, 21, { align: 'center' });
         doc.text(`Dicetak: ${tgl}, ${jam} WIB`, 14, 31);
         doc.text(`Total Data: ${calcHistoryList.length}`, pageW - 14, 31, { align: 'right' });
         const rows = calcHistoryList.map((s, i) => [i+1, s.time||'-', s.user||'-', 'Rp ' + (s.totalSales||0).toLocaleString('id-ID'), 'Rp ' + (s.totalHpp||0).toLocaleString('id-ID'), 'Rp ' + (s.modalTambahan||0).toLocaleString('id-ID'), 'Rp ' + (s.setor||0).toLocaleString('id-ID'), 'Rp ' + (s.totalCapital||0).toLocaleString('id-ID'), 'Rp ' + (s.netProfit||0).toLocaleString('id-ID'), 'Rp ' + (s.afterDeposit||0).toLocaleString('id-ID'), 'Rp ' + (s.loss||0).toLocaleString('id-ID'), s.status||'-']);
-        doc.autoTable({ startY: 40, head: [['No','Waktu','Oleh','Penjualan','HPP','Modal +','Setor','Total Modal','Laba Bersih','Setelah Setor','Kerugian','Status']], body: rows, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.6, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center', lineWidth: 0.25 }, didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); } });
+        doc.autoTable({ startY: 40, head: [['No','Waktu','Oleh','Penjualan','HPP','Modal +','Setor','Total Modal','Laba Bersih','Setelah Setor','Kerugian','Status']], body: rows, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.6 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center' } });
         const pad = n => String(n).padStart(2, '0');
         doc.save(`Kalkulasi_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
       } catch(err) { alert('Gagal: ' + err.message); }
@@ -2813,7 +2757,7 @@
       list.forEach(b => {
         const isEnabled = b.enabled !== false;
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${b.time}</td><td style="word-break:break-word;">${b.text} <span style="display:block;font-size:9px;color:${isEnabled ? 'var(--success)' : 'var(--danger)'};">[${isEnabled ? 'TAMPIL' : 'NONAKTIF'}]</span></td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${canManage ? `<button class="${isEnabled ? 'btn-danger' : 'btn-success'}" style="padding:3px 8px;font-size:10px;" data-toggle-bc="${b.id}">${isEnabled ? 'Nonaktifkan' : 'Aktifkan'}</button><button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-bc="${b.id}"><i class="fas fa-trash"></i> Hapus</button>` : '<span style="font-size:10px;color:var(--muted);">Hanya admin</span>'}</div></td>`;
+        tr.innerHTML = `<td>${b.time}</td><td style="word-break:break-word;">${b.text} <span style="display:block;font-size:9px;color:${isEnabled ? 'var(--success)' : 'var(--danger)'};">[${isEnabled ? 'TAMPIL' : 'NONAKTIF'}]</span></td><td><div style="display:flex;gap:4px;flex-wrap:wrap;">${canManage ? `<button class="${isEnabled ? 'btn-danger' : 'btn-success'}" style="padding:3px 8px;font-size:10px;" data-toggle-bc="${b.id}">${isEnabled ? 'Nonaktifkan' : 'Aktifkan'}</button><button class="btn-danger" style="padding:3px 8px;font-size:10px;" data-bc="${b.id}"><i class="fas fa-trash"></i></button>` : ''}</div></td>`;
         tbody.appendChild(tr);
       });
       tbody.querySelectorAll('button[data-toggle-bc]').forEach(btn => btn.addEventListener('click', e => {
@@ -2959,14 +2903,13 @@
         const now = new Date();
         const tgl = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
         const jam = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
+        const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
         doc.setDrawColor(0); doc.setFillColor(255); doc.setTextColor(0);
         doc.rect(8, 8, pageW - 16, 18, 'S');
         doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
         doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 15, { align: 'center' });
         doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-        doc.text('Laporan Stok Barang & Nilai Persediaan', pageW / 2, 21, { align: 'center' });
+        doc.text('Laporan Stok Barang', pageW / 2, 21, { align: 'center' });
         doc.text(`Dicetak: ${tgl}, ${jam} WIB`, 14, 31);
         doc.text(`Toko: ${activeStoreName || '-'}`, pageW - 14, 31, { align: 'right' });
         const rows = products.map((p, i) => {
@@ -2975,9 +2918,7 @@
           const priceVal = parseInt(p.price) || 0, costVal = parseInt(p.costPrice) || 0, stockVal = isDigital ? 0 : (parseInt(p.stock) || 0);
           return [i+1, p.name||'-', p.barcode||'-', p.rack||'-', p.category||'-', unit, isDigital?'∞':String(p.stock), formatExpiredDate(p.expiredDate), 'Rp ' + priceVal.toLocaleString('id-ID'), 'Rp ' + costVal.toLocaleString('id-ID'), 'Rp ' + (priceVal*stockVal).toLocaleString('id-ID'), 'Rp ' + (costVal*stockVal).toLocaleString('id-ID')];
         });
-        let gSell = 0, gCost = 0;
-        products.forEach(p => { if (p.unitType !== 'digital') { gSell += (parseInt(p.price)||0)*(parseInt(p.stock)||0); gCost += (parseInt(p.costPrice)||0)*(parseInt(p.stock)||0); } });
-        doc.autoTable({ startY: 42, head: [['No','Nama','Barcode','Rak','Kategori','Satuan','Stok','Ekspayer','Harga Jual','Harga Modal','Total Jual','Total Modal']], body: rows, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.6, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center', lineWidth: 0.25 }, foot: [[{ content: 'TOTAL', colSpan: 10, styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240] } }, { content: 'Rp ' + gSell.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240] } }, { content: 'Rp ' + gCost.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor: [240,240,240] } }]], didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); } });
+        doc.autoTable({ startY: 42, head: [['No','Nama','Barcode','Rak','Kategori','Satuan','Stok','Ekspayer','Harga Jual','Harga Modal','Total Jual','Total Modal']], body: rows, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.6 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center' } });
         const pad = n => String(n).padStart(2, '0');
         doc.save(`Stok_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
       } catch(err) { alert('Gagal: ' + err.message); }
@@ -2995,21 +2936,20 @@
         const now = new Date();
         const tgl = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
         const jam = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
+        const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
         doc.setDrawColor(0); doc.setFillColor(255); doc.setTextColor(0);
         doc.rect(8, 8, pageW - 16, 18, 'S');
         doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
         doc.text("TOKO ONLINE A'DIDIN", pageW / 2, 15, { align: 'center' });
         doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-        doc.text(`Laporan Penjualan — ${activeStoreName || 'Semua Toko'}`, pageW / 2, 21, { align: 'center' });
+        doc.text(`Laporan Penjualan — ${activeStoreName || '-'}`, pageW / 2, 21, { align: 'center' });
         doc.text(`Dicetak: ${tgl}, ${jam} WIB`, 14, 31);
         doc.text(`Total Transaksi: ${historyList.length}`, pageW - 14, 31, { align: 'right' });
         const rows = historyList.map((o, i) => {
           const sub = o.subtotal || 0, hpp = o.totalHpp || 0, ongkir = parseInt(o.shippingFee) || 0;
           return [i+1, o.timestamp||'-', o.source||'Online Shop', (o.buyerName||'-') + ' / ' + (o.buyerPhone||'-'), (statusCfg[o.orderStatus]?.label || 'Pesanan Baru').replace('●','').trim(), (o.itemsSummary||'-').replace(/\n/g,' | ').substring(0,200), 'Rp ' + ongkir.toLocaleString('id-ID'), 'Rp ' + (sub+ongkir).toLocaleString('id-ID'), 'Rp ' + (sub-hpp).toLocaleString('id-ID')];
         });
-        doc.autoTable({ startY: 40, head: [['No','Waktu','Sumber','Pembeli','Status','Detail','Ongkir','Total','Laba']], body: rows, theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center', lineWidth: 0.25 }, didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); } });
+        doc.autoTable({ startY: 40, head: [['No','Waktu','Sumber','Pembeli','Status','Detail','Ongkir','Total','Laba']], body: rows, theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign: 'center' } });
         const pad = n => String(n).padStart(2, '0');
         doc.save(`Penjualan_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
       } catch(err) { alert('Gagal: ' + err.message); }
@@ -3065,7 +3005,7 @@
         if (!ok) return false;
       }
       const address = $('checkout-address').value.trim();
-      if (!address || address.length < 10) { alert("⚠️ Alamat lengkap WAJIB diisi (minimal 10 karakter)!"); $('checkout-address').focus(); return false; }
+      if (!address || address.length < 10) { alert("⚠️ Alamat lengkap WAJIB diisi!"); $('checkout-address').focus(); return false; }
       return true;
     }
 
@@ -3102,7 +3042,7 @@
       document.body.appendChild(iframe);
       const iframeDoc = iframe.contentWindow.document;
       iframeDoc.open();
-      iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Struk</title><style>*{margin:0;padding:0;box-sizing:border-box}html{width:80mm}body{width:80mm;margin:0;padding:2mm 3mm;font-family:'Courier New',Courier,monospace;font-size:11px;line-height:1.45;color:#000;background:#fff}table{width:100%;border-collapse:collapse}th,td{padding:1px 0;vertical-align:top}hr{border:0;border-top:1px dashed #000;margin:4px 0}pre{font-family:inherit;white-space:pre-wrap}img{max-width:100%}.text-center{text-align:center}.text-header{text-align:center;font-weight:bold;font-size:14px!important;letter-spacing:1px}.text-header-sub{text-align:center;font-size:11px!important;font-weight:bold}.shop-address{text-align:center;font-size:10px!important}.contact-wa{text-align:center;font-size:10px!important;font-weight:bold;margin:2px 0}.info-table td{padding:1px 3px 1px 0}.info-table td:first-child{white-space:nowrap;width:1%}.info-table tr td:nth-child(2){width:6px;font-weight:bold}.section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:2px 4px;border-radius:4px;margin:4px 0}.receipt-items{margin:2px 0;font-size:11px;line-height:1.45}.total-table td{padding:2px 0}.total-line td{font-weight:bold;border-top:1px solid #000;padding-top:4px}</style></head><body>${htmlBody}</body></html>`);
+      iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Struk</title><style>*{margin:0;padding:0;box-sizing:border-box}html{width:80mm}body{width:80mm;margin:0;padding:2mm 3mm;font-family:'Courier New',Courier,monospace;font-size:11px;line-height:1.45;color:#000;background:#fff}table{width:100%;border-collapse:collapse}hr{border:0;border-top:1px dashed #000;margin:4px 0}pre{font-family:inherit;white-space:pre-wrap}img{max-width:100%}.text-center{text-align:center}.text-header{text-align:center;font-weight:bold;font-size:14px!important}.text-header-sub{text-align:center;font-size:11px!important;font-weight:bold}.contact-wa{text-align:center;font-size:10px!important;font-weight:bold;margin:2px 0}.info-table td{padding:1px 3px 1px 0}.section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:2px 4px;border-radius:4px;margin:4px 0}.receipt-items{margin:2px 0;font-size:11px;line-height:1.45}.total-table td{padding:2px 0}.total-line td{font-weight:bold;border-top:1px solid #000;padding-top:4px}</style></head><body>${htmlBody}</body></html>`);
       iframeDoc.close();
       let attempts = 0;
       const tryPrint = () => {
@@ -3154,81 +3094,13 @@
       const list = getSimpleItemList(order);
       if (!list.length) return alert("Tidak ada rincian barang.");
       const bodyLines = list.map((it, i) => `${i + 1}. ${it.name} => ${formatQtySimple(it.qty)} ${unitLabelForSimpleList(it.unit)}`).join('\n');
-      if (btPrinterChar) {
-        try {
-          await sendRaw(escposInit());
-          await btPrintLine('===============================','c');
-          await btPrintLine('DAFTAR BARANG PESANAN','c',true);
-          await btPrintLine('===============================','c');
-          await btPrintLine('No. Pesanan : ' + (order.id || '-'));
-          await btPrintLine('Waktu       : ' + (order.timestamp || '-'));
-          await btPrintLine('-------------------------------');
-          await btPrintLine(bodyLines);
-          await btPrintLine('-------------------------------');
-          await btPrintLine('Jumlah Item : ' + list.length);
-          await btPrintLine('===============================','c');
-          await btFeed(4);
-          setBtStatus('✅ Terkirim');
-          return;
-        } catch(err) { alert("Gagal Bluetooth: " + err.message); }
-      }
       const receiptHtml = `<div class="section-title">=> DAFTAR BARANG PESANAN <=</div><table class="info-table"><tr><td>No. Pesanan</td><td>:</td><td>${escapeHtmlText(order.id||'-')}</td></tr><tr><td>Waktu</td><td>:</td><td>${escapeHtmlText(order.timestamp||'-')}</td></tr></table><hr><pre class="receipt-items">${escapeHtmlText(bodyLines)}</pre><hr><div>Jumlah Item: ${list.length}</div>`;
       await printDynamicReceipt(receiptHtml);
-    };
-
-    const cetakStrukOrderBluetooth = async (order) => {
-      if (!btPrinterChar) { const ok = await connectBluetooth(); if (!ok) return false; }
-      const items = extractOrderItems(order);
-      const shippingFee = parseInt(order.shippingFee) || 0;
-      const subtotal = order.subtotal || 0;
-      const total = subtotal + shippingFee;
-      const kasirInfo = getKasirInfo();
-      const waToko = formatWA(MAIN_WA_NUMBER), waKasir = kasirInfo.wa;
-      const isPos = (order.source === 'POS Kasir');
-      const waktuCetak = new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' }) + ', ' + new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
-      await sendRaw(escposInit());
-      await btPrintLine('================================','c');
-      await btPrintLine('PENGEMBANG UMKM LOCAL','c',true);
-      await btPrintLine("toko online a'didin",'c');
-      await btPrintLine('WA Admin : ' + waToko,'c');
-      await btPrintLine('================================','c');
-      await btPrintLine('No. Struk : ' + (order.id || '-'));
-      await btPrintLine('Waktu     : ' + (order.timestamp || '-'));
-      await btPrintLine('Kasir     : ' + kasirInfo.nama + ' (' + kasirInfo.peran.toUpperCase() + ')');
-      await btPrintLine('--------------------------------');
-      if (!isPos) {
-        await btPrintLine('Nama   : ' + (order.buyerName || '-'));
-        await btPrintLine('WA     : ' + (order.buyerPhone || '-'));
-        await btPrintLine('Alamat : ' + (order.buyerAddress || '-'));
-        await btPrintLine('--------------------------------');
-      }
-      if (items.length > 0) {
-        let idx = 0;
-        for (const item of items) {
-          idx++;
-          const qty = item.qty || 1, price = item.price || 0;
-          const unit = item.unit || (item.product ? item.product.unitType : null) || 'pcs';
-          const unitPretty = unit === 'digital' ? 'Transaksi' : getUnitPretty(unit);
-          const sub = Math.round(price * qty);
-          await btPrintLine(`${idx}. ${item.productName || item.productId}`);
-          await btPrintLine(`   Rp ${Number(price).toLocaleString('id-ID')} x ${qty} ${unitPretty} = Rp ${Number(sub).toLocaleString('id-ID')}`);
-        }
-      } else if (order.itemsSummary) String(order.itemsSummary).split('\n').filter(l => l.trim()).forEach(async line => await btPrintLine(line));
-      await btPrintLine('--------------------------------');
-      await btPrintLine('Subtotal : Rp ' + Number(subtotal).toLocaleString('id-ID'));
-      await btPrintLine('Ongkir   : ' + (shippingFee === 0 ? 'GRATIS' : 'Rp ' + Number(shippingFee).toLocaleString('id-ID')));
-      await btPrintLine('TOTAL    : Rp ' + Number(total).toLocaleString('id-ID'),'c',true);
-      await btPrintLine('--------------------------------');
-      await btPrintLine('Terima Kasih!','c');
-      await btFeed(4);
-      setBtStatus('✅ Struk terkirim');
-      return true;
     };
 
     const cetakStrukOrder = async (orderId) => {
       const order = historyList.find(o => o.id === orderId);
       if (!order) return alert("Pesanan tidak ditemukan!");
-      if (btPrinterChar) { try { await cetakStrukOrderBluetooth(order); return; } catch(err) { alert("Gagal Bluetooth: " + err.message); } }
       const items = extractOrderItems(order);
       let itemsHtml = "";
       if (items.length > 0) {
@@ -3246,7 +3118,7 @@
       const total = subtotal + shippingFee;
       const qrDataUrl = await generateReceiptQR();
       const kasirInfo = getKasirInfo();
-      const waKasir = kasirInfo.wa, waToko = formatWA(MAIN_WA_NUMBER);
+      const waToko = formatWA(MAIN_WA_NUMBER);
       const receiptHtml = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${waToko}</div><hr><table class="info-table"><tr><td>No. Pesanan</td><td>:</td><td>${order.id || '-'}</td></tr><tr><td>Waktu</td><td>:</td><td>${order.timestamp || '-'}</td></tr><tr><td>Status</td><td>:</td><td>${(order.orderStatus || 'active').toUpperCase()}</td></tr><tr><td>Oleh</td><td>:</td><td>${kasirInfo.nama} (${kasirInfo.peran.toUpperCase()})</td></tr></table><hr><div class="section-title">— DATA PELANGGAN —</div><table class="info-table"><tr><td>Nama</td><td>:</td><td>${order.buyerName || '-'}</td></tr><tr><td>WA</td><td>:</td><td>${order.buyerPhone || '-'}</td></tr><tr><td>Alamat</td><td>:</td><td>${order.buyerAddress || '-'}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${itemsHtml}</pre><hr><table class="total-table"><tr><td>Subtotal</td><td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td></tr><tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div><div class="text-center">WA Admin: ${waToko}</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
       await printDynamicReceipt(receiptHtml);
     };
@@ -3316,7 +3188,7 @@
       setBtStatus('✅ Struk terkirim');
     }
 
-    // ===== BINDING =====
+    // ===== EVENT BINDING =====
     const bindEvent = (id, event, handler) => { const el = $(id); if (el) el.addEventListener(event, handler); };
 
     bindEvent('btn-home', 'click', () => switchPage('buyer'));
@@ -3457,11 +3329,13 @@
 
     bindEvent('btn-force-seed', 'click', () => {
       if (!firebaseReady) return alert("Firebase belum siap.");
-      db.ref(`history/${activeStoreId||'default'}`).set(historyList);
-      db.ref(`broadcast_history/${activeStoreId||'default'}`).set(broadcastHistory);
-      db.ref(`theme_promo/${activeStoreId||'default'}`).set(themeConfig);
-      db.ref(`shipping_config/${activeStoreId||'default'}`).set(shippingConfig);
-      db.ref(`calc_history/${activeStoreId||'default'}`).set(calcHistoryList);
+      const sid = activeStoreId || 'default';
+      db.ref(`history/${sid}`).set(historyList);
+      db.ref(`broadcast_history/${sid}`).set(broadcastHistory);
+      db.ref(`theme_promo/${sid}`).set(themeConfig);
+      db.ref(`shipping_config/${sid}`).set(shippingConfig);
+      db.ref(`calc_history/${sid}`).set(calcHistoryList);
+      db.ref(`products/${sid}`).set(products);
       const el = $('seed-status');
       el.classList.remove('hidden'); el.innerText = "✅ Tersinkron!";
       setTimeout(() => el.classList.add('hidden'), 4000);
@@ -3583,7 +3457,7 @@
       posCart.forEach(i => { if (i.product.unitType !== 'digital') { const prod = getProductById(i.product.id); if (prod) { prod.stock = Math.max(0, prod.stock - i.qty); prod.available = prod.stock > 0; } } });
       saveProducts();
       const now = new Date();
-      const order = { id:'ord_' + Date.now(), timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, buyerName: `Pelanggan Toko (Kasir: ${currentUser ? currentUser.username : 'Kasir'})`, buyerPhone: "-", buyerAddress: "Transaksi Langsung", timeOption: "Selesai di Tempat", note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash-total).toLocaleString('id-ID')}`, itemsSummary: summary, itemsList: items, subtotal: total, totalHpp, netProfit: total - totalHpp, shippingFee: 0, orderStatus: 'selesai', source: 'POS Kasir', storeId: activeStoreId };
+      const order = { id:'ord_' + Date.now(), timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, buyerName: `Pelanggan (Kasir: ${currentUser ? currentUser.username : 'Kasir'})`, buyerPhone: "-", buyerAddress: "Transaksi Langsung", timeOption: "Selesai di Tempat", note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash-total).toLocaleString('id-ID')}`, itemsSummary: summary, itemsList: items, subtotal: total, totalHpp, netProfit: total - totalHpp, shippingFee: 0, orderStatus: 'selesai', source: 'POS Kasir', storeId: activeStoreId };
       historyList.unshift(order);
       saveHistory();
       const kasirInfo = getKasirInfo();
@@ -3598,19 +3472,16 @@
           await printDynamicReceipt(receiptHtml);
         }
       }
-      posCart = [];
-      $('pos-cash-input').value = "";
-      renderPosCart();
+      posCart = []; $('pos-cash-input').value = ""; renderPosCart();
     });
 
-    // ===== MULTI-TOKO EVENT BINDING =====
+    // ===== MULTI-TOKO EVENTS =====
     bindEvent('ms-switch-register', 'click', () => { $('ms-login-view').classList.add('hidden'); $('ms-register-view').classList.remove('hidden'); });
     bindEvent('ms-switch-login', 'click', () => { $('ms-register-view').classList.add('hidden'); $('ms-login-view').classList.remove('hidden'); });
     bindEvent('ms-btn-login', 'click', handleMSLogin);
     bindEvent('ms-btn-register', 'click', handleMSRegister);
     ['ms-login-store','ms-login-user','ms-login-pass'].forEach(id => { const el = $(id); if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') handleMSLogin(); }); });
 
-    // Update info sandi otorisasi saat role berubah di register
     bindEvent('ms-reg-role', 'change', function() {
       const role = this.value;
       const labelEl = $('ms-reg-role-label');
@@ -3619,9 +3490,7 @@
       if (infoEl) {
         const colors = { owner: { bg:'#fef3c7', border:'#f59e0b', text:'#78350f', icon:'👑', hint:'Owner: sandi khusus pemilik pusat' }, admin: { bg:'#dcfce7', border:'#16a34a', text:'#166534', icon:'🏬', hint:'Admin: sandi khusus admin toko' }, kasir: { bg:'#dbeafe', border:'#3b82f6', text:'#1e40af', icon:'🛒', hint:'Kasir: sandi khusus kasir toko' } };
         const c = colors[role] || colors.kasir;
-        infoEl.style.background = c.bg;
-        infoEl.style.borderColor = c.border;
-        infoEl.style.color = c.text;
+        infoEl.style.background = c.bg; infoEl.style.borderColor = c.border; infoEl.style.color = c.text;
         infoEl.innerHTML = `<strong>${c.icon} Sandi Otorisasi untuk role <span id="ms-reg-role-label">${role.toUpperCase()}</span>:</strong><div style="margin-top:4px;">${c.hint}. Sandi berbeda untuk setiap role.</div>`;
       }
     });
@@ -3629,21 +3498,17 @@
     bindEvent('ms-btn-open-switcher', 'click', openSwitcher);
     bindEvent('ms-close-switcher', 'click', () => { $('ms-store-switcher-modal').style.display = 'none'; });
     bindEvent('ms-store-switcher-modal', 'click', (e) => { if (e.target.id === 'ms-store-switcher-modal') $('ms-store-switcher-modal').style.display = 'none'; });
-
-    // Log Modal
     bindEvent('ms-btn-view-log', 'click', () => openStoreLog(null));
     bindEvent('ms-close-log-modal', 'click', () => { $('ms-store-log-modal').style.display = 'none'; });
     bindEvent('ms-log-refresh', 'click', () => renderStoreLog($('ms-store-log-modal').dataset.filterStore || null));
     bindEvent('ms-log-export-pdf', 'click', exportStoreLogPDF);
     bindEvent('ms-log-clear', 'click', () => {
-      if (!confirm('Hapus SEMUA log buka/tutup toko?')) return;
+      if (!confirm('Hapus SEMUA log?')) return;
       localStorage.setItem(STORE_LOG_KEY, JSON.stringify([]));
       if (firebaseReady) { try { db.ref('store_logs_all').remove(); } catch(e) {} }
       renderStoreLog($('ms-store-log-modal').dataset.filterStore || null);
       alert('✅ Log dihapus.');
     });
-
-    // Edit Modal
     bindEvent('ms-close-edit-modal', 'click', () => { $('ms-edit-store-modal').style.display = 'none'; });
     bindEvent('ms-edit-store-form', 'submit', saveEditStore);
 
@@ -3684,8 +3549,7 @@
         await ensureJsPDFLib();
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
+        const pageW = doc.internal.pageSize.getWidth(), pageH = doc.internal.pageSize.getHeight();
         const now = new Date();
         const tgl = now.toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
         const jam = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
@@ -3702,7 +3566,7 @@
           tRev += st.revenue; tProfit += st.profit; tTrx += st.trxCount;
           return [i+1, s.name, s.code, s.active ? 'AKTIF' : 'NONAKTIF', s.address||'-', st.userCount, st.productCount, st.trxCount, 'Rp ' + st.revenue.toLocaleString('id-ID'), 'Rp ' + st.profit.toLocaleString('id-ID')];
         });
-        doc.autoTable({ startY: 40, head: [['No','Nama Cabang','Kode','Status','Alamat','User','Produk','Trx','Omset','Laba']], body: rows, theme: 'grid', styles: { fontSize: 8, cellPadding: 2, textColor: [0,0,0], lineColor: [0,0,0], lineWidth: 0.15 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign:'center', lineWidth: 0.25 }, foot: [[{ content: 'TOTAL', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fillColor:[240,240,240] } }, { content: tTrx, styles: { halign: 'center', fontStyle: 'bold', fillColor:[240,240,240] } }, { content: 'Rp ' + tRev.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor:[240,240,240] } }, { content: 'Rp ' + tProfit.toLocaleString('id-ID'), styles: { halign: 'right', fontStyle: 'bold', fillColor:[240,240,240] } }]], didDrawPage: () => { doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(8, 8, pageW - 16, pageH - 16, 'S'); } });
+        doc.autoTable({ startY: 40, head: [['No','Nama Cabang','Kode','Status','Alamat','User','Produk','Trx','Omset','Laba']], body: rows, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: [255,255,255], textColor: [0,0,0], fontStyle: 'bold', halign:'center' } });
         const pad = n => String(n).padStart(2,'0');
         doc.save(`MultiCabang_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.pdf`);
       } catch(e) { alert('Gagal: ' + e.message); }
@@ -3714,6 +3578,9 @@
       if (!calcHistoryList || calcHistoryList.length === 0) return alert("Belum ada data.");
       if (confirm("Hapus SEMUA riwayat kalkulasi?")) { calcHistoryList = []; saveCalcHistory(); alert("✅ Dihapus."); }
     });
+    bindEvent('btn-reset-calc', 'click', () => { if ($('calc-setor')) $('calc-setor').value = '0'; if ($('calc-modal')) $('calc-modal').value = '0'; updateSalesCalculator(); });
+    if ($('calc-setor')) $('calc-setor').addEventListener('input', updateSalesCalculator);
+    if ($('calc-modal')) $('calc-modal').addEventListener('input', updateSalesCalculator);
 
     // ===== INIT FIREBASE =====
     function initFirebase() {
@@ -3732,19 +3599,12 @@
           if (Array.isArray(data) && data.length > 0) { allStores = data; localStorage.setItem('ms_all_stores', JSON.stringify(allStores)); }
           else if (data && typeof data === 'object') { allStores = Object.values(data); localStorage.setItem('ms_all_stores', JSON.stringify(allStores)); }
           populateStoreDatalists();
-          if (isOwner()) { fetchOwnerStats().then(renderOwnerDashboard); }
+          if (isOwner()) fetchOwnerStats().then(renderOwnerDashboard);
         });
-        db.ref(`store_status/${activeStoreId||'default'}`).on('value', snap => { if (snap.exists()) storeOpen = snap.val() === true; renderStoreStatus(); scheduleRenderBatch(); });
-        db.ref(`products/${activeStoreId||'default'}`).on('value', snap => { const data = snap.val(); if (data) { products = Array.isArray(data) ? data : Object.values(data); localStorage.setItem('adidin_products', JSON.stringify(products)); } invalidateSearchIndex(); scheduleRenderBatch(); });
-        db.ref(`history/${activeStoreId||'default'}`).on('value', snap => { const data = snap.val(); const hasData = data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0); historyList = hasData ? (Array.isArray(data) ? data : Object.values(data)) : []; renderHistory(historyList); calcFinance(historyList); updateSalesCalculator(); });
-        db.ref(`broadcast_history/${activeStoreId||'default'}`).on('value', snap => { const data = snap.val(); if (data) broadcastHistory = Object.values(data); renderAnnouncement(); if (currentUser) renderBroadcastHistory(broadcastHistory); });
-        db.ref(`calc_history/${activeStoreId||'default'}`).on('value', snap => { const data = snap.val(); if (data) calcHistoryList = Array.isArray(data) ? data : Object.values(data); renderCalcHistory(); });
-        db.ref(`shipping_config/${activeStoreId||'default'}`).on('value', snap => { const data = snap.val(); if (data) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...data }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; applyShippingForm(); renderCart(); } });
-        db.ref(`theme_promo/${activeStoreId||'default'}`).on('value', snap => { const data = snap.val(); if (data) { themeConfig = { ...DEFAULT_THEME, ...data }; applyTheme(); } });
+        if (activeStoreId) rebindFirebaseListeners(activeStoreId);
       } catch(e) { console.error("Firebase error:", e); const el = $('realtime-status'); el.textContent = "● GAGAL"; el.className = "realtime-status offline"; }
     }
 
-    // ===== INIT STORES =====
     function ensureDefaultStores() {
       const stored = safeParse(localStorage.getItem('ms_all_stores'), null);
       if (Array.isArray(stored) && stored.length > 0) { allStores = stored; return; }
@@ -3756,7 +3616,10 @@
       ];
       saveStores();
       const defaultUsers = [{ username:"owner", password:"owner123", whatsapp:"628991286742", role:"owner" }, { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" }, { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }];
-      allStores.forEach(s => { if (!localStorage.getItem(`adidin_users_${s.id}`)) localStorage.setItem(`adidin_users_${s.id}`, JSON.stringify(defaultUsers)); });
+      allStores.forEach(s => {
+        if (!localStorage.getItem(`adidin_users_${s.id}`)) localStorage.setItem(`adidin_users_${s.id}`, JSON.stringify(defaultUsers));
+        if (!localStorage.getItem(`adidin_products_${s.id}`)) localStorage.setItem(`adidin_products_${s.id}`, JSON.stringify([{ ...DEFAULT_PRODUCT }]));
+      });
       if (!localStorage.getItem(`adidin_users_${OWNER_STORE_ID}`)) localStorage.setItem(`adidin_users_${OWNER_STORE_ID}`, JSON.stringify(defaultUsers));
     }
 
@@ -3770,6 +3633,8 @@
       applyTheme();
       renderStoreStatus();
       renderAnnouncement();
+      if (!activeStoreId) { activeStoreId = allStores[0]?.id || 'default'; activeStoreName = allStores[0]?.name || 'Toko'; localStorage.setItem('ms_active_store_id', activeStoreId); localStorage.setItem('ms_active_store_name', activeStoreName); }
+      loadStoreData(activeStoreId);
       saveCart();
       calcFinance(historyList);
       updateSalesCalculator();
@@ -3779,13 +3644,12 @@
       switchPage('buyer');
       handleUnitType();
       updateSwitcherVisibility();
-      // Set label info sandi otorisasi default
       setTimeout(() => { const roleEl = $('ms-reg-role'); if (roleEl) roleEl.dispatchEvent(new Event('change')); }, 100);
       initFirebase();
-      console.log('%c🏬 Multi-Toko Siap!', 'background:#e11d48;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold;');
-      console.log('👑 Owner: toko=OWNER PUSAT | user=owner | pass=owner123 | sandi daftar=' + SECRET_CODES.owner);
-      console.log('🏬 Admin: toko=Toko Pusat a\'didin | user=admin | pass=admin123 | sandi daftar=' + SECRET_CODES.admin);
-      console.log('🛒 Kasir: toko=Toko Pusat a\'didin | user=kasir | pass=kasir123 | sandi daftar=' + SECRET_CODES.kasir);
+      console.log('%c🏬 Multi-Toko Siap! Stok TERPISAH per cabang.', 'background:#e11d48;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold;');
+      console.log('👑 Owner: toko=OWNER PUSAT | user=owner | pass=owner123 | sandi=' + SECRET_CODES.owner);
+      console.log('🏬 Admin: toko=Toko Pusat a\'didin | user=admin | pass=admin123 | sandi=' + SECRET_CODES.admin);
+      console.log('🛒 Kasir: toko=Toko Pusat a\'didin | user=kasir | pass=kasir123 | sandi=' + SECRET_CODES.kasir);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootstrap);
@@ -3794,4 +3658,4 @@
     window.onerror = function(msg, src, line) { console.error("ERROR:", msg, "-", src, line); };
   </script>
 </body>
-  </html>
+</html>
