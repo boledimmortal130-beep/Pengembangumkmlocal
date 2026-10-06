@@ -1635,22 +1635,18 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     _activeFirebaseRefs.forEach(ref => { try { ref.off(); } catch(e) {} });
     _activeFirebaseRefs = [];
 
-    // Products
-    const pRef = db.ref(`products/${sid}`);
-    pRef.on('value', snap => {
-      const data = snap.val();
-      if (data && (Array.isArray(data) ? data.length : Object.keys(data).length)) {
-        products = Array.isArray(data) ? data : Object.values(data);
-      } else {
-        const local = safeParse(localStorage.getItem(`adidin_products_${sid}`), null);
-        if (Array.isArray(local) && local.length > 0) products = local;
-        else products = [{ ...DEFAULT_PRODUCT }];
-      }
-      localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
-      invalidateSearchIndex();
-      scheduleRenderBatch();
-    });
-    _activeFirebaseRefs.push(pRef);
+  // Products — Anti-Restore: kalau Firebase kosong = toko memang kosong
+const pRef = db.ref(`products/${sid}`);
+pRef.on('value', snap => {
+  const data = snap.val();
+  if (Array.isArray(data)) products = data;
+  else if (data && typeof data === 'object') products = Object.values(data);
+  else products = []; // ← Firebase kosong = toko kosong, JANGAN restore produk default
+  localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
+  invalidateSearchIndex();
+  scheduleRenderBatch();
+});
+_activeFirebaseRefs.push(pRef);
 
     // Store status
     const sRef = db.ref(`store_status/${sid}`);
