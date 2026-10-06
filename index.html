@@ -1581,42 +1581,49 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   }
 
   function loadStoreData(storeId) {
-    const sid = storeId || 'default';
-    const get = (k, fb) => safeParse(localStorage.getItem(`${k}_${sid}`), fb);
+  const sid = storeId || 'default';
+  const get = (k, fb) => safeParse(localStorage.getItem(`${k}_${sid}`), fb);
 
-    const prods = get('adidin_products', null);
-    if (Array.isArray(prods) && prods.length > 0) products = prods;
-    else if (prods && typeof prods === 'object') products = Object.values(prods);
-    else products = [{ ...DEFAULT_PRODUCT }];
+  // ===== PRODUK: KOSONG jika belum ada =====
+  const prods = get('adidin_products', null);
+  if (Array.isArray(prods)) products = prods;
+  else if (prods && typeof prods === 'object') products = Object.values(prods);
+  else products = []; // ← Toko baru KOSONG
 
-    const users = get('adidin_users', null);
-    if (users) adminUsers = Array.isArray(users) ? users : Object.values(users);
-    else adminUsers = [
-      { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
-      { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
-    ];
-
-    historyList = get('adidin_history', []);
-    if (!Array.isArray(historyList)) historyList = [];
-    calcHistoryList = get('adidin_calc_history', []);
-    if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
-    broadcastHistory = get('adidin_broadcast_history', []);
-    if (!Array.isArray(broadcastHistory)) broadcastHistory = [];
-    cart = get('adidin_cart', []);
-    if (!Array.isArray(cart)) cart = [];
-
-    storeOpen = localStorage.getItem(`adidin_store_open_${sid}`) !== 'false';
-
-    const sc = get('adidin_shipping_config', null);
-    if (sc) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...sc }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; }
-    else shippingConfig = { ...DEFAULT_SHIPPING_CONFIG };
-
-    const th = get('adidin_theme_promo', null);
-    if (th) themeConfig = { ...DEFAULT_THEME, ...th };
-    else themeConfig = { ...DEFAULT_THEME };
-
-    invalidateSearchIndex();
+  // Simpan kalau belum ada key di localStorage
+  if (!localStorage.getItem(`adidin_products_${sid}`)) {
+    localStorage.setItem(`adidin_products_${sid}`, JSON.stringify([]));
   }
+
+  const users = get('adidin_users', null);
+  if (users) adminUsers = Array.isArray(users) ? users : Object.values(users);
+  else adminUsers = [
+    { username:"admin", password:"admin123", whatsapp:"628991286742", role:"admin" },
+    { username:"kasir", password:"kasir123", whatsapp:"628991286742", role:"kasir" }
+  ];
+
+  historyList = get('adidin_history', []);
+  if (!Array.isArray(historyList)) historyList = [];
+  calcHistoryList = get('adidin_calc_history', []);
+  if (!Array.isArray(calcHistoryList)) calcHistoryList = [];
+  broadcastHistory = get('adidin_broadcast_history', []);
+  if (!Array.isArray(broadcastHistory)) broadcastHistory = [];
+  cart = get('adidin_cart', []);
+  if (!Array.isArray(cart)) cart = [];
+
+  storeOpen = localStorage.getItem(`adidin_store_open_${sid}`) !== 'false';
+
+  const sc = get('adidin_shipping_config', null);
+  if (sc) { shippingConfig = { ...DEFAULT_SHIPPING_CONFIG, ...sc }; if (shippingConfig.perItemRules) delete shippingConfig.perItemRules; }
+  else shippingConfig = { ...DEFAULT_SHIPPING_CONFIG };
+
+  const th = get('adidin_theme_promo', null);
+  if (th) themeConfig = { ...DEFAULT_THEME, ...th };
+  else themeConfig = { ...DEFAULT_THEME };
+
+  invalidateSearchIndex();
+  }
+
 
   // ===== FIREBASE PER-STORE LISTENERS =====
   let _activeFirebaseRefs = [];
