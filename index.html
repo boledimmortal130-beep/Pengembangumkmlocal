@@ -880,6 +880,21 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     admin: "ADMIN-ADIDIN-2026",
     kasir: "KASIR-ADIDIN-2026"
   };
+  // ===== DAFTAR ID PRODUK YANG SUDAH DIHAPUS (ANTI-RESTORE) =====
+// Mencegah produk yang sudah dihapus muncul kembali dari Firebase cache
+const DELETED_PRODUCT_PREFIX = 'adidin_deleted_products_';
+function markProductDeleted(storeId, productId) {
+  const key = DELETED_PRODUCT_PREFIX + (storeId || 'default');
+  const list = safeParse(localStorage.getItem(key), []) || [];
+  const idStr = String(productId);
+  if (!list.includes(idStr)) list.push(idStr);
+  localStorage.setItem(key, JSON.stringify(list));
+}
+function isProductDeleted(storeId, productId) {
+  const key = DELETED_PRODUCT_PREFIX + (storeId || 'default');
+  const list = safeParse(localStorage.getItem(key), []) || [];
+  return list.includes(String(productId));
+  }
 
   // ===== MULTI-TOKO CONSTANTS =====
   const OWNER_STORE_NAME = "OWNER PUSAT";
@@ -2891,7 +2906,22 @@ _activeFirebaseRefs.push(pRef);
         const edit = b.getAttribute('data-edit'), toggle = b.getAttribute('data-toggle'), del = b.getAttribute('data-del');
         if (edit) editProduct(edit);
         else if (toggle) { const prod = getProductById(toggle); if (prod) { prod.available = b.getAttribute('data-status') === 'true' ? false : true; saveProducts(); } }
-        else if (del) { if (confirm("Hapus produk?")) { products = products.filter(p => p.id != del); saveProducts(); } }
+        else if (del) {
+  if (!confirm("⚠️ HAPUS PERMANEN?\n\nBarang ini akan dihapus dari toko ini secara PERMANEN dan tidak akan muncul lagi.\n\nLanjutkan?")) return;
+  const sid = activeStoreId || 'default';
+  const toDeleteId = String(del);
+  // Hapus dari array lokal
+  products = products.filter(p => String(p.id) !== toDeleteId);
+  invalidateSearchIndex();
+  // Simpan ke localStorage + Firebase (overwrite dengan array baru = produk hilang permanen)
+  localStorage.setItem(`adidin_products_${sid}`, JSON.stringify(products));
+  if (firebaseReady) {
+    db.ref(`products/${sid}`).set(products).catch(err => console.error("Gagal hapus di Firebase:", err));
+  }
+  // Refresh UI
+  renderProducts(); renderAdminProducts(); renderPosProducts(); renderQuickSearchResults();
+  alert("✅ Barang berhasil dihapus permanen!");
+        }
       }));
     };
 
