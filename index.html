@@ -506,9 +506,9 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
               <div class="form-style">
                 <div class="form-group"><label>Uang Tunai (Rp)</label><input type="number" id="pos-cash-input" value="0"></div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:8px;"><span>Kembalian:</span><span id="pos-change-pay" style="color:var(--warning);">Rp 0</span></div>
-                <button class="btn-success btn-block" id="btn-process-pos"><i class="fas fa-print"></i> Selesaikan & Cetak Struk</button>
-                <button class="btn-bt btn-block" id="btn-process-pos-bt" style="margin-top:6px;font-size:12px;padding:11px;" disabled>
-                  <i class="fas fa-bluetooth-b"></i> Cetak via Bluetooth (Thermal)
+                <button class="btn-success btn-block" id="btn-process-pos"><i class="fas fa-check-circle"></i> Selesaikan Transaksi</button>
+                <button class="btn-bt btn-block" id="btn-preview-receipt" style="margin-top:6px;font-size:12px;padding:11px;">
+                  <i class="fas fa-receipt"></i> Lihat / Cetak Struk
                 </button>
               </div>
             </div>
@@ -2719,7 +2719,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
         const isDigital = found.unitType === 'digital';
         const statusStok = isDigital ? 'Digital' : `Stok: ${found.stock} ${getUnitPretty(found.unitType)}`;
         let tambahan = '';
-        if (!isDigital) { if (!found.available || found.stock <= 0) tambahan = '\n\n⚠️ STOK HABIS!'; else if (found.stock <= getLowStockThreshold()) tambahan = '\n\n⚠️ STOK MENIPIS!'; }
+        if (!isDigital) { if (!found.available || found.stock <= 0) tambahan = '\n\n⚠️ STOK HABIS!'; else if (found.stock <= getLowStockThreshold()) tambahan = '\n⚠️ STOK MENIPIS!'; }
         alert(`✅ ${found.name}\n${statusStok}${tambahan}`);
       } else alert(`Barcode "${text}" dimasukkan ke kolom pencarian.`);
     }
@@ -3480,7 +3480,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   async function btPrintLine(text, opts = {}) {
     const align = opts.align || 'l';
     const bold = !!opts.bold;
-    const size = opts.size || 'normal'; // normal | double | large
+    const size = opts.size || 'normal';
     const bytes = [];
     bytes.push(0x1b, 0x61, align === 'c' ? 0x01 : (align === 'r' ? 0x02 : 0x00));
     bytes.push(0x1b, 0x45, bold ? 0x01 : 0x00);
@@ -3947,6 +3947,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   bindEvent('btn-receipt-print-bt', 'click', cetakStrukDariPreviewBT);
   // ===== END RECEIPT PREVIEW BINDINGS =====
 
+  // ===== TOMBOL "SELESAIKAN TRANSAKSI" (TANPA CETAK) =====
   bindEvent('btn-process-pos', 'click', async () => {
     if (posCart.length === 0) return alert("Pilih item dahulu!");
     let total = 0, totalHpp = 0, summary = "";
@@ -3968,48 +3969,43 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     const order = { id:'ord_' + Date.now(), timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, buyerName: `Pelanggan (Kasir: ${currentUser ? currentUser.username : 'Kasir'})`, buyerPhone: "-", buyerAddress: "Transaksi Langsung", timeOption: "Selesai di Tempat", note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash-total).toLocaleString('id-ID')}`, itemsSummary: summary, itemsList: items, subtotal: total, totalHpp, netProfit: total - totalHpp, shippingFee: 0, orderStatus: 'selesai', source: 'POS Kasir', storeId: activeStoreId };
     historyList.unshift(order);
     saveHistory();
-    const kasirInfo = getKasirInfo();
-    const qrDataUrl = await generateReceiptQR();
-    const receiptHtml = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="contact-wa">WA Admin: ${formatWA(MAIN_WA_NUMBER)}</div><hr><table class="info-table"><tr><td>No. Struk</td><td>:</td><td>${order.id}</td></tr><tr><td>Kasir</td><td>:</td><td>${kasirInfo.nama}</td></tr><tr><td>Waktu</td><td>:</td><td>${order.timestamp}</td></tr></table><hr><pre class="receipt-items">${summary}</pre><hr><table class="total-table"><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr><tr><td>BAYAR</td><td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td></tr><tr><td>KEMBALI</td><td style="text-align:right;">Rp ${(cash-total).toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
-    await printDynamicReceipt(receiptHtml);
+    alert(`✅ Transaksi selesai!\nTotal: Rp ${total.toLocaleString('id-ID')}\nBayar: Rp ${cash.toLocaleString('id-ID')}\nKembali: Rp ${(cash-total).toLocaleString('id-ID')}\n\nKlik "Lihat / Cetak Struk" untuk mencetak struk.`);
     posCart = []; $('pos-cash-input').value = ""; renderPosCart();
-    if (btPrinterChar) {
-      setTimeout(() => { alert('💡 Printer Bluetooth terdeteksi. Klik tombol "Cetak via Bluetooth" untuk cetak thermal.'); }, 600);
-    }
   });
 
-  bindEvent('btn-process-pos-bt', 'click', async () => {
-    if (posCart.length === 0) return alert("Pilih item dahulu!");
-    if (!btPrinterChar) {
-      const ok = await connectBluetoothPrinter();
-      if (!ok) return;
+  // ===== TOMBOL "LIHAT / CETAK STRUK" DARI POS =====
+  bindEvent('btn-preview-receipt', 'click', async () => {
+    if (posCart.length === 0) {
+      // Jika tidak ada item di keranjang POS, cari transaksi terakhir POS
+      const lastOrder = historyList.find(o => o.source === 'POS Kasir' && o.orderStatus === 'selesai');
+      if (!lastOrder) return alert("Belum ada transaksi POS. Silakan lakukan transaksi terlebih dahulu.");
+      await bukaPreviewStruk(lastOrder.id);
+      return;
     }
-    let total = 0, totalHpp = 0;
+    // Jika ada item di keranjang, buat pratinjau struk dari item yang ada
+    let total = 0, totalHpp = 0, summary = "";
     const items = [];
-    posCart.forEach((i) => {
+    posCart.forEach((i, idx) => {
       const topCost = (i.toppings || []).reduce((s,t) => s + (t.price || 0), 0);
       const sub = Math.round((i.product.price * i.qty) + (topCost * i.qty));
       const hpp = (i.product.costPrice || 0) * i.qty;
       total += sub; totalHpp += hpp;
-      items.push({ name:i.product.name, price:i.product.price, qty:i.qty, unit:i.product.unitType, toppings:i.toppings || [] });
+      const unitTxt = i.product.unitType === 'digital' ? 'Transaksi' : getUnitPretty(i.product.unitType || 'pcs');
+      summary += `${idx+1}. ${i.product.name} [Rp ${i.product.price.toLocaleString('id-ID')} x ${i.qty} ${unitTxt}] = Rp ${sub.toLocaleString('id-ID')}\n`;
+      items.push({ productId:i.product.id, productName:i.product.name, price:i.product.price, costPrice:i.product.costPrice||0, qty:i.qty, unit:i.product.unitType, toppings:i.toppings });
     });
     const cash = parseInt($('pos-cash-input').value) || 0;
-    if (cash < total) return alert("Uang tunai kurang!");
     const change = cash - total;
     const now = new Date();
-    try {
-      await btPrintPosReceipt({
-        items,
-        cash,
-        change,
-        total,
-        totalHpp,
-        timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`,
-        orderId: 'POS_' + Date.now()
-      });
-    } catch(e) {
-      alert('Gagal cetak via Bluetooth: ' + e.message);
-    }
+    const kasirInfo = getKasirInfo();
+    const qrDataUrl = await generateReceiptQR();
+    const html = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${formatWA(MAIN_WA_NUMBER)}</div><hr><table class="info-table"><tr><td>No. Struk</td><td>:</td><td>POS_${Date.now()}</td></tr><tr><td>Kasir</td><td>:</td><td>${kasirInfo.nama}</td></tr><tr><td>Waktu</td><td>:</td><td>${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${escapeHtmlText(summary)}</pre><hr><table class="total-table"><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr><tr><td>BAYAR</td><td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td></tr><tr><td>KEMBALI</td><td style="text-align:right;">Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
+    const paper = $('receipt-paper-preview');
+    paper.innerHTML = html;
+    const modal = $('receipt-preview-modal');
+    modal.classList.remove('hidden');
+    modal.dataset.orderId = ''; // POS preview tidak terkait order ID
+    modal.dataset.isPosPreview = 'true';
   });
 
   // ===== MULTI-TOKO EVENTS =====
@@ -4213,4 +4209,4 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   window.onerror = function (msg, src, line) { console.error("ERROR:", msg, "-", src, line); };
 </script>
 </body>
-</html>
+  </html>
