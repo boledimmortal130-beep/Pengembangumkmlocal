@@ -205,6 +205,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
 .calc-history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px}
 .calc-history-header h4{font-size:13px;color:var(--primary);margin:0}
 @media(max-width:480px){header{padding:9px 0}.logo h1{font-size:17px}.nav-link{padding:7px 10px;font-size:13px}.section-title{font-size:16px}button{padding:9px 12px;font-size:12px}}
+
 /* ===== BT PRINTER STATUS PANEL ===== */
 .bt-panel{background:linear-gradient(135deg,#e0f2fe,#bae6fd);border:2px solid #0284c7;border-radius:10px;padding:12px;margin-bottom:10px}
 .bt-panel h4{font-size:13px;color:#075985;margin-bottom:8px;display:flex;align-items:center;gap:6px}
@@ -228,6 +229,33 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
 .bt-device-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:2px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:13px;text-align:left}
 .bt-device-item:hover{border-color:var(--primary);background:#fff7ed}
 .bt-device-item:disabled{opacity:.5;cursor:not-allowed}
+
+/* ===== RECEIPT PREVIEW MODAL ===== */
+.receipt-preview-modal{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:100002;padding:12px;overflow-y:auto}
+.receipt-preview-box{background:#f8f8f8;border-radius:14px;padding:0;width:100%;max-width:400px;max-height:94vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+.receipt-preview-header{background:linear-gradient(135deg,var(--header-start),var(--header-end));color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.receipt-preview-header h3{font-size:15px;margin:0;display:flex;align-items:center;gap:8px;color:#fff}
+.receipt-preview-header .close-btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:6px 12px;font-size:14px;border-radius:8px}
+.receipt-preview-header .close-btn:hover{background:rgba(255,255,255,.35)}
+.receipt-preview-scroll{flex:1;overflow-y:auto;padding:16px;background:#e5e7eb;display:flex;justify-content:center}
+.receipt-paper{background:#fff;width:80mm;max-width:100%;padding:12px 14px;font-family:'Courier New',Courier,monospace;font-size:11.5px;line-height:1.5;color:#000;box-shadow:0 4px 14px rgba(0,0,0,.15);border-radius:4px}
+.receipt-paper .text-header{text-align:center;font-weight:bold;font-size:14px}
+.receipt-paper .text-header-sub{text-align:center;font-size:11.5px;font-weight:bold}
+.receipt-paper .contact-wa{text-align:center;font-size:10.5px;font-weight:bold;margin:2px 0}
+.receipt-paper hr{border:0;border-top:1px dashed #000;margin:6px 0}
+.receipt-paper table{width:100%;border-collapse:collapse}
+.receipt-paper .info-table td{padding:1px 3px 1px 0;vertical-align:top}
+.receipt-paper .section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:3px 6px;border-radius:4px;margin:6px 0;font-size:11px}
+.receipt-paper .receipt-items{font-family:inherit;white-space:pre-wrap;font-size:11px;line-height:1.5;margin:4px 0}
+.receipt-paper .total-table td{padding:2px 0;font-size:11.5px}
+.receipt-paper .total-line td{font-weight:bold;border-top:1px solid #000;padding-top:5px;font-size:13px}
+.receipt-preview-actions{padding:12px 16px;background:#fff;border-top:2px solid #e5e7eb;display:flex;gap:8px;flex-wrap:wrap}
+.receipt-preview-actions button{flex:1;min-width:110px;padding:11px 14px;font-size:12px;border-radius:8px;font-weight:800}
+.receipt-preview-actions .btn-print-browser{background:#475569;color:#fff}
+.receipt-preview-actions .btn-print-bt{background:#0284c7;color:#fff}
+.receipt-preview-actions .btn-cancel{background:#94a3b8;color:#fff}
+.receipt-preview-actions .btn-print-bt:disabled{background:#cbd5e1;color:#64748b}
+.receipt-preview-note{font-size:10px;color:#64748b;text-align:center;padding:0 16px 12px;background:#fff}
 </style>
 </head>
 <body>
@@ -395,7 +423,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
           <button class="btn-danger" id="btn-logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
 
-        <!-- ===== BLUETOOTH PRINTER PANEL (BARU) ===== -->
+        <!-- ===== BLUETOOTH PRINTER PANEL ===== -->
         <div class="card" id="bt-printer-card" style="border-color:#0284c7;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);">
           <h3 style="color:#075985;border-color:#7dd3fc;"><i class="fas fa-bluetooth-b"></i> Printer Bluetooth (Struk Thermal)</h3>
           <div class="bt-panel">
@@ -700,6 +728,28 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
       <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:12px;"><button class="btn-secondary" id="btn-topping-cancel">Batal</button><button class="btn-success" id="btn-topping-confirm">Tambahkan</button></div>
     </div>
   </div>
+
+  <!-- ===== RECEIPT PREVIEW MODAL ===== -->
+  <div class="receipt-preview-modal hidden" id="receipt-preview-modal">
+    <div class="receipt-preview-box">
+      <div class="receipt-preview-header">
+        <h3><i class="fas fa-receipt"></i> Pratinjau Struk</h3>
+        <button class="close-btn" id="btn-close-receipt-preview">✕</button>
+      </div>
+      <div class="receipt-preview-scroll">
+        <div class="receipt-paper" id="receipt-paper-preview"></div>
+      </div>
+      <div class="receipt-preview-actions">
+        <button class="btn-print-bt" id="btn-receipt-print-bt"><i class="fas fa-bluetooth-b"></i> Cetak Bluetooth</button>
+        <button class="btn-print-browser" id="btn-receipt-print-browser"><i class="fas fa-print"></i> Cetak Browser</button>
+        <button class="btn-cancel" id="btn-receipt-cancel">Batal</button>
+      </div>
+      <div class="receipt-preview-note">
+        💡 Pilih <strong>Cetak Bluetooth</strong> untuk printer thermal langsung dari Chrome (Web Bluetooth).
+      </div>
+    </div>
+  </div>
+  <!-- ===== END RECEIPT PREVIEW ===== -->
 
   <!-- ===== BT DEVICE PICKER MODAL ===== -->
   <div class="bt-modal hidden" id="bt-picker-modal">
@@ -2523,7 +2573,6 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
       updateSalesCalculator(); renderCalcHistory();
       if (!canShuffleProducts()) setAdminShuffleStatus('');
       updateSwitcherVisibility();
-      // Update tombol cetak BT
       updateBtPrintButtonState();
     } else {
       $('admin-dashboard').classList.add('hidden');
@@ -2827,7 +2876,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
       const completed = order.orderStatus === 'selesai' || order.orderStatus === 'completed';
       const tr = document.createElement('tr');
       if (completed) tr.className = 'row-order-completed';
-      const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-print"></i> Cetak Struk</button>`;
+      const printBtn = `<button class="btn-primary" style="background:#0d9488" data-print="${order.id}"><i class="fas fa-eye"></i> Preview / Cetak</button>`;
       const printBtBtn = `<button class="btn-bt" style="font-size:10px;" data-print-bt="${order.id}"><i class="fas fa-bluetooth-b"></i> Cetak Bluetooth</button>`;
       const isOnlineOrder = (order.source || 'Online Shop') !== 'POS Kasir';
       const printItemsBtn = isOnlineOrder ? `<button class="btn-primary" style="background:#7c3aed" data-print-items="${order.id}"><i class="fas fa-list-ul"></i> Cetak Daftar Barang</button>` : '';
@@ -2840,7 +2889,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
       const id = b.getAttribute('data-id'), del = b.getAttribute('data-del'), cetak = b.getAttribute('data-print'), cetakItems = b.getAttribute('data-print-items'), cetakBt = b.getAttribute('data-print-bt');
       if (cetakBt) { cetakStrukOrderBT(cetakBt); return; }
       if (cetakItems) { cetakDaftarBarangOnline(cetakItems); return; }
-      if (cetak) { cetakStrukOrder(cetak); return; }
+      if (cetak) { bukaPreviewStruk(cetak); return; }
       if (del) { if (!isAdmin) return alert("Hanya admin!"); historyList = historyList.filter(o => o.id !== del); saveHistory(); return; }
       if (id) sendStatusWa(id, b.getAttribute('data-status'));
     }));
@@ -3156,9 +3205,10 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     await printDynamicReceipt(receiptHtml);
   };
 
-  const cetakStrukOrder = async (orderId) => {
-    const order = historyList.find(o => o.id === orderId);
-    if (!order) return alert("Pesanan tidak ditemukan!");
+  // ===== FUNGSI CETAK STRUK YANG DIPERBARUI =====
+
+  // Fungsi baru: Bangun HTML struk
+  function buildReceiptHTML(order) {
     const items = extractOrderItems(order);
     let itemsHtml = "";
     if (items.length > 0) {
@@ -3171,15 +3221,77 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
       });
     } else if (order.itemsSummary) itemsHtml = String(order.itemsSummary);
     else itemsHtml = "(Tidak ada rincian barang)";
+
     const shippingFee = parseInt(order.shippingFee) || 0;
     const subtotal = order.subtotal || 0;
     const total = subtotal + shippingFee;
-    const qrDataUrl = await generateReceiptQR();
     const kasirInfo = getKasirInfo();
     const waToko = formatWA(MAIN_WA_NUMBER);
-    const receiptHtml = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${waToko}</div><hr><table class="info-table"><tr><td>No. Pesanan</td><td>:</td><td>${order.id || '-'}</td></tr><tr><td>Waktu</td><td>:</td><td>${order.timestamp || '-'}</td></tr><tr><td>Status</td><td>:</td><td>${(order.orderStatus || 'active').toUpperCase()}</td></tr><tr><td>Oleh</td><td>:</td><td>${kasirInfo.nama} (${kasirInfo.peran.toUpperCase()})</td></tr></table><hr><div class="section-title">— DATA PELANGGAN —</div><table class="info-table"><tr><td>Nama</td><td>:</td><td>${order.buyerName || '-'}</td></tr><tr><td>WA</td><td>:</td><td>${order.buyerPhone || '-'}</td></tr><tr><td>Alamat</td><td>:</td><td>${order.buyerAddress || '-'}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${itemsHtml}</pre><hr><table class="total-table"><tr><td>Subtotal</td><td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td></tr><tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div><div class="text-center">WA Admin: ${waToko}</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
-    await printDynamicReceipt(receiptHtml);
+
+    return `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${waToko}</div><hr><table class="info-table"><tr><td>No. Pesanan</td><td>:</td><td>${escapeHtmlText(order.id || '-')}</td></tr><tr><td>Waktu</td><td>:</td><td>${escapeHtmlText(order.timestamp || '-')}</td></tr><tr><td>Status</td><td>:</td><td>${(order.orderStatus || 'active').toUpperCase()}</td></tr><tr><td>Oleh</td><td>:</td><td>${kasirInfo.nama} (${kasirInfo.peran.toUpperCase()})</td></tr></table><hr><div class="section-title">— DATA PELANGGAN —</div><table class="info-table"><tr><td>Nama</td><td>:</td><td>${escapeHtmlText(order.buyerName || '-')}</td></tr><tr><td>WA</td><td>:</td><td>${escapeHtmlText(order.buyerPhone || '-')}</td></tr><tr><td>Alamat</td><td>:</td><td>${escapeHtmlText(order.buyerAddress || '-')}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${escapeHtmlText(itemsHtml)}</pre><hr><table class="total-table"><tr><td>Subtotal</td><td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td></tr><tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div><div class="text-center">WA Admin: ${waToko}</div>`;
+  }
+
+  // Fungsi baru: Buka preview struk
+  async function bukaPreviewStruk(orderId) {
+    const order = historyList.find(o => o.id === orderId);
+    if (!order) return alert("Pesanan tidak ditemukan!");
+    const html = buildReceiptHTML(order);
+    const paper = $('receipt-paper-preview');
+    paper.innerHTML = html;
+    // Tambahkan QR code
+    const qrDataUrl = await generateReceiptQR();
+    if (qrDataUrl) {
+      const qrDiv = document.createElement('div');
+      qrDiv.className = 'text-center';
+      qrDiv.innerHTML = `<img src="${qrDataUrl}" width="100" height="100" style="margin-top:8px;">`;
+      paper.appendChild(qrDiv);
+    }
+    const modal = $('receipt-preview-modal');
+    modal.classList.remove('hidden');
+    modal.dataset.orderId = orderId;
+  }
+
+  // Fungsi baru: Tutup preview
+  function tutupPreviewStruk() {
+    const modal = $('receipt-preview-modal');
+    modal.classList.add('hidden');
+    modal.dataset.orderId = '';
+  }
+
+  // Fungsi lama: cetakStrukOrder (via browser print) - sekarang memanggil preview
+  const cetakStrukOrder = async (orderId) => {
+    // Alihkan ke preview
+    await bukaPreviewStruk(orderId);
   };
+
+  // Cetak struk via browser dari preview
+  async function cetakStrukDariPreviewBrowser() {
+    const orderId = $('receipt-preview-modal').dataset.orderId;
+    if (!orderId) return alert("Tidak ada pesanan untuk dicetak.");
+    const order = historyList.find(o => o.id === orderId);
+    if (!order) return alert("Pesanan tidak ditemukan!");
+    const html = $('receipt-paper-preview').innerHTML;
+    await printDynamicReceipt(html);
+  }
+
+  // Cetak struk via Bluetooth dari preview
+  async function cetakStrukDariPreviewBT() {
+    const orderId = $('receipt-preview-modal').dataset.orderId;
+    if (!orderId) return alert("Tidak ada pesanan untuk dicetak.");
+    if (!btPrinterChar) {
+      const ok = await connectBluetoothPrinter();
+      if (!ok) return;
+    }
+    const order = historyList.find(o => o.id === orderId);
+    if (!order) return alert("Pesanan tidak ditemukan!");
+    try {
+      await btPrintOrderReceipt(order);
+    } catch(e) {
+      alert('Gagal cetak via Bluetooth: ' + e.message);
+    }
+  }
+
+  // ===== AKHIR FUNGSI CETAK STRUK =====
 
   // =================================================================
   // ===== BLUETOOTH THERMAL PRINTER (ESC/POS via Web Bluetooth) =====
@@ -3237,6 +3349,11 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
       const ok = !!btPrinterChar;
       btnBtPos.disabled = !ok;
       btnBtPos.innerHTML = ok ? '<i class="fas fa-bluetooth-b"></i> Cetak via Bluetooth (Thermal)' : '<i class="fas fa-bluetooth-b"></i> Cetak Bluetooth (Printer belum tersambung)';
+    }
+    const btnReceiptBt = $('btn-receipt-print-bt');
+    if (btnReceiptBt) {
+      btnReceiptBt.disabled = !btPrinterChar;
+      btnReceiptBt.title = btPrinterChar ? 'Cetak via Bluetooth' : 'Printer Bluetooth belum terhubung';
     }
   }
 
@@ -3823,6 +3940,13 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   });
   // ===== END BLUETOOTH BINDINGS =====
 
+  // ===== RECEIPT PREVIEW BINDINGS =====
+  bindEvent('btn-close-receipt-preview', 'click', tutupPreviewStruk);
+  bindEvent('btn-receipt-cancel', 'click', tutupPreviewStruk);
+  bindEvent('btn-receipt-print-browser', 'click', cetakStrukDariPreviewBrowser);
+  bindEvent('btn-receipt-print-bt', 'click', cetakStrukDariPreviewBT);
+  // ===== END RECEIPT PREVIEW BINDINGS =====
+
   bindEvent('btn-process-pos', 'click', async () => {
     if (posCart.length === 0) return alert("Pilih item dahulu!");
     let total = 0, totalHpp = 0, summary = "";
@@ -4070,7 +4194,6 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     handleUnitType();
     updateSwitcherVisibility();
     setTimeout(() => { const roleEl = $('ms-reg-role'); if (roleEl) roleEl.dispatchEvent(new Event('change')); }, 100);
-    // Inisialisasi status tombol BT
     setBtStatusUI('Belum terhubung ke printer', '');
     if (!isWebBluetoothSupported()) {
       const note = document.querySelector('.bt-info-note');
@@ -4078,7 +4201,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     }
     initFirebase();
     console.log('%c🏬 Multi-Toko Siap! Toko baru KOSONG, stok TERPISAH per cabang.', 'background:#e11d48;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold;');
-    console.log('🖨️ Bluetooth Printer: Klik "Hubungkan Printer" di Portal Admin → pilih perangkat → cetak via tombol "Cetak Bluetooth".');
+    console.log('🖨️ Fitur Baru: Preview struk sebelum cetak + Cetak Bluetooth langsung dari Chrome!');
     console.log('👑 Owner: toko=OWNER PUSAT | user=owner | pass=owner123 | sandi=' + SECRET_CODES.owner);
     console.log('🏬 Admin: toko=Toko Pusat a\'didin | user=admin | pass=admin123 | sandi=' + SECRET_CODES.admin);
     console.log('🛒 Kasir: toko=Toko Pusat a\'didin | user=kasir | pass=kasir123 | sandi=' + SECRET_CODES.kasir);
@@ -4090,4 +4213,4 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   window.onerror = function (msg, src, line) { console.error("ERROR:", msg, "-", src, line); };
 </script>
 </body>
-          </html>
+</html>
