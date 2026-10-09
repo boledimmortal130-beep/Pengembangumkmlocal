@@ -238,17 +238,19 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
 .receipt-preview-header .close-btn{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);padding:6px 12px;font-size:14px;border-radius:8px}
 .receipt-preview-header .close-btn:hover{background:rgba(255,255,255,.35)}
 .receipt-preview-scroll{flex:1;overflow-y:auto;padding:16px;background:#e5e7eb;display:flex;justify-content:center}
-.receipt-paper{background:#fff;width:80mm;max-width:100%;padding:12px 14px;font-family:'Courier New',Courier,monospace;font-size:11.5px;line-height:1.5;color:#000;box-shadow:0 4px 14px rgba(0,0,0,.15);border-radius:4px}
-.receipt-paper .text-header{text-align:center;font-weight:bold;font-size:14px}
-.receipt-paper .text-header-sub{text-align:center;font-size:11.5px;font-weight:bold}
+.receipt-paper{background:#fff;width:80mm;max-width:100%;padding:12px 14px;font-family:'Courier New',Courier,monospace;font-size:11.5px;line-height:1.55;color:#000;box-shadow:0 4px 14px rgba(0,0,0,.15);border-radius:4px}
+.receipt-paper .text-header{text-align:center;font-weight:bold;font-size:14px;letter-spacing:.5px}
+.receipt-paper .text-header-sub{text-align:center;font-size:11.5px;font-weight:bold;margin-bottom:2px}
 .receipt-paper .contact-wa{text-align:center;font-size:10.5px;font-weight:bold;margin:2px 0}
 .receipt-paper hr{border:0;border-top:1px dashed #000;margin:6px 0}
 .receipt-paper table{width:100%;border-collapse:collapse}
-.receipt-paper .info-table td{padding:1px 3px 1px 0;vertical-align:top}
-.receipt-paper .section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:3px 6px;border-radius:4px;margin:6px 0;font-size:11px}
-.receipt-paper .receipt-items{font-family:inherit;white-space:pre-wrap;font-size:11px;line-height:1.5;margin:4px 0}
+.receipt-paper .info-table td{padding:1.5px 3px 1.5px 0;vertical-align:top;font-size:11px}
+.receipt-paper .info-table td:first-child{white-space:nowrap;width:82px}
+.receipt-paper .section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:4px 6px;border-radius:4px;margin:6px 0;font-size:11px;letter-spacing:.3px}
+.receipt-paper .receipt-items{font-family:'Courier New',Courier,monospace;white-space:pre-wrap;font-size:10.5px;line-height:1.55;margin:4px 0;letter-spacing:.1px}
 .receipt-paper .total-table td{padding:2px 0;font-size:11.5px}
 .receipt-paper .total-line td{font-weight:bold;border-top:1px solid #000;padding-top:5px;font-size:13px}
+.receipt-paper .footer-note{text-align:center;font-size:10.5px;margin-top:4px;line-height:1.5}
 .receipt-preview-actions{padding:12px 16px;background:#fff;border-top:2px solid #e5e7eb;display:flex;gap:8px;flex-wrap:wrap}
 .receipt-preview-actions button{flex:1;min-width:110px;padding:11px 14px;font-size:12px;border-radius:8px;font-weight:800}
 .receipt-preview-actions .btn-print-browser{background:#475569;color:#fff}
@@ -506,7 +508,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
               <div class="form-style">
                 <div class="form-group"><label>Uang Tunai (Rp)</label><input type="number" id="pos-cash-input" value="0"></div>
                 <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;margin-bottom:8px;"><span>Kembalian:</span><span id="pos-change-pay" style="color:var(--warning);">Rp 0</span></div>
-                <button class="btn-success btn-block" id="btn-process-pos"><i class="fas fa-check-circle"></i> Selesaikan Transaksi</button>
+                <button class="btn-success btn-block" id="btn-process-pos"><i class="fas fa-check-circle"></i> Selesaikan Transaksi & Lihat Struk</button>
                 <button class="btn-bt btn-block" id="btn-preview-receipt" style="margin-top:6px;font-size:12px;padding:11px;">
                   <i class="fas fa-receipt"></i> Lihat / Cetak Struk
                 </button>
@@ -1216,6 +1218,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   let activeScanTarget = null;
   let encodedImage = "";
   let pendingToppingCallback = null;
+  let lastPosTransaction = null;
   let lowStockThreshold = parseInt(localStorage.getItem('adidin_low_stock_threshold'));
   if (!lowStockThreshold || lowStockThreshold < 1) lowStockThreshold = 5;
   const getLowStockThreshold = () => lowStockThreshold;
@@ -3122,34 +3125,13 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     return { nama: 'Administrator', peran: 'admin', wa: formatWA(MAIN_WA_NUMBER) };
   }
 
-  async function generateReceiptQR(text = STORE_URL, size = 200) {
-    if (!(await ensureQRCodeLib())) return '';
-    return new Promise((resolve) => {
-      try {
-        const tempDiv = document.createElement('div');
-        tempDiv.style.cssText = "position:fixed;left:-9999px;top:0;width:"+size+"px;height:"+size+"px;";
-        document.body.appendChild(tempDiv);
-        try { new QRCode(tempDiv, { text, width: size, height: size, correctLevel: QRCode.CorrectLevel.M }); }
-        catch(err) { if (tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv); return resolve(''); }
-        setTimeout(() => {
-          let dataUrl = '';
-          const qrCanvas = tempDiv.querySelector('canvas'), qrImg = tempDiv.querySelector('img');
-          if (qrCanvas) { try { dataUrl = qrCanvas.toDataURL('image/png'); } catch(e){} }
-          if (!dataUrl && qrImg && qrImg.src && qrImg.src.startsWith('data:')) dataUrl = qrImg.src;
-          if (tempDiv.parentNode) tempDiv.parentNode.removeChild(tempDiv);
-          resolve(dataUrl);
-        }, 150);
-      } catch(e) { resolve(''); }
-    });
-  }
-
   const printDynamicReceipt = (htmlBody) => new Promise((resolve) => {
     const iframe = document.createElement('iframe');
     iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:80mm;height:500px;border:0;";
     document.body.appendChild(iframe);
     const iframeDoc = iframe.contentWindow.document;
     iframeDoc.open();
-    iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Struk</title><style>*{margin:0;padding:0;box-sizing:border-box}html{width:80mm}body{width:80mm;margin:0;padding:2mm 3mm;font-family:'Courier New',Courier,monospace;font-size:11px;line-height:1.45;color:#000;background:#fff}table{width:100%;border-collapse:collapse}hr{border:0;border-top:1px dashed #000;margin:4px 0}pre{font-family:inherit;white-space:pre-wrap}img{max-width:100%}.text-center{text-align:center}.text-header{text-align:center;font-weight:bold;font-size:14px!important}.text-header-sub{text-align:center;font-size:11px!important;font-weight:bold}.contact-wa{text-align:center;font-size:10px!important;font-weight:bold;margin:2px 0}.info-table td{padding:1px 3px 1px 0}.section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:2px 4px;border-radius:4px;margin:4px 0}.receipt-items{margin:2px 0;font-size:11px;line-height:1.45}.total-table td{padding:2px 0}.total-line td{font-weight:bold;border-top:1px solid #000;padding-top:4px}</style></head><body>${htmlBody}</body></html>`);
+    iframeDoc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Struk</title><style>*{margin:0;padding:0;box-sizing:border-box}html{width:80mm}body{width:80mm;margin:0;padding:2mm 3mm;font-family:'Courier New',Courier,monospace;font-size:11px;line-height:1.55;color:#000;background:#fff}table{width:100%;border-collapse:collapse}hr{border:0;border-top:1px dashed #000;margin:4px 0}pre{font-family:'Courier New',Courier,monospace;white-space:pre-wrap;font-size:10.5px;line-height:1.55;letter-spacing:.1px}img{max-width:100%}.text-center{text-align:center}.text-header{text-align:center;font-weight:bold;font-size:14px!important;letter-spacing:.5px}.text-header-sub{text-align:center;font-size:11px!important;font-weight:bold}.contact-wa{text-align:center;font-size:10px!important;font-weight:bold;margin:2px 0}.info-table td{padding:1.5px 3px 1.5px 0;font-size:11px}.info-table td:first-child{white-space:nowrap;width:82px}.section-title{text-align:center;font-weight:bold;background:#f3f4f6;padding:4px 6px;border-radius:4px;margin:6px 0;font-size:11px}.receipt-items{margin:4px 0;font-size:10.5px;line-height:1.55;white-space:pre-wrap;letter-spacing:.1px}.total-table td{padding:2px 0;font-size:11.5px}.total-line td{font-weight:bold;border-top:1px solid #000;padding-top:4px;font-size:13px}.footer-note{text-align:center;font-size:10.5px;margin-top:4px;line-height:1.5}</style></head><body>${htmlBody}</body></html>`);
     iframeDoc.close();
     let attempts = 0;
     const tryPrint = () => {
@@ -3207,7 +3189,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
 
   // ===== FUNGSI CETAK STRUK YANG DIPERBARUI =====
 
-  // Fungsi baru: Bangun HTML struk
+  // Bangun HTML struk (rapih, teratur, TANPA QR CODE)
   function buildReceiptHTML(order) {
     const items = extractOrderItems(order);
     let itemsHtml = "";
@@ -3228,41 +3210,27 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     const kasirInfo = getKasirInfo();
     const waToko = formatWA(MAIN_WA_NUMBER);
 
-    return `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${waToko}</div><hr><table class="info-table"><tr><td>No. Pesanan</td><td>:</td><td>${escapeHtmlText(order.id || '-')}</td></tr><tr><td>Waktu</td><td>:</td><td>${escapeHtmlText(order.timestamp || '-')}</td></tr><tr><td>Status</td><td>:</td><td>${(order.orderStatus || 'active').toUpperCase()}</td></tr><tr><td>Oleh</td><td>:</td><td>${kasirInfo.nama} (${kasirInfo.peran.toUpperCase()})</td></tr></table><hr><div class="section-title">— DATA PELANGGAN —</div><table class="info-table"><tr><td>Nama</td><td>:</td><td>${escapeHtmlText(order.buyerName || '-')}</td></tr><tr><td>WA</td><td>:</td><td>${escapeHtmlText(order.buyerPhone || '-')}</td></tr><tr><td>Alamat</td><td>:</td><td>${escapeHtmlText(order.buyerAddress || '-')}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${escapeHtmlText(itemsHtml)}</pre><hr><table class="total-table"><tr><td>Subtotal</td><td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td></tr><tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div><div class="text-center">WA Admin: ${waToko}</div>`;
+    return `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${waToko}</div><hr><table class="info-table"><tr><td>No. Pesanan</td><td>:</td><td>${escapeHtmlText(order.id || '-')}</td></tr><tr><td>Waktu</td><td>:</td><td>${escapeHtmlText(order.timestamp || '-')}</td></tr><tr><td>Status</td><td>:</td><td>${(order.orderStatus || 'active').toUpperCase()}</td></tr><tr><td>Oleh</td><td>:</td><td>${kasirInfo.nama} (${kasirInfo.peran.toUpperCase()})</td></tr></table><hr><div class="section-title">— DATA PELANGGAN —</div><table class="info-table"><tr><td>Nama</td><td>:</td><td>${escapeHtmlText(order.buyerName || '-')}</td></tr><tr><td>WA</td><td>:</td><td>${escapeHtmlText(order.buyerPhone || '-')}</td></tr><tr><td>Alamat</td><td>:</td><td>${escapeHtmlText(order.buyerAddress || '-')}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${escapeHtmlText(itemsHtml)}</pre><hr><table class="total-table"><tr><td>Subtotal</td><td style="text-align:right;">Rp ${subtotal.toLocaleString('id-ID')}</td></tr><tr><td>Ongkir</td><td style="text-align:right;">${shippingFee === 0 ? 'GRATIS' : 'Rp ' + shippingFee.toLocaleString('id-ID')}</td></tr><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr></table><hr><div class="footer-note">Terima Kasih!<br>WA Admin: ${waToko}</div>`;
   }
 
-  // Fungsi baru: Buka preview struk
+  // Buka preview struk (TANPA QR CODE)
   async function bukaPreviewStruk(orderId) {
     const order = historyList.find(o => o.id === orderId);
     if (!order) return alert("Pesanan tidak ditemukan!");
     const html = buildReceiptHTML(order);
     const paper = $('receipt-paper-preview');
     paper.innerHTML = html;
-    // Tambahkan QR code
-    const qrDataUrl = await generateReceiptQR();
-    if (qrDataUrl) {
-      const qrDiv = document.createElement('div');
-      qrDiv.className = 'text-center';
-      qrDiv.innerHTML = `<img src="${qrDataUrl}" width="100" height="100" style="margin-top:8px;">`;
-      paper.appendChild(qrDiv);
-    }
     const modal = $('receipt-preview-modal');
     modal.classList.remove('hidden');
     modal.dataset.orderId = orderId;
   }
 
-  // Fungsi baru: Tutup preview
+  // Tutup preview
   function tutupPreviewStruk() {
     const modal = $('receipt-preview-modal');
     modal.classList.add('hidden');
     modal.dataset.orderId = '';
   }
-
-  // Fungsi lama: cetakStrukOrder (via browser print) - sekarang memanggil preview
-  const cetakStrukOrder = async (orderId) => {
-    // Alihkan ke preview
-    await bukaPreviewStruk(orderId);
-  };
 
   // Cetak struk via browser dari preview
   async function cetakStrukDariPreviewBrowser() {
@@ -3344,12 +3312,6 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   }
 
   function updateBtPrintButtonState() {
-    const btnBtPos = $('btn-process-pos-bt');
-    if (btnBtPos) {
-      const ok = !!btPrinterChar;
-      btnBtPos.disabled = !ok;
-      btnBtPos.innerHTML = ok ? '<i class="fas fa-bluetooth-b"></i> Cetak via Bluetooth (Thermal)' : '<i class="fas fa-bluetooth-b"></i> Cetak Bluetooth (Printer belum tersambung)';
-    }
     const btnReceiptBt = $('btn-receipt-print-bt');
     if (btnReceiptBt) {
       btnReceiptBt.disabled = !btPrinterChar;
@@ -3599,48 +3561,6 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     await btPrintLine("Terima kasih telah berbelanja!", { align: 'c' });
     await btPrintLine("DILARANG HUTANG", { align: 'c', bold: true });
     await btPrintLine("-- " + new Date().toLocaleString('id-ID') + " --", { align: 'c' });
-    await btPrintFeed(3);
-    await sendEscPosRaw(new Uint8Array([0x1d, 0x56, 0x00]));
-  }
-
-  async function btPrintPosReceipt({ items, cash, change, total, totalHpp, timestamp, orderId }) {
-    if (!btPrinterChar) throw new Error('Printer belum terhubung.');
-    const kasirInfo = getKasirInfo();
-    await sendEscPosRaw(escposInit());
-    await btPrintLine("PENGEMBANG UMKM LOCAL", { align: 'c', bold: true, size: 'double' });
-    await btPrintLine("toko online a'didin", { align: 'c', bold: true });
-    await btPrintLine("WA: " + formatWA(MAIN_WA_NUMBER), { align: 'c' });
-    await btPrintSeparator('=', 32);
-    await btPrintLine("No   : " + (orderId || '-'));
-    await btPrintLine("Tgl  : " + (timestamp || new Date().toLocaleString('id-ID')));
-    await btPrintLine("Kasir: " + kasirInfo.nama);
-    await btPrintSeparator('-', 32);
-    await btPrintLine("RINCIAN BELANJA", { align: 'c', bold: true });
-    await btPrintSeparator('-', 32);
-    if (!items || items.length === 0) {
-      await btPrintLine("(tidak ada item)");
-    } else {
-      for (let i = 0; i < items.length; i++) {
-        const it = items[i];
-        const unitLabel = it.unit === 'digital' ? 'Transaksi' : getUnitPretty(it.unit);
-        const qtyStr = formatQtySimple(it.qty) + ' ' + unitLabel;
-        const nameLines = wrapTextByWidth(`${i + 1}. ${it.name}`, 32);
-        for (const l of nameLines) await btPrintLine(l);
-        if (it.toppings && it.toppings.length) {
-          await btPrintLine("   + " + it.toppings.map(t => t.name).join(', '));
-        }
-        await btPrintLine(`   Rp ${(it.price || 0).toLocaleString('id-ID')} x ${qtyStr}`);
-      }
-    }
-    await btPrintSeparator('=', 32);
-    await btPrintLine(wrapTextLeftRight('TOTAL', 'Rp ' + total.toLocaleString('id-ID'), 32), { bold: true, size: 'double' });
-    await btPrintLine(wrapTextLeftRight('TUNAI', 'Rp ' + cash.toLocaleString('id-ID'), 32));
-    await btPrintLine(wrapTextLeftRight('KEMBALI', 'Rp ' + change.toLocaleString('id-ID'), 32));
-    await btPrintSeparator('-', 32);
-    await btPrintFeed(1);
-    await btPrintLine("Terima kasih!", { align: 'c' });
-    await btPrintLine("Barang yang sudah dibeli", { align: 'c' });
-    await btPrintLine("tidak dapat ditukar", { align: 'c' });
     await btPrintFeed(3);
     await sendEscPosRaw(new Uint8Array([0x1d, 0x56, 0x00]));
   }
@@ -3947,7 +3867,7 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   bindEvent('btn-receipt-print-bt', 'click', cetakStrukDariPreviewBT);
   // ===== END RECEIPT PREVIEW BINDINGS =====
 
-  // ===== TOMBOL "SELESAIKAN TRANSAKSI" (TANPA CETAK) =====
+  // ===== TOMBOL "SELESAIKAN TRANSAKSI & LIHAT STRUK" (OTOMATIS PREVIEW) =====
   bindEvent('btn-process-pos', 'click', async () => {
     if (posCart.length === 0) return alert("Pilih item dahulu!");
     let total = 0, totalHpp = 0, summary = "";
@@ -3969,15 +3889,18 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     const order = { id:'ord_' + Date.now(), timestamp: `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}`, buyerName: `Pelanggan (Kasir: ${currentUser ? currentUser.username : 'Kasir'})`, buyerPhone: "-", buyerAddress: "Transaksi Langsung", timeOption: "Selesai di Tempat", note: `Bayar: Rp ${cash.toLocaleString('id-ID')} | Kembali: Rp ${(cash-total).toLocaleString('id-ID')}`, itemsSummary: summary, itemsList: items, subtotal: total, totalHpp, netProfit: total - totalHpp, shippingFee: 0, orderStatus: 'selesai', source: 'POS Kasir', storeId: activeStoreId };
     historyList.unshift(order);
     saveHistory();
-    alert(`✅ Transaksi selesai!\nTotal: Rp ${total.toLocaleString('id-ID')}\nBayar: Rp ${cash.toLocaleString('id-ID')}\nKembali: Rp ${(cash-total).toLocaleString('id-ID')}\n\nKlik "Lihat / Cetak Struk" untuk mencetak struk.`);
+    lastPosTransaction = order;
+    // Kosongkan keranjang POS setelah transaksi
     posCart = []; $('pos-cash-input').value = ""; renderPosCart();
+    // ===== OTOMATIS BUKA PREVIEW STRUK =====
+    await bukaPreviewStruk(order.id);
   });
 
   // ===== TOMBOL "LIHAT / CETAK STRUK" DARI POS =====
   bindEvent('btn-preview-receipt', 'click', async () => {
     if (posCart.length === 0) {
       // Jika tidak ada item di keranjang POS, cari transaksi terakhir POS
-      const lastOrder = historyList.find(o => o.source === 'POS Kasir' && o.orderStatus === 'selesai');
+      const lastOrder = lastPosTransaction || historyList.find(o => o.source === 'POS Kasir' && o.orderStatus === 'selesai');
       if (!lastOrder) return alert("Belum ada transaksi POS. Silakan lakukan transaksi terlebih dahulu.");
       await bukaPreviewStruk(lastOrder.id);
       return;
@@ -3998,13 +3921,12 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
     const change = cash - total;
     const now = new Date();
     const kasirInfo = getKasirInfo();
-    const qrDataUrl = await generateReceiptQR();
-    const html = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${formatWA(MAIN_WA_NUMBER)}</div><hr><table class="info-table"><tr><td>No. Struk</td><td>:</td><td>POS_${Date.now()}</td></tr><tr><td>Kasir</td><td>:</td><td>${kasirInfo.nama}</td></tr><tr><td>Waktu</td><td>:</td><td>${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${escapeHtmlText(summary)}</pre><hr><table class="total-table"><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr><tr><td>BAYAR</td><td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td></tr><tr><td>KEMBALI</td><td style="text-align:right;">Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}</td></tr></table><hr><div class="text-center">Terima Kasih!</div>${qrDataUrl ? `<div class="text-center"><img src="${qrDataUrl}" width="100" height="100"></div>` : ''}`;
+    const html = `<div class="text-header">PENGEMBANG UMKM LOCAL</div><div class="text-header-sub">✨ toko online a'didin ✨</div><div class="contact-wa">WA Admin: ${formatWA(MAIN_WA_NUMBER)}</div><hr><table class="info-table"><tr><td>No. Struk</td><td>:</td><td>POS_${Date.now()}</td></tr><tr><td>Kasir</td><td>:</td><td>${kasirInfo.nama}</td></tr><tr><td>Waktu</td><td>:</td><td>${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID')}</td></tr></table><hr><div class="section-title">— RINCIAN BELANJA —</div><pre class="receipt-items">${escapeHtmlText(summary)}</pre><hr><table class="total-table"><tr class="total-line"><td>TOTAL</td><td style="text-align:right;">Rp ${total.toLocaleString('id-ID')}</td></tr><tr><td>BAYAR</td><td style="text-align:right;">Rp ${cash.toLocaleString('id-ID')}</td></tr><tr><td>KEMBALI</td><td style="text-align:right;">Rp ${(change >= 0 ? change : 0).toLocaleString('id-ID')}</td></tr></table><hr><div class="footer-note">Terima Kasih!<br>WA Admin: ${formatWA(MAIN_WA_NUMBER)}</div>`;
     const paper = $('receipt-paper-preview');
     paper.innerHTML = html;
     const modal = $('receipt-preview-modal');
     modal.classList.remove('hidden');
-    modal.dataset.orderId = ''; // POS preview tidak terkait order ID
+    modal.dataset.orderId = '';
     modal.dataset.isPosPreview = 'true';
   });
 
@@ -4209,4 +4131,4 @@ footer{background:linear-gradient(135deg,var(--header-start),var(--header-end));
   window.onerror = function (msg, src, line) { console.error("ERROR:", msg, "-", src, line); };
 </script>
 </body>
-  </html>
+              </html>
